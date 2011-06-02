@@ -31,8 +31,8 @@
 
 def Property(func):
   """
-  Standard @Property idiom.  It allows properties to be set in a more
-  idiomatic but easier to read fashion, as demonstrated here:
+  Standard @Property idiom. It allows properties to be set in a more idiomatic
+  but easier to read fashion, as demonstrated here:
 
   class SomeClass(object):
     @Property
@@ -46,7 +46,7 @@ def Property(func):
         del self.field
       return locals()
 
-  Don't forget the 'return locals()' at the end!  For more information, refer
+  Don't forget the 'return locals()' at the end! For more information, refer
   to the following blog post:
 
   <http://adam.gomaa.us/blog/2008/aug/11/the-python-property-builtin/>
