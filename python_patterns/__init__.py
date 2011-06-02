@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # === python_patterns -----------------------------------------------------===
-# Copyright (C) 2011, RokuSigma Inc. (Mark Friedenbach <mark@roku-sigma.com>)
+# Copyright © 2011, RokuSigma Inc. (Mark Friedenbach <mark@roku-sigma.com>)
 #
 # RokuSigma Inc. (the “Company”) Confidential
 #
