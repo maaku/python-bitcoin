@@ -52,7 +52,7 @@ def Property(func):
   <http://adam.gomaa.us/blog/2008/aug/11/the-python-property-builtin/>
 
   NOTE: “Property” has a capital P because “property” is already a Python
-        built-in (which capital-P Property is a wrapper around). Although it
+        built-in (which capital-P @Property is a wrapper around). Although it
         breaks convention to have a capitalized decorator, it would be even
         worse to call it something else.
   """
