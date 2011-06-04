@@ -67,7 +67,7 @@ build/.stamp-h: conf/requirements.pip
 	  --no-site-packages \
 	  --distribute \
 	  --never-download \
-	  --prompt="(buildpunkt.com) " \
+	  --prompt="(python-patterns) " \
 	  build
 	./build/bin/python build/bin/pip install \
 	  --download-cache="`pwd`"/cache/pypi \
