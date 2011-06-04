@@ -1,2 +1,5 @@
 *.pyc
 .*.swp
+sandbox
+build/*
+cache/pypi/*
