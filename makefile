@@ -26,12 +26,6 @@
 # USE, OR SELL ANYTHING THAT IT MAY DESCRIBE, IN WHOLE OR IN PART.
 # ===----------------------------------------------------------------------===
 
-# ===----------------------------------------------------------------------===
-# This is RokuSigma Inc.'s first product. The site is a hosting engine for
-# user-contributed 3D content streamed using the libdarknet middleware and the
-# Buildpunkt web player.
-# ===----------------------------------------------------------------------===
-
 .PHONY: all
 all: build/.stamp-h
 
