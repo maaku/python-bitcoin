@@ -58,23 +58,25 @@ for dirpath, dirnames, filenames in os.walk('python_patterns'):
       data_files.append(os.path.join(prefix, f))
 
 setup(name='python-patterns',
-      version=get_version().replace(' ', '-'),
-      description='A collection of commonly used Python patterns.',
-      author='RokuSigma Inc.',
-      author_email='python-patterns@roku-sigma.com',
-      url='http://www.github.com/rokusigma/python-patterns/',
-      download_url='http://github.com/rokusigma/python-patterns/tarball/master',
-      package_dir={'python_patterns': 'python_patterns'},
-      packages=packages,
-      package_data={'python_patterns': data_files},
-      classifiers=['Development Status :: 1 - Planning',
-                   'Intended Audience :: Developers',
-                   'License :: Other/Proprietary License',
-                   'Operating System :: OS Independent',
-                   'Programming Language :: Python',
-                   'Topic :: Software Development :: Libraries :: Python Modules',
-                   'Topic :: Utilities'],
-      )
+  version=get_version().replace(' ', '-'),
+  description='A collection of commonly used Python patterns.',
+  author='RokuSigma Inc.',
+  author_email='python-patterns@roku-sigma.com',
+  url='http://www.github.com/rokusigma/python-patterns/',
+  download_url='http://github.com/rokusigma/python-patterns/tarball/master',
+  package_dir={'python_patterns': 'python_patterns'},
+  packages=packages,
+  package_data={'python_patterns': data_files},
+  classifiers=[
+    'Development Status :: 1 - Planning',
+    'Intended Audience :: Developers',
+    'License :: Other/Proprietary License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Topic :: Utilities',
+  ],
+)
 
 # ===----------------------------------------------------------------------===
 # End of File
