@@ -37,7 +37,7 @@ def Property(func):
   class SomeClass(object):
     @Property
     def property_name():
-      doc = "docstring"
+      '''docstring'''
       def fget(self):
         return self.field
       def fset(self, value):
@@ -47,16 +47,18 @@ def Property(func):
       return locals()
 
   Don't forget the 'return locals()' at the end! For more information, refer
-  to the following blog post:
+  to the following two blog posts:
 
   <http://adam.gomaa.us/blog/2008/aug/11/the-python-property-builtin/>
+
+  <http://kbyanc.blogspot.com/2007/06/python-property-attribute-tricks.html>
 
   NOTE: “Property” has a capital P because “property” is already a Python
         built-in (which capital-P @Property is a wrapper around). Although it
         breaks convention to have a capitalized decorator, it would be even
         worse to call it something else.
   """
-  return property(**func())
+  return property(doc=func.__doc__, **func())
 
 # ===----------------------------------------------------------------------===
 # End of File

@@ -64,6 +64,13 @@ from python_patterns.utils.decorators import Property
 #     value is in making sure that docstrings are being properly set in all
 #     the various test scenarios, and that unicode is passed through correctly
 #     without getting mangled.
+#
+#     NOTE: Unfortunately specifying the docstring in advance, like this, gets
+#           in the way of testing the way docstrings are actually used, in-
+#           line. For that reason the docstring text is repeated below,
+#           verbatim in each instance that it is used. If you change the
+#           DOCSTRING_VALUE, be sure to do a search and replace to find the
+#           other occurrences!
 INITIAL_VALUE = 3.14
 RESET_VALUE = dict(a=1,b="str",c=['x','y','z'])
 DELETED_VALUE = None
@@ -75,7 +82,7 @@ class Getter(object):
   """
   @Property
   def test_attrib():
-    doc = DOCSTRING_VALUE
+    u"「Zwölf Boxkämpfer jagen Viktor quer über den großen Sylter Deich」と言いました。"
     def fget(self):
       return self._value
     return locals()
@@ -103,7 +110,7 @@ class GetAndSetter(object):
   """
   @Property
   def test_attrib():
-    doc = DOCSTRING_VALUE
+    u"「Zwölf Boxkämpfer jagen Viktor quer über den großen Sylter Deich」と言いました。"
     def fget(self):
       return self._value
     def fset(self, value):
@@ -152,7 +159,7 @@ class GetSetAndDeller(object):
   """
   @Property
   def test_attrib():
-    doc = DOCSTRING_VALUE
+    u"「Zwölf Boxkämpfer jagen Viktor quer über den großen Sylter Deich」と言いました。"
     def fget(self):
       return self._value
     def fset(self, value):
