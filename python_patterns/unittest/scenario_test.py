@@ -57,7 +57,7 @@ class TestIsNumeric(unittest2.TestCase):
     scenarios = [
       dict(val="1", expected=True),
       dict(val="-1", expected=True),
-      dict(val=unicode("123" * 9999), expected=True),
+      dict(val=unicode("123" * 3), expected=True),
       dict(val="Bad String", expected=False),
       dict(val="Speaks Volumes", expected=False)
     ]
