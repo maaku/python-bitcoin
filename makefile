@@ -31,7 +31,17 @@ all: .pkg/.stamp-h
 
 .PHONY: check
 check: .pkg/.stamp-h
-	.pkg/bin/unit2 discover -v -s python_patterns -p '*.py' -t .
+	.pkg/bin/python -c "\
+	import unittest2; \
+	import xmlrunner; \
+	unittest2.main( \
+	  testRunner=xmlrunner.XMLTestRunner(output='xunit-report'), \
+	  argv=['unit2', 'discover', \
+	    '-s','python_patterns', \
+	    '-p','*.py', \
+	    '-t','.', \
+	  ] \
+	)"
 
 .PHONY: shell
 shell: .pkg/.stamp-h
