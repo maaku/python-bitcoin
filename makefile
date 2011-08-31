@@ -32,7 +32,7 @@ all: .pkg/.stamp-h
 .PHONY: check
 check: .pkg/.stamp-h
 	mkdir -p build/report/xunit
-	.pkg/bin/python -c "\
+	echo "\
 	import unittest2; \
 	import xmlrunner; \
 	unittest2.main( \
@@ -42,7 +42,11 @@ check: .pkg/.stamp-h
 	    '-p','*.py', \
 	    '-t','.', \
 	  ] \
-	)"
+	)" >.pytest.py
+	chmod +x .pytest.py
+	.pkg/bin/coverage run .pytest.py
+	.pkg/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
+	rm -f .pytest.py
 
 .PHONY: shell
 shell: .pkg/.stamp-h
