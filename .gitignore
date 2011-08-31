@@ -2,4 +2,4 @@
 .*.swp
 .cache
 .pkg
-xunit-report
+build

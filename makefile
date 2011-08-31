@@ -31,11 +31,12 @@ all: .pkg/.stamp-h
 
 .PHONY: check
 check: .pkg/.stamp-h
+	mkdir -p build/report/xunit
 	.pkg/bin/python -c "\
 	import unittest2; \
 	import xmlrunner; \
 	unittest2.main( \
-	  testRunner=xmlrunner.XMLTestRunner(output='xunit-report'), \
+	  testRunner=xmlrunner.XMLTestRunner(output='build/report/xunit'), \
 	  argv=['unit2', 'discover', \
 	    '-s','python_patterns', \
 	    '-p','*.py', \
