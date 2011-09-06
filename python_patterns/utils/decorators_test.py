@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === tests.utils.decorators ----------------------------------------------===
+# === python_patterns.utils.decorators_test -------------------------------===
 # Copyright © 2011, RokuSigma Inc. (Mark Friedenbach <mark@roku-sigma.com>)
 # as an unpublished work.
 #
