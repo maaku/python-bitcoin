@@ -3,6 +3,7 @@
 
 # === python_patterns.unittest.scenario_test ------------------------------===
 # Copyright © 2011, RokuSigma Inc. (Mark Friedenbach <mark@roku-sigma.com>)
+# as an unpublished work.
 #
 # RokuSigma Inc. (the “Company”) Confidential
 #
