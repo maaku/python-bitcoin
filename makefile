@@ -45,7 +45,7 @@ check: .pkg/.stamp-h
 	  ] \
 	)" >.pytest.py
 	chmod +x .pytest.py
-	.pkg/bin/coverage run .pytest.py
+	.pkg/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
 	.pkg/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
 	rm -f .pytest.py
 
