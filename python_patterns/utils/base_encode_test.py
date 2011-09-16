@@ -43,11 +43,11 @@ SCENARIOS = [
   dict(num=0, string='a'),
   dict(num=1, string='b'),
   dict(num=2, string='c'),
+  dict(num=53, string='8'),
   dict(num=54, string='9'),
-  dict(num=55, string='-'),
-  dict(num=56, string='ba'),
-  dict(num=57, string='bb'),
-  dict(num=96**34, string='kq6QFsNzjZC6JCmn7ngcgLAjVvsh-yCKt2qFMMt'),
+  dict(num=55, string='ba'),
+  dict(num=56, string='bb'),
+  dict(num=96**34, string='vvWPtAEc2P6nm6vrE9VAdeYabJH3KGPkSbW55PD'),
   dict(base="123", num=0, string='1'),
   dict(base="123", num=1, string='2'),
   dict(base="123", num=2, string='3'),
@@ -56,14 +56,12 @@ SCENARIOS = [
   dict(base=u"éü", num=0, string=u'é'),
   dict(base=u"éü", num=1, string=u'ü'),
   dict(base=u"éü", num=2, string=u'üé'),
-  dict(num=100, string='bX', little_endian=False),
-  dict(num=100, string='Xb', little_endian=True),
+  dict(num=100, string='bY', little_endian=False),
+  dict(num=100, string='Yb', little_endian=True),
 ]
 
 class TestBaseEncode(unittest2.TestCase):
-  """
-  Test encoding and decoding using a variety of standard scenarios.
-  """
+  """Test encoding and decoding using a variety of standard scenarios."""
   __metaclass__ = ScenarioMeta
   class test_encode(ScenarioTest):
     scenarios = SCENARIOS
@@ -75,9 +73,7 @@ class TestBaseEncode(unittest2.TestCase):
       self.assertEqual(num, base_decode(string, base=base, little_endian=little_endian))
 
 class TestNegativeNumberEncode(unittest2.TestCase):
-  """
-  Test that encoding a negative number results in a value error.
-  """
+  """Test that encoding a negative number results in a value error."""
   def test_negative_number(self):
     self.assertRaises(ValueError, base_encode, (-1))
 

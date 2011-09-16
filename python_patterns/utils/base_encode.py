@@ -30,21 +30,21 @@
 # USE, OR SELL ANYTHING THAT IT MAY DESCRIBE, IN WHOLE OR IN PART.
 # ===----------------------------------------------------------------------===
 
-ALPHABET_LIST = u"abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789-"
+ALPHABET_LIST = u"abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 ALPHABET_DICT = dict((c, i) for i, c in enumerate(ALPHABET_LIST))
 ALPHABET_LENGTH = len(ALPHABET_LIST)
 
 def base_encode(num, base=None, little_endian=False):
-  """
-  Encodes the passed-in number into a textual representation using the passed-
-  in alphabet, or a default alphabet of 56 easily distinguishable characters.
+  """Encodes the passed-in number into a textual representation using the
+  passed-in alphabet, or a default alphabet of 55 easily distinguishable
+  characters.
 
     num
       The number to encode.
 
     base
       A string containing the list of base characters to be used, in order
-      (default: "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789-").
+      (default: "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789").
 
     little_endian
       Boolean value specifying whether the output should be little-endian or
@@ -70,8 +70,7 @@ def base_encode(num, base=None, little_endian=False):
   return ret
 
 def base_decode(string, base=None, little_endian=False):
-  """
-  Decodes the passed-in string (presumably created with base_encode) from a
+  """Decodes the passed-in string (presumably created with base_encode) from a
   textual representation to a number.
 
     string
@@ -79,7 +78,7 @@ def base_decode(string, base=None, little_endian=False):
 
     base
       A string containing the list of base characters to be used, in order
-      (default: "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789-").
+      (default: "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789").
 
     little_endian
       Boolean value specifying whether the output should be little-endian or
