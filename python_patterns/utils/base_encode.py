@@ -95,7 +95,7 @@ def base_decode(string, base=None, little_endian=False):
     for i, c in enumerate(string):
       ret += (length ** i) * reverse_base[c]
   else:
-    for i, c in enumerate(string[::-1]):
+    for i, c in enumerate(reversed(string)):
       ret += (length ** i) * reverse_base[c]
   return ret
 
