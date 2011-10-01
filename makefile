@@ -92,6 +92,7 @@ dist:
 	  --prompt="(python-patterns) " \
 	  .pkg
 	rm -rf .cache/virtualenv/virtualenv-1.6.4
+	.pkg/bin/easy_install readline
 	mkdir -p .cache/pypi
 	for reqfile in `ls conf/requirements.*.pip`; do \
 	  .pkg/bin/python .pkg/bin/pip install \
