@@ -58,6 +58,7 @@ mostlyclean:
 
 .PHONY: clean
 clean: mostlyclean
+	-rm -rf build
 	-rm -rf .pkg
 
 .PHONY: distclean
