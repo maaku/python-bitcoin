@@ -95,7 +95,7 @@ dist:
 	rm -rf .cache/virtualenv/virtualenv-1.6.4
 	.pkg/bin/easy_install readline
 	mkdir -p .cache/pypi
-	for reqfile in `ls conf/requirements.*.pip`; do \
+	for reqfile in conf/requirements.*.pip; do \
 	  .pkg/bin/python .pkg/bin/pip install \
 	    --download-cache="`pwd`"/.cache/pypi \
 	    -r $$reqfile; \
