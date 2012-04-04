@@ -81,7 +81,7 @@ dist:
 	mkdir -p .cache/virtualenv
 	sh -c "cd .cache/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.6.4.tar.gz"
 
-.pkg/.stamp-h: conf/requirements.*.pip .cache/virtualenv/virtualenv-1.6.4.tar.gz
+.pkg/.stamp-h: conf/requirements*.pip .cache/virtualenv/virtualenv-1.6.4.tar.gz
 	${MAKE} clean
 	tar \
 	  -C .cache/virtualenv --gzip \
@@ -96,7 +96,7 @@ dist:
 	rm -rf .cache/virtualenv/virtualenv-1.6.4
 	.pkg/bin/easy_install readline
 	mkdir -p .cache/pypi
-	for reqfile in conf/requirements.*.pip; do \
+	for reqfile in conf/requirements*.pip; do \
 	  .pkg/bin/python .pkg/bin/pip install \
 	    --download-cache="`pwd`"/.cache/pypi \
 	    -r $$reqfile; \
