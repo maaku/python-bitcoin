@@ -60,13 +60,14 @@ for dirpath, dirnames, filenames in os.walk('python_patterns'):
     for f in filenames:
       data_files.append(os.path.join(prefix, f))
 
+version = get_version().replace(' ', '-')
 setup(name='python-patterns',
-  version=get_version().replace(' ', '-'),
+  version=version,
   description='A collection of commonly used Python patterns.',
   author='RokuSigma Inc.',
-  author_email='python-patterns@roku-sigma.com',
-  url='http://www.github.com/rokusigma/python-patterns/',
-  download_url='http://github.com/rokusigma/python-patterns/tarball/master',
+  author_email='python-patterns@monetize.io',
+  url='http://www.github.com/monetizeio/python-patterns/',
+  download_url='http://pypi.python.org/packages/source/p/python-patterns/python-patterns-%s.tar.gz' % version,
   package_dir={'python_patterns': 'python_patterns'},
   packages=packages,
   package_data={'python_patterns': data_files},
