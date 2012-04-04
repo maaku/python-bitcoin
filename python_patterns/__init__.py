@@ -45,7 +45,7 @@ def get_version():
     if VERSION[3] != 'final':
       version = "%s %s" % (version, VERSION[3])
       if VERSION[4] != 0:
-        version = '%s %s' % (version, VERSION[4])
+        version = '%s%s' % (version, VERSION[4])
   return version
 
 # ===----------------------------------------------------------------------===
