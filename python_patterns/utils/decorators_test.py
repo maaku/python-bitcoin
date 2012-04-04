@@ -42,7 +42,6 @@ import python_patterns.unittest.scenario
 # Python patterns, @Property idiom test
 from python_patterns.utils.decorators import Property
 
-##
 # Constant values for the test cases in this file. INITIAL_VALUE, RESET_VALUE,
 # and DELETED_VALUE must be unique from each other.
 #

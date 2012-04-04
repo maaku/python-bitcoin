@@ -57,6 +57,7 @@
 #        have to be updated when that information is available. If he fails to
 #        do so, this code will have to be removed and cleanroom re-written
 #        from scratch.
+##
 
 class ScenarioMeta(type):
   def __new__(cls, name, bases, attrs):
