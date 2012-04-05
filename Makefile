@@ -30,44 +30,80 @@
 # DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===----------------------------------------------------------------------===
 
+ROOT=$(shell pwd)
+CACHE_ROOT=${ROOT}/.cache
+PKG_ROOT=${ROOT}/.pkg
+
+-include Makefile.local
+
 .PHONY: all
-all: .pkg/.stamp-h
+all: ${PKG_ROOT}/.stamp-h
 
 .PHONY: check
-check: .pkg/.stamp-h
+check: all
 	mkdir -p build/report/xunit
-	echo "\
-	import unittest2; \
-	import xmlrunner; \
-	unittest2.main( \
-	  testRunner=xmlrunner.XMLTestRunner(output='build/report/xunit'), \
-	  argv=['unit2', 'discover', \
-	    '-s','python_patterns', \
-	    '-p','*.py', \
-	    '-t','.', \
-	  ] \
-	)" >.pytest.py
+	@echo  >.pytest.py "import unittest2"
+	@echo >>.pytest.py "import xmlrunner"
+	@echo >>.pytest.py "unittest2.main("
+	@echo >>.pytest.py "  testRunner=xmlrunner.XMLTestRunner("
+	@echo >>.pytest.py "    output='build/report/xunit'),"
+	@echo >>.pytest.py "  argv=['unit2', 'discover',"
+	@echo >>.pytest.py "    '-s','python_patterns',"
+	@echo >>.pytest.py "    '-p','*.py',"
+	@echo >>.pytest.py "    '-t','.',"
+	@echo >>.pytest.py "  ]"
+	@echo >>.pytest.py ")"
 	chmod +x .pytest.py
-	.pkg/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
-	.pkg/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
+	"${PKG_ROOT}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
+	"${PKG_ROOT}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
+	rm -f .pytest.py
+
+.PHONY: debugcheck
+debugcheck: all
+	mkdir -p build/report/xunit
+	@echo  >.pytest.py "import unittest2"
+	@echo >>.pytest.py "import xmlrunner"
+	@echo >>.pytest.py "import exceptions, ipdb, sys"
+	@echo >>.pytest.py "class PDBAssertionError(exceptions.AssertionError):"
+	@echo >>.pytest.py "  def __init__(self, *args):"
+	@echo >>.pytest.py "    exceptions.AssertionError.__init__(self, *args)"
+	@echo >>.pytest.py "    print 'Assertion failed, entering PDB...'"
+	@echo >>.pytest.py "    if hasattr(sys, '_getframe'):"
+	@echo >>.pytest.py "      ipdb.set_trace(sys._getframe().f_back.f_back.f_back)"
+	@echo >>.pytest.py "    else:"
+	@echo >>.pytest.py "      ipdb.set_trace()"
+	@echo >>.pytest.py "unittest2.TestCase.failureException = PDBAssertionError"
+	@echo >>.pytest.py "unittest2.main("
+	@echo >>.pytest.py "  testRunner=xmlrunner.XMLTestRunner("
+	@echo >>.pytest.py "    output='build/report/xunit'),"
+	@echo >>.pytest.py "  argv=['unit2', 'discover',"
+	@echo >>.pytest.py "    '-s','python_patterns',"
+	@echo >>.pytest.py "    '-p','*.py',"
+	@echo >>.pytest.py "    '-t','.',"
+	@echo >>.pytest.py "  ]"
+	@echo >>.pytest.py ")"
+	@chmod +x .pytest.py
+	"${PKG_ROOT}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
+	"${PKG_ROOT}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
 	rm -f .pytest.py
 
 .PHONY: shell
-shell: .pkg/.stamp-h
-	.pkg/bin/ipython
+shell: all
+	"${PKG_ROOT}"/bin/ipython
 
 .PHONY: mostlyclean
 mostlyclean:
+	-rm -rf dist
+	-rm -rf build
+	-rm -rf .coverage
 
 .PHONY: clean
 clean: mostlyclean
-	-rm -rf build
-	-rm -rf .coverage
-	-rm -rf .pkg
+	-rm -rf "${PKG_ROOT}"
 
 .PHONY: distclean
 distclean: clean
-	-rm -rf .cache
+	-rm -rf "${CACHE_ROOT}"
 
 .PHONY: maintainer-clean
 maintainer-clean: distclean
@@ -76,35 +112,58 @@ maintainer-clean: distclean
 
 .PHONY: dist
 dist:
+	"${PKG_ROOT}"/bin/python setup.py sdist
 
 # ===--------------------------------------------------------------------===
-# ===--------------------------------------------------------------------===
 
-.cache/virtualenv/virtualenv-1.6.4.tar.gz:
-	mkdir -p .cache/virtualenv
-	sh -c "cd .cache/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.6.4.tar.gz"
+${CACHE_ROOT}/virtualenv/virtualenv-1.7.1.2.tar.gz:
+	mkdir -p ${CACHE_ROOT}/virtualenv
+	sh -c "cd ${CACHE_ROOT}/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.7.1.2.tar.gz"
 
-.pkg/.stamp-h: conf/requirements*.pip .cache/virtualenv/virtualenv-1.6.4.tar.gz
+${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.7.1.2.tar.gz
+	# Because build and run-time dependencies are not thoroughly tracked,
+	# it is entirely possible that rebuilding the development environment
+	# on top of an existing one could result in a broken build. For the
+	# sake of consistency and preventing unnecessary, difficult-to-debug
+	# problems, the entire development environment is rebuilt from scratch
+	# everytime this make target is selected.
 	${MAKE} clean
+	
+	# The ``${PKG_ROOT}`` directory, if it exists, is removed by the
+	# ``clean`` target. The PyPI cache is nonexistant if this is a freshly
+	# checked-out repository, or if the ``distclean`` target has been run.
+	# This might cause problems with build scripts executed later which
+	# assume their existence, so they are created now if they don't
+	# already exist.
+	mkdir -p "${PKG_ROOT}"
+	mkdir -p "${CACHE_ROOT}"/pypi
+	
+	# ``virtualenv`` is used to create a separate Python installation for
+	# this project in ``${PKG_ROOT}``.
 	tar \
-	  -C .cache/virtualenv --gzip \
-	  -xf .cache/virtualenv/virtualenv-1.6.4.tar.gz
-	python .cache/virtualenv/virtualenv-1.6.4/virtualenv.py \
+	  -C "${CACHE_ROOT}"/virtualenv --gzip \
+	  -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2.tar.gz
+	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2/virtualenv.py \
 	  --clear \
-	  --no-site-packages \
 	  --distribute \
 	  --never-download \
 	  --prompt="(python-patterns) " \
-	  .pkg
-	rm -rf .cache/virtualenv/virtualenv-1.6.4
-	.pkg/bin/easy_install readline
-	mkdir -p .cache/pypi
+	  "${PKG_ROOT}"
+	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2
+	
+	# readline is installed here to get around a bug on Mac OS X which is
+	# causing readline to not build properly if installed from pip.
+	"${PKG_ROOT}"/bin/easy_install readline
+	
+	# pip is used to install Python dependencies for this project.
 	for reqfile in conf/requirements*.pip; do \
-	  .pkg/bin/python .pkg/bin/pip install \
-	    --download-cache="`pwd`"/.cache/pypi \
+	  "${PKG_ROOT}"/bin/python "${PKG_ROOT}"/bin/pip install \
+	    --download-cache="${CACHE_ROOT}"/pypi \
 	    -r $$reqfile; \
 	done
-	touch .pkg/.stamp-h
+	
+	# All done!
+	touch "${PKG_ROOT}"/.stamp-h
 
 # ===--------------------------------------------------------------------===
 # End of File
