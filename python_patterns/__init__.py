@@ -33,7 +33,7 @@
 # DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===----------------------------------------------------------------------===
 
-VERSION = (0,0,0, 'alpha', 0)
+VERSION = (0,0,2, 'alpha', 0)
 
 def get_version():
   version = '%s.%s' % (VERSION[0], VERSION[1])
