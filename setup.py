@@ -72,7 +72,7 @@ setup(name='python-patterns',
   packages=packages,
   package_data={'python_patterns': data_files},
   classifiers=[
-    'Development Status :: 1 - Planning',
+    'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
     'License :: Other/Proprietary License',
     'Operating System :: OS Independent',
