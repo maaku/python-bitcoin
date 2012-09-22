@@ -2,42 +2,39 @@
 # -*- coding: utf-8 -*-
 
 # === setup.py ------------------------------------------------------------===
-# Copyright © 2011-2012, RokuSigma Inc. and contributors. See AUTHORS for more
-# details.
+# Copyright © 2012, RokuSigma Inc. and contributors as an unpublished work.
+# See AUTHORS for details.
 #
-# Some rights reserved.
+# RokuSigma Inc. (the “Company”) Confidential
 #
-# Redistribution and use in source and binary forms of the software as well as
-# documentation, with or without modification, are permitted provided that the
-# following conditions are met:
+# NOTICE: All information contained herein is, and remains the property of the
+# Company. The intellectual and technical concepts contained herein are
+# proprietary to the Company and may be covered by U.S. and Foreign Patents,
+# patents in process, and are protected by trade secret or copyright law.
+# Dissemination of this information or reproduction of this material is
+# strictly forbidden unless prior written permission is obtained from the
+# Company. Access to the source code contained herein is hereby forbidden to
+# anyone except current Company employees, managers or contractors who have
+# executed Confidentiality and Non-disclosure agreements explicitly covering
+# such access.
 #
-#  * Redistributions of source code must retain the above copyright notice,
-#    this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#  * The names of the copyright holders or contributors may not be used to
-#    endorse or promote products derived from this software without specific
-#    prior written permission.
-#
-# THIS SOFTWARE AND DOCUMENTATION IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-# CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
-# NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE AND
-# DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# The copyright notice above does not evidence any actual or intended
+# publication or disclosure of this source code, which includes information
+# that is confidential and/or proprietary, and is a trade secret, of the
+# Company. ANY REPRODUCTION, MODIFICATION, DISTRIBUTION, PUBLIC PERFORMANCE,
+# OR PUBLIC DISPLAY OF OR THROUGH USE OF THIS SOURCE CODE WITHOUT THE EXPRESS
+# WRITTEN CONSENT OF THE COMPANY IS STRICTLY PROHIBITED, AND IN VIOLATION OF
+# APPLICABLE LAWS AND INTERNATIONAL TREATIES. THE RECEIPT OR POSSESSION OF
+# THIS SOURCE CODE AND/OR RELATED INFORMATION DOES NOT CONVEY OR IMPLY ANY
+# RIGHTS TO REPRODUCE, DISCLOSE OR DISTRIBUTE ITS CONTENTS, OR TO MANUFACTURE,
+# USE, OR SELL ANYTHING THAT IT MAY DESCRIBE, IN WHOLE OR IN PART.
 # ===----------------------------------------------------------------------===
 
 import os
 
 from distutils.core import setup
 
-from python_patterns import get_version
+from bitcoin import get_version
 
 # Compile the list of packages available, because distutils doesn't have an
 # easy way to do this.
@@ -46,7 +43,7 @@ root_dir = os.path.dirname(__file__)
 if root_dir:
   os.chdir(root_dir)
 
-for dirpath, dirnames, filenames in os.walk('python_patterns'):
+for dirpath, dirnames, filenames in os.walk('bitcoin'):
   # Ignore dirnames that start with '.'
   for i, dirname in enumerate(dirnames):
     if dirname.startswith('.'): del dirnames[i]
@@ -56,21 +53,21 @@ for dirpath, dirnames, filenames in os.walk('python_patterns'):
       pkg = pkg.replace(os.path.altsep, '.')
     packages.append(pkg)
   elif filenames:
-    prefix = dirpath[16:] # Strip "python_patterns/" or "python_patterns\"
+    prefix = dirpath[len('bitcoin')+1:] # Strip "bitcoin/" or "bitcoin\"
     for f in filenames:
       data_files.append(os.path.join(prefix, f))
 
 version = get_version().replace(' ', '-')
-setup(name='python-patterns',
+setup(name='python-bitcoin',
   version=version,
-  description='A collection of commonly used Python patterns.',
+  description='A collection of serialization and utility methods needed to implement the bitcoin protocol.',
   author='RokuSigma Inc.',
-  author_email='python-patterns@monetize.io',
-  url='http://www.github.com/monetizeio/python-patterns/',
-  download_url='http://pypi.python.org/packages/source/p/python-patterns/python-patterns-%s.tar.gz' % version,
-  package_dir={'python_patterns': 'python_patterns'},
+  author_email='python-bitcoin@monetize.io',
+  url='http://www.github.com/monetizeio/python-bitcoin/',
+  download_url='http://pypi.python.org/packages/source/p/python-bitcoin/python-bitcoin-%s.tar.gz' % version,
+  package_dir={'bitcoin': 'bitcoin'},
   packages=packages,
-  package_data={'python_patterns': data_files},
+  package_data={'bitcoin': data_files},
   classifiers=[
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',

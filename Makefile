@@ -1,33 +1,30 @@
 # === makefile ------------------------------------------------------------===
-# Copyright © 2011-2012, RokuSigma Inc. and contributors. See AUTHORS for more
-# details.
+# Copyright © 2012, RokuSigma Inc. and contributors as an unpublished work.
+# See AUTHORS for details.
 #
-# Some rights reserved.
+# RokuSigma Inc. (the “Company”) Confidential
 #
-# Redistribution and use in source and binary forms of the software as well as
-# documentation, with or without modification, are permitted provided that the
-# following conditions are met:
+# NOTICE: All information contained herein is, and remains the property of the
+# Company. The intellectual and technical concepts contained herein are
+# proprietary to the Company and may be covered by U.S. and Foreign Patents,
+# patents in process, and are protected by trade secret or copyright law.
+# Dissemination of this information or reproduction of this material is
+# strictly forbidden unless prior written permission is obtained from the
+# Company. Access to the source code contained herein is hereby forbidden to
+# anyone except current Company employees, managers or contractors who have
+# executed Confidentiality and Non-disclosure agreements explicitly covering
+# such access.
 #
-#  * Redistributions of source code must retain the above copyright notice,
-#    this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#  * The names of the copyright holders or contributors may not be used to
-#    endorse or promote products derived from this software without specific
-#    prior written permission.
-#
-# THIS SOFTWARE AND DOCUMENTATION IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-# CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
-# NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE AND
-# DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# The copyright notice above does not evidence any actual or intended
+# publication or disclosure of this source code, which includes information
+# that is confidential and/or proprietary, and is a trade secret, of the
+# Company. ANY REPRODUCTION, MODIFICATION, DISTRIBUTION, PUBLIC PERFORMANCE,
+# OR PUBLIC DISPLAY OF OR THROUGH USE OF THIS SOURCE CODE WITHOUT THE EXPRESS
+# WRITTEN CONSENT OF THE COMPANY IS STRICTLY PROHIBITED, AND IN VIOLATION OF
+# APPLICABLE LAWS AND INTERNATIONAL TREATIES. THE RECEIPT OR POSSESSION OF
+# THIS SOURCE CODE AND/OR RELATED INFORMATION DOES NOT CONVEY OR IMPLY ANY
+# RIGHTS TO REPRODUCE, DISCLOSE OR DISTRIBUTE ITS CONTENTS, OR TO MANUFACTURE,
+# USE, OR SELL ANYTHING THAT IT MAY DESCRIBE, IN WHOLE OR IN PART.
 # ===----------------------------------------------------------------------===
 
 ROOT=$(shell pwd)
@@ -48,7 +45,7 @@ check: all
 	@echo >>.pytest.py "  testRunner=xmlrunner.XMLTestRunner("
 	@echo >>.pytest.py "    output='build/report/xunit'),"
 	@echo >>.pytest.py "  argv=['unit2', 'discover',"
-	@echo >>.pytest.py "    '-s','python_patterns',"
+	@echo >>.pytest.py "    '-s','bitcoin',"
 	@echo >>.pytest.py "    '-p','*.py',"
 	@echo >>.pytest.py "    '-t','.',"
 	@echo >>.pytest.py "  ]"
@@ -77,7 +74,7 @@ debugcheck: all
 	@echo >>.pytest.py "  testRunner=xmlrunner.XMLTestRunner("
 	@echo >>.pytest.py "    output='build/report/xunit'),"
 	@echo >>.pytest.py "  argv=['unit2', 'discover',"
-	@echo >>.pytest.py "    '-s','python_patterns',"
+	@echo >>.pytest.py "    '-s','bitcoin',"
 	@echo >>.pytest.py "    '-p','*.py',"
 	@echo >>.pytest.py "    '-t','.',"
 	@echo >>.pytest.py "  ]"
@@ -147,7 +144,7 @@ ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv
 	  --clear \
 	  --distribute \
 	  --never-download \
-	  --prompt="(python-patterns) " \
+	  --prompt="(python-bitcoin) " \
 	  "${PKG_ROOT}"
 	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2
 	
