@@ -113,11 +113,11 @@ dist:
 
 # ===--------------------------------------------------------------------===
 
-${CACHE_ROOT}/virtualenv/virtualenv-1.7.1.2.tar.gz:
+${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz:
 	mkdir -p ${CACHE_ROOT}/virtualenv
-	sh -c "cd ${CACHE_ROOT}/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.7.1.2.tar.gz"
+	sh -c "cd ${CACHE_ROOT}/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.2.tar.gz"
 
-${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.7.1.2.tar.gz
+${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz
 	# Because build and run-time dependencies are not thoroughly tracked,
 	# it is entirely possible that rebuilding the development environment
 	# on top of an existing one could result in a broken build. For the
@@ -126,27 +126,27 @@ ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv
 	# everytime this make target is selected.
 	${MAKE} clean
 	
-	# The ``${PKG_ROOT}`` directory, if it exists, is removed by the
-	# ``clean`` target. The PyPI cache is nonexistant if this is a freshly
-	# checked-out repository, or if the ``distclean`` target has been run.
+	# The `${PKG_ROOT}` directory, if it exists, is removed by the
+	# `clean` target. The PyPI cache is nonexistant if this is a freshly
+	# checked-out repository, or if the `distclean` target has been run.
 	# This might cause problems with build scripts executed later which
 	# assume their existence, so they are created now if they don't
 	# already exist.
 	mkdir -p "${PKG_ROOT}"
 	mkdir -p "${CACHE_ROOT}"/pypi
 	
-	# ``virtualenv`` is used to create a separate Python installation for
-	# this project in ``${PKG_ROOT}``.
+	# `virtualenv` is used to create a separate Python installation for
+	# this project in `${PKG_ROOT}`.
 	tar \
 	  -C "${CACHE_ROOT}"/virtualenv --gzip \
-	  -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2.tar.gz
-	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2/virtualenv.py \
+	  -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.2.tar.gz
+	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.2/virtualenv.py \
 	  --clear \
 	  --distribute \
 	  --never-download \
 	  --prompt="(python-bitcoin) " \
 	  "${PKG_ROOT}"
-	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.7.1.2
+	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.2
 	
 	# readline is installed here to get around a bug on Mac OS X which is
 	# causing readline to not build properly if installed from pip.
