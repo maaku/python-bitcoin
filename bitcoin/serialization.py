@@ -76,9 +76,9 @@ __all__ = [
 def serialize_varint(long_):
     if long_ < 253:
         return chr(long_)
-    elif long_ <= 0xFFFFL:
+    elif long_ <= 0xffffL:
         return chr(253) + pack("<H", long_)
-    elif long_ <= 0xFFFFFFFFL:
+    elif long_ <= 0xffffffffL:
         return chr(254) + pack("<I", long_)
     return chr(255) + pack("<Q", long_)
 
