@@ -39,8 +39,8 @@ __all__ = [
   'deserialize_varint',
   'serialize_varchar',
   'deserialize_varchar',
-  'serialize_uint256',
-  'deserialize_uint256',
+  'serialize_hash',
+  'deserialize_hash',
   'uint256_from_compact',
   'serialize_list',
   'deserialize_list',
@@ -74,20 +74,40 @@ def deserialize_varchar(file_):
   len_ = deserialize_varint(file_)
   return file_.read(len_)
 
-def serialize_uint256(long_):
+def serialize_hash(long_, len_):
+  if long_ < 0:
+    raise ValueError(_(u"negative hash value doesn't make any sense"))
   result = ''
-  for i in xrange(4):
-    result += pack("<Q", long_ & 0xFFFFFFFFFFFFFFFFL)
+  for _ in xrange(len_//8):
+    result += pack("<Q", long_ & 0xffffffffffffffffL)
     long_ >>= 64
+  if len_ & 4:
+    result += pack("<I", long_ & 0xffffffffL)
+    long_ >>= 32
+  if len_ & 2:
+    result += pack("<H", long_ & 0xffffL)
+    long_ >>= 16
+  if len_ & 1:
+    result += pack("<B", long_ & 0xffL)
+    long_ >>= 8
   if long_:
-    raise ValueError(_(u"integer exceeds 256 bits in length"))
+    raise ValueError(_(u"hash value exceeds maximum representable value"))
   return result
 
-def deserialize_uint256(file_):
+def deserialize_hash(file_, len_):
   result = 0L
-  for idx in xrange(4):
+  for idx in xrange(len_//8):
     limb = unpack("<Q", file_.read(8))[0]
     result += limb << (idx * 64)
+  if len_ & 4:
+    limb = unpack("<I", file_.read(4))[0]
+    result += limb << ((len_ & ~7) * 8)
+  if len_ & 2:
+    limb = unpack("<H", file_.read(2))[0]
+    result += limb << ((len_ & ~3) * 8)
+  if len_ & 1:
+    limb = unpack("<B", file_.read(1))[0]
+    result += limb << ((len_ & ~1) * 8)
   return result
 
 def uint256_from_compact(bits):
