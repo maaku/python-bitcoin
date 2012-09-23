@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.utils.serialization -----------------------------------------===
+# === bitcoin.utils.utils -------------------------------------------------===
 # Copyright © 2012, RokuSigma Inc. and contributors as an unpublished work.
 # See AUTHORS for details.
 #
@@ -58,93 +58,15 @@
 # THE SOFTWARE.
 # ===----------------------------------------------------------------------===
 
-"Utility functions used in implementing the block chain serialization format."
-
-from struct import pack, unpack
+"Miscellaneous utility functions used in other parts of python-bitcoin."
 
 __all__ = [
-    'serialize_varint',
-    'deserialize_varint',
-    'serialize_varchar',
-    'deserialize_varchar',
-    'serialize_hash',
-    'deserialize_hash',
-    'serialize_list',
-    'deserialize_list',
+    'uint256_from_compact',
 ]
 
-def serialize_varint(long_):
-    if long_ < 253:
-        return chr(long_)
-    elif long_ <= 0xFFFFL:
-        return chr(253) + pack("<H", long_)
-    elif long_ <= 0xFFFFFFFFL:
-        return chr(254) + pack("<I", long_)
-    return chr(255) + pack("<Q", long_)
-
-def deserialize_varint(file_):
-    result = unpack("<B", file_.read(1))[0]
-    if result == 253:
-        result = unpack("<H", file_.read(2))[0]
-    elif result == 254:
-        result = unpack("<I", file_.read(4))[0]
-    elif result == 255:
-        result = unpack("<Q", file_.read(8))[0]
-    return result
-
-def serialize_varchar(str_):
-    return serialize_varint(len(str_)) + str_
-
-def deserialize_varchar(file_):
-    len_ = deserialize_varint(file_)
-    return file_.read(len_)
-
-def serialize_hash(long_, len_):
-    if long_ < 0:
-        raise ValueError(_(u"negative hash value doesn't make any sense"))
-    result = ''
-    for _ in xrange(len_//8):
-        result += pack("<Q", long_ & 0xffffffffffffffffL)
-        long_ >>= 64
-    if len_ & 4:
-        result += pack("<I", long_ & 0xffffffffL)
-        long_ >>= 32
-    if len_ & 2:
-        result += pack("<H", long_ & 0xffffL)
-        long_ >>= 16
-    if len_ & 1:
-        result += pack("<B", long_ & 0xffL)
-        long_ >>= 8
-    if long_:
-        raise ValueError(_(u"hash value exceeds maximum representable value"))
-    return result
-
-def deserialize_hash(file_, len_):
-    result = 0L
-    for idx in xrange(len_//8):
-        limb = unpack("<Q", file_.read(8))[0]
-        result += limb << (idx * 64)
-    if len_ & 4:
-        limb = unpack("<I", file_.read(4))[0]
-        result += limb << ((len_ & ~7) * 8)
-    if len_ & 2:
-        limb = unpack("<H", file_.read(2))[0]
-        result += limb << ((len_ & ~3) * 8)
-    if len_ & 1:
-        limb = unpack("<B", file_.read(1))[0]
-        result += limb << ((len_ & ~1) * 8)
-    return result
-
-def serialize_list(list_, serializer):
-    result = serialize_varint(len(list_))
-    for item in list_:
-        result += serializer(item)
-    return result
-
-def deserialize_list(file_, deserializer):
-    for _ in xrange(deserialize_varint(file_)):
-        yield serializer(file_)
-    raise StopIteration
+def uint256_from_compact(bits):
+    len_ = (bits >> 24) & 0xff
+    return (bits & 0xffffffL) << (8 * (len_ - 3))
 
 # ===----------------------------------------------------------------------===
 # End of File
