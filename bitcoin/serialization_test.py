@@ -130,6 +130,10 @@ VARCHAR = [
   dict(str_='\x01\x02', result='\x02\x01\x02'),
   dict(str_='Ping\x00Pong\n', result='\x0aPing\x00Pong\n'),
   dict(str_='\x7f\x80\x00\xff', result='\x04\x7f\x80\x00\xff'),
+  dict(str_='a'*0xfc, result='\xfc'+'a'*0xfc),
+  dict(str_='a'*0xfd, result='\xfd\xfd\x00'+'a'*0xfd),
+  dict(str_='a'*0xffff, result='\xfd\xff\xff'+'a'*0xffff),
+  dict(str_='a'*0x10000, result='\xfe\x00\x00\x01\x00'+'a'*0x10000),
 ]
 
 class TestSerializeVarchar(unittest2.TestCase):
