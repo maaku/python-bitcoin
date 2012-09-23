@@ -37,7 +37,7 @@ import unittest2
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 # Python patterns, base encoding
-from bitcoin.utils.serialization import (
+from bitcoin.serialization import (
   serialize_varint, deserialize_varint,
   serialize_varchar, deserialize_varchar,
 )
