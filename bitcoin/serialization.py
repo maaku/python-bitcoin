@@ -43,8 +43,6 @@ __all__ = [
   'deserialize_hash',
   'serialize_list',
   'deserialize_list',
-  'serialize_uint256_list',
-  'deserialize_uint256_list',
   'uint256_from_compact',
 ]
 
@@ -110,26 +108,15 @@ def deserialize_hash(file_, len_):
     result += limb << ((len_ & ~1) * 8)
   return result
 
-def serialize_list(list_):
+def serialize_list(list_, serializer):
   result = serialize_varint(len(list_))
   for item in list_:
-    result += item.serialize()
+    result += serializer(item)
   return result
 
-def deserialize_list(class_, file_):
+def deserialize_list(file_, deserializer):
   for _ in xrange(deserialize_varint(file_)):
-    yield class_.deserialize(file_)
-  raise StopIteration
-
-def serialize_uint256_list(list_):
-  result = serialize_varint(len(list_))
-  for item in list_:
-    result += serialize_uint256(item)
-  return result
-
-def deserialize_uint256_list(file_):
-  for _ in xrange(deserialize_varint(file_)):
-    yield deserialize_uint256(file_)
+    yield serializer(file_)
   raise StopIteration
 
 # ===----------------------------------------------------------------------===
