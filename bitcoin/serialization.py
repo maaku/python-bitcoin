@@ -41,11 +41,11 @@ __all__ = [
   'deserialize_varchar',
   'serialize_hash',
   'deserialize_hash',
-  'uint256_from_compact',
   'serialize_list',
   'deserialize_list',
   'serialize_uint256_list',
   'deserialize_uint256_list',
+  'uint256_from_compact',
 ]
 
 def serialize_varint(long_):
@@ -110,10 +110,6 @@ def deserialize_hash(file_, len_):
     result += limb << ((len_ & ~1) * 8)
   return result
 
-def uint256_from_compact(bits):
-  len_ = (bits >> 24) & 0xFF
-  return (bits & 0xFFFFFFL) << (8 * (len_ - 3))
-
 def serialize_list(list_):
   result = serialize_varint(len(list_))
   for item in list_:
@@ -135,6 +131,12 @@ def deserialize_uint256_list(file_):
   for _ in xrange(deserialize_varint(file_)):
     yield deserialize_uint256(file_)
   raise StopIteration
+
+# ===----------------------------------------------------------------------===
+
+def uint256_from_compact(bits):
+  len_ = (bits >> 24) & 0xFF
+  return (bits & 0xFFFFFFL) << (8 * (len_ - 3))
 
 # ===----------------------------------------------------------------------===
 # End of File
