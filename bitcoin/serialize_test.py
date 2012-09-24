@@ -124,6 +124,8 @@ class TestInvalidVarintSerialization(unittest2.TestCase):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_varint, file_)
 
+# ===----------------------------------------------------------------------===
+
 VARCHAR = [
     dict(str_='', result='\x00'),
     dict(str_='a', result='\x01a'),
@@ -151,6 +153,8 @@ class TestSerializeVarchar(unittest2.TestCase):
         def __test__(self, str_, result):
             file_ = StringIO(result)
             self.assertEqual(deserialize_varchar(file_), str_)
+
+# ===----------------------------------------------------------------------===
 
 HASH = [
     dict(hash_=0L, len_=1, result='\x00'),
