@@ -41,6 +41,7 @@ from bitcoin.serialize import (
     serialize_varint, deserialize_varint,
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
+    serialize_list, deserialize_list,
 )
 
 try:
@@ -232,6 +233,96 @@ class TestInvalidHashSerialization(unittest2.TestCase):
         def __test__(self, len_, invalid):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_hash, (file_, len_))
+
+# ===----------------------------------------------------------------------===
+
+VARINT_LIST = [
+    dict(list_=[], result='\x00'),
+    dict(list_=[0], result='\x01' '\x00'),
+    dict(list_=[1,2,3], result='\x03' '\x01' '\x02' '\x03'),
+    dict(list_=[0xfd,2**16-1,2**32-1,2**64-1],
+         result='\x04' '\xfd\xfd\x00' '\xfd\xff\xff' '\xfe\xff\xff\xff\xff'
+                '\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
+]
+
+class TestSerializeVarintList(unittest2.TestCase):
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = VARINT_LIST
+        def __test__(self, list_, result):
+            self.assertEqual(serialize_list(list_, serialize_varint), result)
+    class test_deserialize(ScenarioTest):
+        scenarios = VARINT_LIST
+        def __test__(self, list_, result):
+            file_ = StringIO(result)
+            self.assertEqual(list(deserialize_list(file_, deserialize_varint)), list_)
+
+VARCHAR_LIST = [
+    dict(list_=[], result='\x00'),
+    dict(list_=['abc'], result='\x01' '\x03abc'),
+    dict(list_=['a','b','c'], result='\x03' '\x01a' '\x01b' '\x01c'),
+    dict(list_=['9c2e4d8fe97d881430de4e754b4205b9c27ce96715231cffc4337340cb110280'.decode('hex'),
+                '0c08173828583fc6ecd6ecdbcca7b6939c49c242ad5107e39deb7b0a5996b903'.decode('hex'),
+                '80903da4e6bbdf96e8ff6fc3966b0cfd355c7e860bdd1caa8e4722d9230e40ac'.decode('hex')],
+         result=''.join(['\x03',
+                '209c2e4d8fe97d881430de4e754b4205b9c27ce96715231cffc4337340cb110280'.decode('hex'),
+                '200c08173828583fc6ecd6ecdbcca7b6939c49c242ad5107e39deb7b0a5996b903'.decode('hex'),
+                '2080903da4e6bbdf96e8ff6fc3966b0cfd355c7e860bdd1caa8e4722d9230e40ac'.decode('hex')]))
+]
+
+class TestSerializeVarcharList(unittest2.TestCase):
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = VARCHAR_LIST
+        def __test__(self, list_, result):
+            self.assertEqual(serialize_list(list_, serialize_varchar), result)
+    class test_deserialize(ScenarioTest):
+        scenarios = VARCHAR_LIST
+        def __test__(self, list_, result):
+            file_ = StringIO(result)
+            self.assertEqual(list(deserialize_list(file_, deserialize_varchar)), list_)
+
+HASH_LIST = [
+    dict(list_=[], len_=32, result='\x00'),
+    dict(list_=[0xe3,0xb0,0xc4,0x42], len_=1, result='04e3b0c442'.decode('hex')),
+    dict(list_=[57899701122132101464827042574540132333372807239036611982162394440476474027676L,
+                 1684842915225173030403236558293661766361892666541902041157183603580616509452L,
+                77910985759381492884405384511824803321298316529212868719112358856289568002176L],
+         len_=32,
+         result=''.join(['\x03',
+                '9c2e4d8fe97d881430de4e754b4205b9c27ce96715231cffc4337340cb110280'.decode('hex'),
+                '0c08173828583fc6ecd6ecdbcca7b6939c49c242ad5107e39deb7b0a5996b903'.decode('hex'),
+                '80903da4e6bbdf96e8ff6fc3966b0cfd355c7e860bdd1caa8e4722d9230e40ac'.decode('hex')])),
+]
+
+class TestSerializeHashList(unittest2.TestCase):
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = HASH_LIST
+        def __test__(self, list_, len_, result):
+            self.assertEqual(serialize_list(list_, lambda h:serialize_hash(h, len_)), result)
+    class test_deserialize(ScenarioTest):
+        scenarios = HASH_LIST
+        def __test__(self, list_, len_, result):
+            file_ = StringIO(result)
+            self.assertEqual(list(deserialize_list(file_, lambda f:deserialize_hash(f, len_))), list_)
+
+# FIXME: test serialization of a list of inputs, outputs, transactions,
+#     blocks, etc.
+
+INVALID_LIST = [
+    dict(invalid='030102'.decode('hex'), deserializer=deserialize_varint),
+    dict(invalid='040002aabb03ccddee'.decode('hex'), deserializer=deserialize_varchar),
+    dict(invalid='05aabbccdd'.decode('hex'), deserializer=lambda f:deserialize_hash(f,1)),
+]
+
+class TestInvalidListSerialization(unittest2.TestCase):
+    __metaclass__ = ScenarioMeta
+    class test_invalid_serialization(ScenarioTest):
+        scenarios = INVALID_LIST
+        def __test__(self, invalid, deserializer):
+            file_ = StringIO(invalid)
+            self.assertRaises(BaseException, deserialize_list, (file_, deserializer))
 
 # ===----------------------------------------------------------------------===
 # End of File
