@@ -101,7 +101,7 @@ def deserialize_varchar(file_):
 
 def serialize_hash(long_, len_):
     if long_ < 0:
-        raise ValueError(_(u"negative hash value doesn't make any sense"))
+        raise ValueError(u"received hash value is negative")
     result = ''
     for _ in xrange(len_//8):
         result += pack("<Q", long_ & 0xffffffffffffffffL)
@@ -116,7 +116,7 @@ def serialize_hash(long_, len_):
         result += pack("<B", long_ & 0xffL)
         long_ >>= 8
     if long_:
-        raise ValueError(_(u"hash value exceeds maximum representable value"))
+        raise ValueError(u"hash value exceeds maximum representable value")
     return result
 
 def deserialize_hash(file_, len_):
