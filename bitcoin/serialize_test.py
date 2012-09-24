@@ -154,6 +154,25 @@ class TestSerializeVarchar(unittest2.TestCase):
             file_ = StringIO(result)
             self.assertEqual(deserialize_varchar(file_), str_)
 
+VARCHAR2 = [
+    dict(invalid='\x01'),
+    dict(invalid='\x02'),
+    dict(invalid='\x02a'),
+    dict(invalid='\x03a'),
+    dict(invalid='\x03ab'),
+    dict(invalid='\xfd\xfd\x00'+'a'*0xfc),
+]
+
+class TestInvalidVarcharSerialization(unittest2.TestCase):
+    """Test that deserialization of an incomplete varint structure results in
+    a value error."""
+    __metaclass__ = ScenarioMeta
+    class test_invalid_serialization(ScenarioTest):
+        scenarios = VARCHAR2
+        def __test__(self, invalid):
+            file_ = StringIO(invalid)
+            self.assertRaises(BaseException, deserialize_varchar, file_)
+
 # ===----------------------------------------------------------------------===
 
 HASH = [

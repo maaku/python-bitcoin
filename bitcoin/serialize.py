@@ -97,7 +97,10 @@ def serialize_varchar(str_):
 
 def deserialize_varchar(file_):
     len_ = deserialize_varint(file_)
-    return len_ and file_.read(len_) or ''
+    result = len_ and file_.read(len_) or ''
+    if len_ != len(result):
+        raise ValueError('unexpected end-of-file in varchar serialization')
+    return result
 
 def serialize_hash(long_, len_):
     if long_ < 0:
