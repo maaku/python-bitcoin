@@ -270,19 +270,19 @@ class Transaction(object):
     def is_valid(self):
         getattr(self, 'hash')
         if not self.is_coinbase():
-            for tin in self.vin:
-                if not tin.is_valid():
+            for idx in xrange(self.vin_count()):
+                if not self.vin_index(idx).is_valid():
                     return False
-        for tout in self.vout:
-            if not tout.is_valid():
+        for idx in xrange(self.vout_count()):
+            if not self.vout_index(idx).is_valid():
                 return False
         if self.nVersion not in (2,):
             if self.nRefHeight != 0:
                 return False
         return True
     def is_final(self):
-        for tin in self.vin:
-            if not tin.is_final():
+        for idx in xrange(self.vin_count()):
+            if not self.vin_index(idx).is_final():
                 return False
         return True
     def is_coinbase(self):
