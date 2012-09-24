@@ -267,7 +267,11 @@ class Transaction(object):
             return len(self.serialize())
         return locals()
 
-    def is_valid(self):
+    def is_valid(self, mode=None):
+        if mode is None:
+            mode = 'simple'
+        if mode not in ('full', 'simple'):
+            raise ValueError(u"unrecognized input validation mode")
         getattr(self, 'hash')
         if not self.is_coinbase():
             for idx in xrange(self.vin_count()):
@@ -279,6 +283,8 @@ class Transaction(object):
         if self.nVersion not in (2,):
             if self.nRefHeight != 0:
                 return False
+        if mode in ('simple',):
+            return True
         return True
     def is_final(self):
         for idx in xrange(self.vin_count()):
@@ -330,7 +336,7 @@ class Block(object):
         if mode is None:
             mode = 'header'
         if mode not in ('full', 'header'):
-            raise ValueError(u"unrecognized serialization mode")
+            raise ValueError(u"unrecognized block serialization mode")
         result  = pack('<I', self.nVersion)
         result += serialize_hash(self.hashPrevBlock, 32)
         result += serialize_hash(self.hashMerkleRoot, 32)
@@ -349,7 +355,7 @@ class Block(object):
         if mode is None:
             mode = 'header'
         if mode not in ('full', 'header'):
-            raise ValueError(u"unrecognized serialization mode")
+            raise ValueError(u"unrecognized block serialization mode")
         initargs = {}
         initargs['nVersion'] = unpack('<I', file_.read(4))[0]
         initargs['hashPrevBlock'] = deserialize_hash(file_, 32)
@@ -377,8 +383,8 @@ class Block(object):
     def is_valid(self, mode=None):
         if mode is None:
             mode = 'header'
-        if mode not in ('full', 'header'):
-            raise ValueError(u"unrecognized validation mode")
+        if mode not in ('full', 'simple', 'header'):
+            raise ValueError(u"unrecognized block validation mode")
         target = uint256_from_compact(self.nBits)
         if self.hash > target:
             return False
@@ -386,6 +392,9 @@ class Block(object):
             return True
         if self.hashMerkleRoot != merkle_list(self.vtx_index(idx).hash for idx in xrange(self.vtx_count())):
             return False
+        for idx in xrange(self.vtx_count()):
+            if not self.vtx_index(idx).is_valid(mode):
+                return False
         return True
 
     def __repr__(self):
