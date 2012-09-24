@@ -143,7 +143,7 @@ def serialize_list(list_, serializer):
 
 def deserialize_list(file_, deserializer):
     for _ in xrange(deserialize_varint(file_)):
-        yield serializer(file_)
+        yield deserializer(file_)
     raise StopIteration
 
 # ===----------------------------------------------------------------------===
