@@ -40,6 +40,7 @@ from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 from bitcoin.serialize import (
     serialize_varint, deserialize_varint,
     serialize_varchar, deserialize_varchar,
+    serialize_hash, deserialize_hash,
 )
 
 try:
@@ -150,6 +151,64 @@ class TestSerializeVarchar(unittest2.TestCase):
         def __test__(self, str_, result):
             file_ = StringIO(result)
             self.assertEqual(deserialize_varchar(file_), str_)
+
+HASH = [
+    dict(hash_=0L, len_=1, result='\x00'),
+    dict(hash_=0L, len_=2, result='\x00'*2),
+    dict(hash_=0L, len_=8, result='\x00'*8),
+    dict(hash_=0L, len_=20, result='\x00'*20),
+    dict(hash_=0L, len_=32, result='\x00'*32),
+    dict(hash_=1L, len_=1, result='\x01'),
+    dict(hash_=1L, len_=32, result='\x01'+'\x00'*31),
+    dict(hash_=0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
+         len_=32,
+         result='000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'.decode('hex')[::-1])
+]
+
+class TestSerializeHash(unittest2.TestCase):
+    """Test serialization and deserialization of hashes (large integers
+    serialized as little-endian byte-arrays) under a variety of standard
+    scenarios."""
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = HASH
+        def __test__(self, hash_, len_, result):
+            self.assertEqual(serialize_hash(hash_, len_), result)
+    class test_deserialize(ScenarioTest):
+        scenarios = HASH
+        def __test__(self, hash_, len_, result):
+            file_ = StringIO(result)
+            self.assertEqual(deserialize_hash(file_, len_), hash_)
+
+class TestNegativeHashValue(unittest2.TestCase):
+    "Test that serializing a negative hash results in an exception."
+    def test_negative_hash(self):
+        self.assertRaises(BaseException, serialize_hash, (-1, 32))
+
+class TestLargeHashValue(unittest2.TestCase):
+    """Test that encoding a hash value greater than is representable results
+    in an exception."""
+    def test_large_hash(self):
+        self.assertRaises(BaseException, serialize_hash, (2**256, 32))
+
+HASH2 = [
+    dict(len_=1, invalid=''),
+    dict(len_=2, invalid='\x00'),
+    dict(len_=20, invalid=''),
+    dict(len_=20, invalid='\x00'*19),
+    dict(len_=32, invalid=''),
+    dict(len_=32, invalid='\x00'*31),
+]
+
+class TestInvalidHashSerialization(unittest2.TestCase):
+    """Test deserialization of an invalid hash representation results in an
+    exception."""
+    __metaclass__ = ScenarioMeta
+    class test_invalid_serialization(ScenarioTest):
+        scenarios = HASH2
+        def __test__(self, len_, invalid):
+            file_ = StringIO(invalid)
+            self.assertRaises(BaseException, deserialize_hash, (file_, len_))
 
 # ===----------------------------------------------------------------------===
 # End of File
