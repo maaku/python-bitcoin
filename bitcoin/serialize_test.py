@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.utils.base_encode_test --------------------------------------===
+# === bitcoin.serialize_test ----------------------------------------------===
 # Copyright © 2012, RokuSigma Inc. and contributors as an unpublished work.
 # See AUTHORS for details.
 #
@@ -37,7 +37,7 @@ import unittest2
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 # Python patterns, base encoding
-from bitcoin.serialization import (
+from bitcoin.serialize import (
     serialize_varint, deserialize_varint,
     serialize_varchar, deserialize_varchar,
 )

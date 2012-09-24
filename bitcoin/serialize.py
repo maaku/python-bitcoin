@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.utils.serialization -----------------------------------------===
+# === bitcoin.serialize ---------------------------------------------------===
 # Copyright © 2012, RokuSigma Inc. and contributors as an unpublished work.
 # See AUTHORS for details.
 #

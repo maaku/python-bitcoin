@@ -65,7 +65,7 @@ try:
 except:
     from StringIO import StringIO
 
-from .serialization import deserialize_hash
+from .serialize import deserialize_hash
 
 def hash256(str_):
     hash_ = hashlib.sha256(hashlib.sha256(str_).digest()).digest()
