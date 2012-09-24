@@ -97,7 +97,7 @@ def serialize_varchar(str_):
 
 def deserialize_varchar(file_):
     len_ = deserialize_varint(file_)
-    return file_.read(len_)
+    return len_ and file_.read(len_) or ''
 
 def serialize_hash(long_, len_):
     if long_ < 0:
