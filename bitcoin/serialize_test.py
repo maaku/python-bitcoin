@@ -98,7 +98,7 @@ class TestLargeValueEncode(unittest2.TestCase):
     def test_large_number(self):
         self.assertRaises(BaseException, serialize_varint, 2**64)
 
-VARINT2 = [
+INVALID_VARINT = [
     dict(invalid='\xfd'),
     dict(invalid='\xfd\x00'),
     dict(invalid='\xfe'),
@@ -120,7 +120,7 @@ class TestInvalidVarintSerialization(unittest2.TestCase):
     a value error."""
     __metaclass__ = ScenarioMeta
     class test_invalid_serialization(ScenarioTest):
-        scenarios = VARINT2
+        scenarios = INVALID_VARINT
         def __test__(self, invalid):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_varint, file_)
@@ -155,7 +155,7 @@ class TestSerializeVarchar(unittest2.TestCase):
             file_ = StringIO(result)
             self.assertEqual(deserialize_varchar(file_), str_)
 
-VARCHAR2 = [
+INVALID_VARCHAR = [
     dict(invalid='\x01'),
     dict(invalid='\x02'),
     dict(invalid='\x02a'),
@@ -169,7 +169,7 @@ class TestInvalidVarcharSerialization(unittest2.TestCase):
     a value error."""
     __metaclass__ = ScenarioMeta
     class test_invalid_serialization(ScenarioTest):
-        scenarios = VARCHAR2
+        scenarios = INVALID_VARCHAR
         def __test__(self, invalid):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_varchar, file_)
@@ -215,7 +215,7 @@ class TestLargeHashValue(unittest2.TestCase):
     def test_large_hash(self):
         self.assertRaises(BaseException, serialize_hash, (2**256, 32))
 
-HASH2 = [
+INVALID_HASH = [
     dict(len_=1, invalid=''),
     dict(len_=2, invalid='\x00'),
     dict(len_=20, invalid=''),
@@ -229,7 +229,7 @@ class TestInvalidHashSerialization(unittest2.TestCase):
     exception."""
     __metaclass__ = ScenarioMeta
     class test_invalid_serialization(ScenarioTest):
-        scenarios = HASH2
+        scenarios = INVALID_HASH
         def __test__(self, len_, invalid):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_hash, (file_, len_))
