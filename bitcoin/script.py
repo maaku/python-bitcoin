@@ -74,6 +74,12 @@ SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
 SIGHASH_ANYONECANPAY = 0x80
 
+TX_NONSTANDARD = 'non-standard'
+TX_PUBKEY = 'pubkey'
+TX_PUBKEYHASH = 'pubkey-hash'
+TX_SCRIPTHASH = 'script-hash'
+TX_MULTISIG = 'multi-sig'
+
 # push value
 OP_0 = 0x00
 OP_FALSE = OP_0
