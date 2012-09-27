@@ -58,7 +58,16 @@
 # THE SOFTWARE.
 # ===----------------------------------------------------------------------===
 
-from struct import unpack
+from struct import pack, unpack
+
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
+
+from python_patterns.utils.decorators import Property
+
+from .serialize import serialize_hash, deserialize_hash
 
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
@@ -449,96 +458,161 @@ OPCODE_NAMES = {
 }
 
 class ScriptOp(object):
-    def __init__(self, opdata=None, *args, **kwargs):
-        if opdata is None:
-            opdata = OP_INVALIDOPCODE
+    def __init__(self, opcode=None, data=None, *args, **kwargs):
+        if opcode==OP_INVALIDOPCODE:
+            raise ValueError(u"invalid opcode")
+        elif opcode>0 and opcode<OP_PUSHDATA1 and opcode!=len(data):
+            raise ValueError(u"opcode/data-length mismatch")
+        elif (opcode==OP_PUSHDATA1 and len(data)>0xff or
+              opcode==OP_PUSHDATA2 and len(data)>0xffff or
+              opcode==OP_PUSHDATA4 and len(data)>0xffffffff):
+            raise ValueError(u"data length exceeds serialization limit")
         super(ScriptOp, self).__init__(*args, **kwargs)
-        if isinstance(opdata, str):
-            self.data = opdata
-            self.ser_len = 1 + len(opdata)
-            if len(opdata) < OP_PUSHDATA1:
-                self.op = len(opdata)
-            elif len(opdata) < 0x100L:
-                self.op = OP_PUSHDATA1
-                self.ser_len += 1
-            elif len(opdata) < 0x10000L:
-                self.op = OP_PUSHDATA2
-                self.ser_len += 2
-            elif len(opdata) < 0x100000000L:
-                self.op = OP_PUSHDATA4
-                self.ser_len += 4
+        self.opcode = opcode
+        self.data = data
+
+    def serialize(self):
+        result  = chr(self.opcode)
+        if self.opcode==OP_PUSHDATA1:
+            result += pack('<B', len(self.data))
+        elif self.opcode==OP_PUSHDATA2:
+            result += pack('<H', len(self.data))
+        elif self.opcode==OP_PUSHDATA4:
+            result += pack('<I', len(self.data))
+        if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
+            result += self.data
+        return result
+    @classmethod
+    def deserialize(cls, file_):
+        opcode = file_.read(1)
+        if not len(opcode): raise StopIteration
+        opcode = unpack('<B', opcode)[0]
+
+        datalen = 0
+        if opcode<OP_PUSHDATA1:
+            datalen = opcode
+        elif opcode==OP_PUSHDATA1:
+            datalen = unpack('<B', file_.read(1))[0]
+        elif opcode==OP_PUSHDATA2:
+            datalen = unpack('<H', file_.read(2))[0]
+        elif opcode==OP_PUSHDATA4:
+            datalen = unpack('<I', file_.read(4))[0]
+        if datalen:
+            data = file_.read(datalen)
+        else:
+            data = ''
+        if len(data) != datalen:
+            raise ValueError(u"unespected end-of-file in data string")
+
+        if opcode<=OP_PUSHDATA4:
+            return cls(opcode, data)
+        return cls(opcode)
+
+    @Property
+    def boolean():
+        def fget(self):
+            if self.opcode==OP_0:
+                return False
+            if self.opcode==OP_1NEGATE:
+                return True
+            if self.opcode>=OP_1 and self.opcode<=OP_16:
+                return True
+            if self.opcode in xrange(1,OP_PUSHDATA4+1):
+                return (
+                    any(map(lambda c:c!='\x00', self.data[:-1])) or
+                    self.data[-1] not in ('\x00', '\x80'))
             else:
-                raise ValueError("data string exceeds largest supported length")
+                return ValueError(u"non-data script-op cannot be interpreted as integer")
+        def fset(self, value):
+            if value:
+                self.opcode, self.data = OP_TRUE, None
+            else:
+                self.opcode, self.data = OP_FALSE, None
+        return locals()
+
+    @Property
+    def integral():
+        def fget(self):
+            if self.opcode==OP_1NEGATE:
+                return -1
+            elif self.opcode==OP_0:
+                return 0
+            elif self.opcode>=OP_1 and self.opcode<=OP_16:
+                return self.opcode - OP_1 + 1
+            elif self.opcode in xrange(1,OP_PUSHDATA4+1):
+                data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
+                bignum = deserialize_hash(StringIO(data), len(data))
+                if ord(self.data[-1]) & 0x80:
+                    return -bignum
+                return bignum
+            else:
+                return ValueError(u"non-data script-op cannot be interpreted as integer")
+        def fset(self, value):
+            self.data = None
+            if value == -1:
+                self.opcode = OP_1NEGATE
+            elif value == 0:
+                self.opcode = OP_0
+            elif value >= 1 and value <= 16:
+                self.opcode = OP_1 + value - 1
+            else:
+                neg = value < 1
+                absv = abs(value)
+                data = serialize_hash(absv, 1+len(bin(long(absv)).rstrip('L')[2:])//8)
+                if neg: data = data[:-1] + chr(ord(data[-1])|0x80)
+                datalen = len(data)
+                if datalen < OP_PUSHDATA1:
+                    self.opcode = datalen
+                elif datalen <= 0xff:
+                    self.opcode = OP_PUSHDATA1
+                elif datalen <= 0xffff:
+                    self.opcode = OP_PUSHDATA2
+                elif datalen <= 0xffffffff:
+                    self.opcode = OP_PUSHDATA4
+                else:
+                    raise ValueError(u"integer representation exceeds serialization limits")
+                self.data = data
+        return locals()
+
+    def __eq__(self, other):
+        if self.opcode != other.opcode:
+            return False
+        if self.opcode<=OP_PUSHDATA4 and self.data != other.data:
+            return False
+        return True
+    def __repr__(self):
+        if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
+            return ''.join(['0x', self.data.encode('hex')])
         else:
-            self.op = opdata
-            self.data = ''
-            self.ser_len = 1
+            if self.opcode in OPCODE_NAMES:
+                return OPCODE_NAMES[self.opcode]
+            else:
+                return "OP_UNKNOWN"
+
+class Script(tuple):
+    def __new__(cls, *args, **kwargs):
+        if len(args)==1 and isinstance(args[0], str) and not kwargs:
+            return cls.deserialize(StringIO(args[0]))
+        return super(Script, cls).__new__(cls, *args, **kwargs)
+
+    def serialize(self):
+        return ''.join(map(lambda op:op.serialize(), self))
+    @classmethod
+    def deserialize(cls, file_):
+        l = []
+        try:
+            while True:
+                l.append(ScriptOp.deserialize(file_))
+        except StopIteration: pass
+        return cls(l)
 
     def __repr__(self):
-        if self.op>0 and self.op<=OP_PUSHDATA4:
-            return self.data.encode('hex')
-        else:
-            return OPCODE_NAMES[self.op]
+        return u"Script([%s])" % ', '.join(map(repr, self))
 
-class Script(object):
-    from tokenize import TokenError
-
-    def __init__(self, vch=None, *args, **kwargs):
-        super(Script, self).__init__(*args, **kwargs)
-        self.vch = vch
-        self.reset()
-
-    def reset(self):
-        self.pc = 0
-        self.pend = self.vch and len(self.vch) or 0
-        self.pbegincodehash = 0
-        self.sop = None
-
-    def getchars(self, n):
-        if (self.pc + n) > self.pend:
-            raise IndexError("unexpected end-of-script")
-        s = self.vch[self.pc:self.pc+n]
-        self.pc += n
-        return s
-
-    def getop(self):
-        opcode = ord(self.getchars(1))
-
-        if opcode > OP_PUSHDATA4:
-            if opcode not in VALID_OPCODES:
-                raise TokenError(u"invalid opcode")
-            return ScriptOp(opcode)
-
-        if opcode < OP_PUSHDATA1:
-            datasize = opcode
-        elif opcode == OP_PUSHDATA1:
-            datasize = ord(self.getchars(1))
-        elif opcode == OP_PUSHDATA2:
-            datasize = unpack("<H", self.getchars(2))[0]
-        elif opcode == OP_PUSHDATA4:
-            datasize = unpack("<I", self.getchars(4))[0]
-        return ScriptOp(self.getchars(datasize))
-
-    def tokenize(self, vch_in=None):
-        if vch_in is not None:
-            self.vch = vch_in
-
-        self.reset()
-        while self.pc < self.pend:
-            yield self.getop()
-
-        raise StopIteration
-
-    def __repr__(self):
-        return u"Script(vchsz %d)" % len(self.vch)
-
-__all__ = map(lambda op:OPCODE_NAMES[op], VALID_OPCODES) + [
-    'OP_0',
-    'OP_PUSHDATA1',
-    'OP_PUSHDATA2',
-    'OP_PUSHDATA4',
+__all__ = OPCODE_NAMES.values() + [
     'OP_TRUE',
     'OP_FALSE',
+    'OP_INVALIDOPCODE',
     'Script',
     'ScriptOp',
 ]

@@ -108,15 +108,19 @@ class OutPoint(object):
     def is_null(self):
         return self.hash==0 and self.n==0xffffffff
 
+    def __eq__(self, other):
+        return self.hash == other.hash and self.n == other.n
     def __repr__(self):
-        return 'OutPoint(hash=%064x n=%d)' % (self.hash, self.n)
+        return 'OutPoint(hash=%064x, n=%d)' % (
+            self.hash,
+            self.n==0xffffffff and -1 or self.n)
 
 class Input(object):
     def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff, *args, **kwargs):
         if prevout is None:
             prevout = self.deserialize_prevout(StringIO('\x00'*32 + '\xff'*4))
         if scriptSig is None:
-            scriptSig = ''
+            scriptSig = kwargs.pop('coinbase', Script())
         super(Input, self).__init__(*args, **kwargs)
         self.prevout = prevout
         self.scriptSig = scriptSig
@@ -124,7 +128,10 @@ class Input(object):
 
     def serialize(self):
         result  = self.prevout.serialize()
-        result += serialize_varchar(self.scriptSig)
+        if hasattr(self.scriptSig, 'serialize'):
+            result += self.scriptSig.serialize()
+        else:
+            result += self.scriptSig # <-- coinbase
         result += pack('<I', self.nSequence)
         return result
     @staticmethod
@@ -134,58 +141,65 @@ class Input(object):
     def deserialize(cls, file_):
         initargs = {}
         initargs['prevout'] = cls.deserialize_prevout(file_)
-        initargs['scriptSig'] = deserialize_varchar(file_)
+        str_ = deserialize_varchar(file_)
         initargs['nSequence'] = unpack('<I', file_.read(4))[0]
+        if initargs['prevout'].is_null() and initargs['nSequence']==0xffffffff:
+            initargs['coinbase'] = str_ # <-- coinbase
+        else:
+            initargs['scriptSig'] = Script.deserialize(StringIO(str_))
         return cls(**initargs)
 
     def is_final(self):
         return self.nSequence==0xffffffff
     def is_valid(self):
-        try:
-            script = [op for op in Script(self.scriptSig)]
-        except:
-            return False
         return True
 
+    def __eq__(self, other):
+        return (self.prevout == other.prevout and
+            self.scriptSig == other.scriptSig and
+            self.nSequence == other.nSequence)
     def __repr__(self):
-        return 'Input(prevout=%s scriptSig=%s nSequence=%d)' % (
+        nSequence_str = (self.nSequence!=0xffffffff
+            and ', nSequence=%d' % self.nSequence
+             or '')
+        return 'Input(prevout=%s, %s=%s%s)' % (
             repr(self.prevout),
-            hexlify(self.scriptSig),
-            self.nSequence)
+            self.prevout.is_null() and 'coinbase' or 'scriptSig',
+            repr(self.scriptSig),
+            nSequence_str)
 
 class Output(object):
     def __init__(self, nValue=0, scriptPubKey=None, *args, **kwargs):
         if scriptPubKey is None:
-            scriptPubKey = ''
+            scriptPubKey = Script()
         super(Output, self).__init__(*args, **kwargs)
         self.nValue = nValue
         self.scriptPubKey = scriptPubKey
 
     def serialize(self):
         result  = pack('<Q', self.nValue)
-        result += serialize_varchar(self.scriptPubKey)
+        result += self.scriptPubKey.serialize()
         return result
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
         initargs['nValue'] = unpack('<Q', file_.read(8))[0]
-        initargs['scriptPubKey'] = deserialize_varchar(file_)
+        initargs['scriptPubKey'] = Script.deserialize(StringIO(deserialize_varchar(file_)))
         return cls(**initargs)
 
     def is_valid(self):
         if self.nValue<0 or self.nValue>2100000000000000L:
             return False
-        try:
-            script = [op for op in Script(self.scriptPubKey)]
-        except:
-            return False
         return True
 
+    def __eq__(self, other):
+        return (self.nValue == other.nValue and
+            self.scriptPubKey == other.scriptPubKey)
     def __repr__(self):
-        return 'Output(nValue=%d.%08d scriptPubKey=%s)' % (
+        return 'Output(nValue=%d.%08d, scriptPubKey=%s)' % (
             self.nValue // 100000000,
             self.nValue % 100000000,
-            hexlify(self.scriptPubKey))
+            repr(self.scriptPubKey))
 
 class Transaction(object):
     def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0, nRefHeight=0, *args, **kwargs):
@@ -294,13 +308,34 @@ class Transaction(object):
     def is_coinbase(self):
         return self.vin_count()==1 and self.vin_index(0).prevout.is_null()
 
+    def __eq__(self, other):
+        if (self.nVersion != other.nVersion or
+            self.nLockTime != other.nLockTime or
+            self.nRefHeight != other.nRefHeight):
+            return False
+        vin_count = self.vin_count()
+        if vin_count != other.vin_count():
+            return False
+        for idx in xrange(vin_count):
+            if self.vin_index(idx) != other.vin_index(idx):
+                return False
+        vout_count = self.vout_count()
+        if vout_count != other.vout_count():
+            return False
+        for idx in xrange(vout_count):
+            if self.vout_index(idx) != other.vout_index(idx):
+                return False
+        return True
     def __repr__(self):
-        return 'Transaction(nVersion=%d vin=%s vout=%s nLockTime=%d, nRefHeight=%d)' % (
+        nRefHeight_str = (self.nVersion==2
+            and ', nRefHeight=%d' % self.nRefHeight
+             or '')
+        return 'Transaction(nVersion=%d, vin=%s, vout=%s, nLockTime=%d%s)' % (
             self.nVersion,
             repr(self.vin),
             repr(self.vout),
             self.nLockTime,
-            self.nRefHeight)
+            nRefHeight_str)
 
 class Block(object):
     def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None, nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
@@ -398,7 +433,7 @@ class Block(object):
         return True
 
     def __repr__(self):
-        return 'Block(nVersion=%d hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)' % (
+        return 'Block(nVersion=%d, hashPrevBlock=0x%064x, hashMerkleRoot=0x%064x, nTime=%s, nBits=0x%08x, nNonce=0x%08x, vtx=%s)' % (
             self.nVersion,
             self.hashPrevBlock,
             self.hashMerkleRoot,
