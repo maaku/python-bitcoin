@@ -85,6 +85,8 @@ __all__ = [
     'Block',
 ]
 
+# ===----------------------------------------------------------------------===
+
 class OutPoint(object):
     def __init__(self, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
@@ -114,6 +116,8 @@ class OutPoint(object):
         return 'OutPoint(hash=%064x, n=%d)' % (
             self.hash,
             self.n==0xffffffff and -1 or self.n)
+
+# ===----------------------------------------------------------------------===
 
 class Input(object):
     def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff, *args, **kwargs):
@@ -168,6 +172,8 @@ class Input(object):
             repr(self.scriptSig),
             nSequence_str)
 
+# ===----------------------------------------------------------------------===
+
 class Output(object):
     def __init__(self, nValue=0, scriptPubKey=None, *args, **kwargs):
         if scriptPubKey is None:
@@ -200,6 +206,8 @@ class Output(object):
             self.nValue // 100000000,
             self.nValue % 100000000,
             repr(self.scriptPubKey))
+
+# ===----------------------------------------------------------------------===
 
 class Transaction(object):
     def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0, nRefHeight=0, *args, **kwargs):
@@ -374,6 +382,8 @@ class Transaction(object):
             repr(self.vout),
             self.nLockTime,
             nRefHeight_str)
+
+# ===----------------------------------------------------------------------===
 
 class Block(object):
     def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None, nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):

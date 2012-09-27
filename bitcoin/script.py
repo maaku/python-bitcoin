@@ -69,6 +69,8 @@ from python_patterns.utils.decorators import Property
 
 from .serialize import serialize_hash, deserialize_hash
 
+# ===----------------------------------------------------------------------===
+
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
@@ -79,6 +81,8 @@ TX_PUBKEY = 'pubkey'
 TX_PUBKEYHASH = 'pubkey-hash'
 TX_SCRIPTHASH = 'script-hash'
 TX_MULTISIG = 'multi-sig'
+
+# ===----------------------------------------------------------------------===
 
 # push value
 OP_0 = 0x00
@@ -219,6 +223,8 @@ OP_PUBKEYHASH = 0xfd
 OP_PUBKEY = 0xfe
 
 OP_INVALIDOPCODE = 0xff
+
+# ===----------------------------------------------------------------------===
 
 VALID_OPCODES = [
     OP_1NEGATE,
@@ -463,6 +469,8 @@ OPCODE_NAMES = {
     OP_PUBKEY : 'OP_PUBKEY',
 }
 
+# ===----------------------------------------------------------------------===
+
 class ScriptOp(object):
     def __init__(self, opcode=None, data=None, *args, **kwargs):
         if opcode==OP_INVALIDOPCODE:
@@ -614,6 +622,8 @@ class Script(tuple):
 
     def __repr__(self):
         return u"Script([%s])" % ', '.join(map(repr, self))
+
+# ===----------------------------------------------------------------------===
 
 __all__ = OPCODE_NAMES.values() + [
     'OP_TRUE',
