@@ -78,12 +78,30 @@ from .serialize import (
 from .utils import uint256_from_compact
 
 __all__ = [
+    'Chain',
     'OutPoint',
     'Input',
     'Output',
     'Transaction',
     'Block',
 ]
+
+# ===----------------------------------------------------------------------===
+
+class Chain(object):
+    def __init__(self, name=None, magic=None, port=None, genesis=None, checkpoints=None, *args, **kwargs):
+        if magic is None:
+            magic = ''
+        if checkpoints is None:
+            checkpoints = {}
+
+        super(Chain, self).__init__(*args, **kwargs)
+
+        self.name = name
+        self.magic = magic
+        self.port = port
+        self.genesis = genesis
+        self.checkpoints = checkpoints
 
 # ===----------------------------------------------------------------------===
 
