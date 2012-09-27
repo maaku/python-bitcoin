@@ -300,13 +300,51 @@ class Transaction(object):
         if mode in ('simple',):
             return True
         return True
-    def is_final(self):
+
+    def is_final(self, block_height=None, block_time=None):
+        #if self.nLockTime < LOCKTIME_THRESHOLD:
+        #    if block_height is None:
+        #        pass # FIXME: nBlockHeight = nBestHeight
+        #    if self.nLockTime < block_height:
+        #        return False
+        #else:
+        #    if block_time is None:
+        #        pass # FIXME: nBlockTime = GetAdjustedTime()
+        #    if self.nLockTime < block_time:
+        #        return False
         for idx in xrange(self.vin_count()):
             if not self.vin_index(idx).is_final():
                 return False
         return True
+
+    def is_newer_than(self, other):
+        vin_count = self.vin_count()
+        if vin_count != other.vin_count():
+            return False
+        for idx in vin_count:
+            if self.vin_index(idx).prevout != other.vin_index(idx).prevout:
+                return False
+        # FIXME: this could be made more pythonic:
+        newer = False
+        lowest = 0xffffffff
+        for idx in xrange(vin_count):
+            self_sequence = self.vin_index(idx).nSequence
+            other_sequence = other.vin_index(idx).nSequence
+            if self_sequence != other_sequence:
+                if self_sequence <= lowest:
+                    newer = False
+                    lowest = self_sequence
+                if other_sequence < lowest:
+                    newer = True
+                    lowest = other_sequence
+        return newer
+
     def is_coinbase(self):
         return self.vin_count()==1 and self.vin_index(0).prevout.is_null()
+
+    def is_standard(self):
+        if self.nVersion not in (1,2):
+            return False
 
     def __eq__(self, other):
         if (self.nVersion != other.nVersion or
