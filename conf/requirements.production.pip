@@ -1,5 +1,5 @@
 M2Crypto>=0.21.1
+numpy>=1.6.2
 pandas>=0.8.1
 python-patterns>=0.0.1
-numpy>=1.6.2
 scipy>=0.10.1
