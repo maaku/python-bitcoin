@@ -233,6 +233,7 @@ ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv
 	
 	# pip is used to install Python dependencies for this project.
 	for reqfile in conf/requirements*.pip; do \
+	    CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
 	    "${PKG_ROOT}"/bin/python "${PKG_ROOT}"/bin/pip install \
 	        --download-cache="${CACHE_ROOT}"/pypi \
 	        -r $$reqfile; \
