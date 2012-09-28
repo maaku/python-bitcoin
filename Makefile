@@ -111,6 +111,7 @@ clean: mostlyclean
 .PHONY: distclean
 distclean: clean
 	-rm -rf "${CACHE_ROOT}"
+	-rm -rf Makefile.local
 
 .PHONY: maintainer-clean
 maintainer-clean: distclean

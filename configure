@@ -29,7 +29,7 @@
 # USE, OR SELL ANYTHING THAT IT MAY DESCRIBE, IN WHOLE OR IN PART.
 # ===----------------------------------------------------------------------===
 
-exit 0
+touch Makefile.local
 
 # ===--------------------------------------------------------------------===
 # End of File
