@@ -232,23 +232,37 @@ class Transaction(object):
         self.nLockTime = nLockTime
         self.nRefHeight = nRefHeight
 
+    @Property
+    def vin():
+        def fget(self):
+            for idx in self.vin_count():
+                yield self.vin_index(idx)
+            raise StopIteration
+        return locals()
     def vin_create(self):
-        self.vin = []
+        self._vin = []
     def vin_append(self, tin):
-        self.vin.append(tin)
+        self._vin.append(tin)
     def vin_count(self):
-        return len(self.vin)
+        return len(self._vin)
     def vin_index(self, idx):
-        return self.vin[idx]
+        return self._vin[idx]
 
+    @Property
+    def vout():
+        def fget(self):
+            for idx in self.vout_count():
+                yield self.vout_index(idx)
+            raise StopIteration
+        return locals()
     def vout_create(self):
-        self.vout = []
+        self._vout = []
     def vout_append(self, tout):
-        self.vout.append(tout)
+        self._vout.append(tout)
     def vout_count(self):
-        return len(self.vout)
+        return len(self._vout)
     def vout_index(self, idx):
-        return self.vout[idx]
+        return self._vout[idx]
 
     def serialize(self):
         result  = pack('<I', self.nVersion)
@@ -409,14 +423,21 @@ class Block(object):
         for tx in vtx:
             self.vtx_append(tx)
 
+    @Property
+    def vtx():
+        def fget(self):
+            for idx in self.vtx_count():
+                yield self.vtx_index(idx)
+            raise StopIteration
+        return locals()
     def vtx_create(self):
-        self.vtx = []
+        self._vtx = []
     def vtx_append(self, tx):
-        self.vtx.append(tx)
+        self._vtx.append(tx)
     def vtx_count(self):
-        return len(self.vtx)
+        return len(self._vtx)
     def vtx_index(self, idx):
-        return self.vtx[idx]
+        return self._vtx[idx]
 
     def serialize(self, mode=None):
         if mode is None:
