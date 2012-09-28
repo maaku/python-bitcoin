@@ -62,10 +62,10 @@
 "Miscellaneous utility functions used in other parts of python-bitcoin."
 
 __all__ = [
-    'uint256_from_compact',
+    'target_from_compact',
 ]
 
-def uint256_from_compact(bits):
+def target_from_compact(bits):
     len_ = (bits >> 24) & 0xff
     return (bits & 0xffffffL) << (8 * (len_ - 3))
 

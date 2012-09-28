@@ -75,7 +75,7 @@ from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
-from .utils import uint256_from_compact
+from .utils import target_from_compact
 
 __all__ = [
     'Chain',
@@ -486,7 +486,7 @@ class Block(object):
             mode = 'header'
         if mode not in ('full', 'simple', 'header'):
             raise ValueError(u"unrecognized block validation mode")
-        target = uint256_from_compact(self.nBits)
+        target = target_from_compact(self.nBits)
         if self.hash > target:
             return False
         if mode in ('header',):
