@@ -78,30 +78,13 @@ from .serialize import (
 from .utils import target_from_compact
 
 __all__ = [
-    'Chain',
     'OutPoint',
     'Input',
     'Output',
     'Transaction',
     'Block',
+    'Chain',
 ]
-
-# ===----------------------------------------------------------------------===
-
-class Chain(object):
-    def __init__(self, name=None, magic=None, port=None, genesis=None, checkpoints=None, *args, **kwargs):
-        if magic is None:
-            magic = ''
-        if checkpoints is None:
-            checkpoints = {}
-
-        super(Chain, self).__init__(*args, **kwargs)
-
-        self.name = name
-        self.magic = magic
-        self.port = port
-        self.genesis = genesis
-        self.checkpoints = checkpoints
 
 # ===----------------------------------------------------------------------===
 
@@ -129,7 +112,7 @@ class OutPoint(object):
         return self.hash==0 and self.n==0xffffffff
 
     def __eq__(self, other):
-        return self.hash == other.hash and self.n == other.n
+        return self.hash==other.hash and self.n==other.n
     def __repr__(self):
         return 'OutPoint(hash=%064x, n=%d)' % (
             self.hash,
@@ -138,7 +121,8 @@ class OutPoint(object):
 # ===----------------------------------------------------------------------===
 
 class Input(object):
-    def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff, *args, **kwargs):
+    def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff,
+                 *args, **kwargs):
         if prevout is None:
             prevout = self.deserialize_prevout(StringIO('\x00'*32 + '\xff'*4))
         if scriptSig is None:
@@ -177,9 +161,9 @@ class Input(object):
         return True
 
     def __eq__(self, other):
-        return (self.prevout == other.prevout and
-            self.scriptSig == other.scriptSig and
-            self.nSequence == other.nSequence)
+        return (self.prevout   == other.prevout   and
+                self.scriptSig == other.scriptSig and
+                self.nSequence == other.nSequence)
     def __repr__(self):
         nSequence_str = (self.nSequence!=0xffffffff
             and ', nSequence=%d' % self.nSequence
@@ -228,13 +212,11 @@ class Output(object):
 # ===----------------------------------------------------------------------===
 
 class Transaction(object):
-    def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0, nRefHeight=0, *args, **kwargs):
+    def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0,
+                 nRefHeight=0, *args, **kwargs):
         # defaults
-        if vin is None:
-            vin = []
-        if vout is None:
-            vout = []
-
+        if vin is None: vin = []
+        if vout is None: vout = []
         super(Transaction, self).__init__(*args, **kwargs)
 
         # serialized
@@ -394,20 +376,23 @@ class Transaction(object):
         nRefHeight_str = (self.nVersion==2
             and ', nRefHeight=%d' % self.nRefHeight
              or '')
-        return 'Transaction(nVersion=%d, vin=%s, vout=%s, nLockTime=%d%s)' % (
+        return ('Transaction(nVersion=%d, '
+                            'vin=%s, '
+                            'vout=%s, '
+                            'nLockTime=%d%s)' % (
             self.nVersion,
             repr(self.vin),
             repr(self.vout),
             self.nLockTime,
-            nRefHeight_str)
+            nRefHeight_str))
 
 # ===----------------------------------------------------------------------===
 
 class Block(object):
-    def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None, nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
-        if vtx is None:
-            vtx = []
-
+    def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
+                 nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None,
+                 *args, **kwargs):
+        if vtx is None: vtx = []
         super(Block, self).__init__(*args, **kwargs)
 
         # serialized, header
@@ -500,14 +485,35 @@ class Block(object):
         return True
 
     def __repr__(self):
-        return 'Block(nVersion=%d, hashPrevBlock=0x%064x, hashMerkleRoot=0x%064x, nTime=%s, nBits=0x%08x, nNonce=0x%08x, vtx=%s)' % (
+        return ('Block(nVersion=%d, '
+                      'hashPrevBlock=0x%064x, '
+                      'hashMerkleRoot=0x%064x, '
+                      'nTime=%s, '
+                      'nBits=0x%08x, '
+                      'nNonce=0x%08x, '
+                      'vtx=%s)' % (
             self.nVersion,
             self.hashPrevBlock,
             self.hashMerkleRoot,
             self.nTime,
             self.nBits,
             self.nNonce,
-            repr(self.vtx))
+            repr(self.vtx)))
+
+# ===----------------------------------------------------------------------===
+
+class Chain(object):
+    def __init__(self, name=None, magic=None, port=None, genesis=None,
+                 checkpoints=None, *args, **kwargs):
+        if magic is None: magic = ''
+        if checkpoints is None: checkpoints = {}
+        super(Chain, self).__init__(*args, **kwargs)
+        self.name = name
+        self.magic = magic
+        self.port = port
+        self.genesis = genesis
+        self.checkpoints = checkpoints
+
 
 # ===----------------------------------------------------------------------===
 # End of File
