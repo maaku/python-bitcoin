@@ -31,11 +31,12 @@
 # ===----------------------------------------------------------------------===
 
 # ===----------------------------------------------------------------------===
-# This file is based in part on code published as part of the pynode project.
-# The original work is copyrighted by it's authors and licensed according to
-# the terms of the MIT license (below); modifications since then are the
-# property of RokuSigma Inc. and subject to the above-referenced
-# confidentiality and non-disclosure agreements.
+# This Python package is based in part on code published as part of the pynode
+# project. The original work is copyrighted by it's authors and licensed
+# according to the terms of the MIT license (below); modification to the
+# original work are the property of RokuSigma Inc. and contributers and
+# subject to the above-referenced confidentiality and non-disclosure
+# agreements.
 # ===----------------------------------------------------------------------===
 
 # ===----------------------------------------------------------------------===
