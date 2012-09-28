@@ -373,18 +373,10 @@ class Transaction(object):
             self.nLockTime  != other.nLockTime or
             self.nRefHeight != other.nRefHeight):
             return False
-        vin_count = self.vin_count()
-        if vin_count != other.vin_count():
+        if list(self.vin) != list(other.vin):
             return False
-        for idx in xrange(vin_count):
-            if self.vin_index(idx) != other.vin_index(idx):
-                return False
-        vout_count = self.vout_count()
-        if vout_count != other.vout_count():
+        if list(self.vout) != list(other.vout):
             return False
-        for idx in xrange(vout_count):
-            if self.vout_index(idx) != other.vout_index(idx):
-                return False
         return True
     def __repr__(self):
         nRefHeight_str = (self.nVersion==2
