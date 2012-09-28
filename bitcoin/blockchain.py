@@ -303,26 +303,6 @@ class Transaction(object):
             return len(self.serialize())
         return locals()
 
-    def is_valid(self, mode=None):
-        if mode is None:
-            mode = 'simple'
-        if mode not in ('full', 'simple'):
-            raise ValueError(u"unrecognized input validation mode")
-        getattr(self, 'hash')
-        if not self.is_coinbase():
-            for idx in xrange(self.vin_count()):
-                if not self.vin_index(idx).is_valid():
-                    return False
-        for idx in xrange(self.vout_count()):
-            if not self.vout_index(idx).is_valid():
-                return False
-        if self.nVersion not in (2,):
-            if self.nRefHeight != 0:
-                return False
-        if mode in ('simple',):
-            return True
-        return True
-
     def is_final(self, block_height=None, block_time=None):
         #if self.nLockTime < LOCKTIME_THRESHOLD:
         #    if block_height is None:
@@ -368,9 +348,29 @@ class Transaction(object):
         if self.nVersion not in (1,2):
             return False
 
+    def is_valid(self, mode=None):
+        if mode is None:
+            mode = 'simple'
+        if mode not in ('full', 'simple'):
+            raise ValueError(u"unrecognized input validation mode")
+        getattr(self, 'hash')
+        if not self.is_coinbase():
+            for idx in xrange(self.vin_count()):
+                if not self.vin_index(idx).is_valid():
+                    return False
+        for idx in xrange(self.vout_count()):
+            if not self.vout_index(idx).is_valid():
+                return False
+        if self.nVersion not in (2,):
+            if self.nRefHeight != 0:
+                return False
+        if mode in ('simple',):
+            return True
+        return True
+
     def __eq__(self, other):
-        if (self.nVersion != other.nVersion or
-            self.nLockTime != other.nLockTime or
+        if (self.nVersion   != other.nVersion  or
+            self.nLockTime  != other.nLockTime or
             self.nRefHeight != other.nRefHeight):
             return False
         vin_count = self.vin_count()
