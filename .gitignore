@@ -4,3 +4,4 @@
 .pkg
 build
 .coverage
+tests/data/blk????.dat

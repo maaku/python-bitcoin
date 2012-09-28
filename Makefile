@@ -36,8 +36,18 @@ PKG_ROOT=${ROOT}/.pkg
 .PHONY: all
 all: ${PKG_ROOT}/.stamp-h
 
+http://sourceforge.net/projects/bitcoin/files/Bitcoin/testnet-in-a-box/testnet3-box.zip/download
+
+.PHONY: check-data
+check-data: tests/data/blk0001.dat
+tests/data/blk0001.dat: ${CACHE_ROOT}/testnet3/testnet3-box.zip
+	mkdir -p tests/data
+	rm -f tests/data/blk0001.dat
+	unzip -d tests/data -j ${CACHE_ROOT}/testnet3/testnet3-box.zip \
+	    testnet-box/1/testnet3/blk0001.dat
+
 .PHONY: check
-check: all
+check: all check-data
 	mkdir -p build/report/xunit
 	@echo  >.pytest.py "import unittest2"
 	@echo >>.pytest.py "import xmlrunner"
@@ -113,6 +123,8 @@ dist:
 
 # ===--------------------------------------------------------------------===
 
+SOURCEFORGE_MIRROR := hivelocity.dl.sourceforge.net
+
 ${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz:
 	mkdir -p ${CACHE_ROOT}/virtualenv
 	sh -c "cd ${CACHE_ROOT}/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.2.tar.gz"
@@ -124,6 +136,10 @@ ${CACHE_ROOT}/numpy/numpy-1.6.2.tar.gz:
 ${CACHE_ROOT}/scipy/scipy-0.10.1.tar.gz:
 	mkdir -p "${CACHE_ROOT}"/scipy
 	sh -c "cd "${CACHE_ROOT}"/scipy && curl -O 'http://pypi.python.org/packages/source/s/scipy/scipy-0.10.1.tar.gz'"
+
+${CACHE_ROOT}/testnet3/testnet3-box.zip:
+	mkdir -p "${CACHE_ROOT}"/testnet3
+	sh -c "cd "${CACHE_ROOT}"/testnet3 && curl -O 'http://$(SOURCEFORGE_MIRROR)/project/bitcoin/Bitcoin/testnet-in-a-box/testnet3-box.zip'"
 
 ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz ${CACHE_ROOT}/numpy/numpy-1.6.2.tar.gz ${CACHE_ROOT}/scipy/scipy-0.10.1.tar.gz
 	# Because build and run-time dependencies are not thoroughly tracked,
