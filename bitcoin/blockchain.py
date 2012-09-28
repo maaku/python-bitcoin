@@ -68,8 +68,7 @@ except:
 
 from python_patterns.utils.decorators import Property
 
-from .crypto import hash256
-from .merkle import merkle_list
+from .crypto import hash256, merkle
 from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
@@ -491,7 +490,8 @@ class Block(object):
             return False
         if mode in ('header',):
             return True
-        if self.hashMerkleRoot != merkle_list(self.vtx_index(idx).hash for idx in xrange(self.vtx_count())):
+        if self.hashMerkleRoot != merkle(self.vtx_index(idx).hash
+                                         for idx in xrange(self.vtx_count())):
             return False
         for idx in xrange(self.vtx_count()):
             if not self.vtx_index(idx).is_valid(mode):
