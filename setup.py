@@ -52,8 +52,8 @@ setup(name='python-bitcoin',
         'License :: MIT',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Topic :: Office/Business :: Financial',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Utilities',
     ],
 )
 
