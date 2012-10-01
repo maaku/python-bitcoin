@@ -181,37 +181,26 @@ class Transaction(object):
         self.nLockTime = nLockTime
         self.nRefHeight = nRefHeight
 
-    @Property
-    def vin():
-        def fget(self):
-            for idx in self.vin_count():
-                yield self.vin_index(idx)
-            raise StopIteration
-        return locals()
-    def vin_create(self):
-        self._vin = []
-    def vin_append(self, tin):
-        self._vin.append(tin)
-    def vin_count(self):
-        return len(self._vin)
-    def vin_index(self, idx):
-        return self._vin[idx]
 
-    @Property
-    def vout():
-        def fget(self):
-            for idx in self.vout_count():
-                yield self.vout_index(idx)
-            raise StopIteration
-        return locals()
+    def vin_create(self):
+        self.vin = []
+    def vin_append(self, tin):
+        self.vin.append(tin)
+    def vin_count(self):
+        return len(self.vin)
+    def vin_index(self, idx):
+        return self.vin[idx]
+    vin_clear = vin_create
+
     def vout_create(self):
-        self._vout = []
+        self.vout = []
     def vout_append(self, tout):
-        self._vout.append(tout)
+        self.vout.append(tout)
     def vout_count(self):
-        return len(self._vout)
+        return len(self.vout)
     def vout_index(self, idx):
-        return self._vout[idx]
+        return self.vout[idx]
+    vout_clear = vout_create
 
     def serialize(self):
         result  = pack('<I', self.nVersion)
@@ -263,8 +252,8 @@ class Transaction(object):
         #        pass # FIXME: nBlockTime = GetAdjustedTime()
         #    if self.nLockTime < block_time:
         #        return False
-        for idx in xrange(self.vin_count()):
-            if not self.vin_index(idx).is_final():
+        for input_ in self.vin:
+            if not input_.is_final():
                 return False
         return True
 
@@ -272,22 +261,21 @@ class Transaction(object):
         vin_count = self.vin_count()
         if vin_count != other.vin_count():
             return False
-        for idx in vin_count:
-            if self.vin_index(idx).prevout != other.vin_index(idx).prevout:
-                return False
         # FIXME: this could be made more pythonic:
         newer = False
         lowest = 0xffffffff
         for idx in xrange(vin_count):
-            self_sequence = self.vin_index(idx).nSequence
-            other_sequence = other.vin_index(idx).nSequence
-            if self_sequence != other_sequence:
-                if self_sequence <= lowest:
+            self_vin = self.vin_index(idx)
+            other_vin = other.vin_index(idx)
+            if self_vin.prevout != other_vin.prevout:
+                return False
+            if self_vin.nSequence != other_vin.nSequence:
+                if self_vin.nSequence <= lowest:
                     newer = False
-                    lowest = self_sequence
-                if other_sequence < lowest:
+                    lowest = self_vin.nSequence
+                if other_vin.nSequence < lowest:
                     newer = True
-                    lowest = other_sequence
+                    lowest = other_vin.nSequence
         return newer
 
     def is_coinbase(self):
@@ -297,24 +285,16 @@ class Transaction(object):
         if self.nVersion not in (1,2):
             return False
 
-    def is_valid(self, mode=None):
-        if mode is None:
-            mode = 'simple'
-        if mode not in ('full', 'simple'):
-            raise ValueError(u"unrecognized input validation mode")
+    def is_valid(self):
         getattr(self, 'hash')
         if not self.is_coinbase():
-            for idx in xrange(self.vin_count()):
-                if not self.vin_index(idx).is_valid():
-                    return False
-        for idx in xrange(self.vout_count()):
-            if not self.vout_index(idx).is_valid():
+            if not all(input_.is_valid() for input_ in self.vin):
                 return False
+        if not all(output.is_valid() for output in self.vout):
+            return False
         if self.nVersion not in (2,):
             if self.nRefHeight != 0:
                 return False
-        if mode in ('simple',):
-            return True
         return True
 
     def __eq__(self, other):
@@ -362,23 +342,16 @@ class Block(object):
         if not hasattr(self, 'vtx'):
             self.vtx_create()
         for tx in vtx:
-            self.vtx_append(tx)
+            self.vtx_add(tx)
 
-    @Property
-    def vtx():
-        def fget(self):
-            for idx in self.vtx_count():
-                yield self.vtx_index(idx)
-            raise StopIteration
-        return locals()
     def vtx_create(self):
-        self._vtx = []
-    def vtx_append(self, tx):
-        self._vtx.append(tx)
+        self.vtx = set()
+    def vtx_add(self, tx):
+        self.vtx.append(tx)
     def vtx_count(self):
-        return len(self._vtx)
-    def vtx_index(self, idx):
-        return self._vtx[idx]
+        return len(self.vtx)
+    def vtx_clear(self):
+        self.vtx.clear()
 
     def serialize(self, mode=None):
         if mode is None:
@@ -431,21 +404,28 @@ class Block(object):
     def is_valid(self, mode=None):
         if mode is None:
             mode = 'header'
-        if mode not in ('full', 'simple', 'header'):
+        if mode not in ('full', 'header'):
             raise ValueError(u"unrecognized block validation mode")
         target = target_from_compact(self.nBits)
         if self.hash > target:
             return False
         if mode in ('header',):
             return True
-        if self.hashMerkleRoot != merkle(self.vtx_index(idx).hash
-                                         for idx in xrange(self.vtx_count())):
+        if self.hashMerkleRoot != merkle(tx.hash for tx in self.vtx):
             return False
-        for idx in xrange(self.vtx_count()):
-            if not self.vtx_index(idx).is_valid(mode):
-                return False
+        if not all(tx.is_valid for tx in self.vtx):
+            return False
         return True
 
+    def __eq__(self, other):
+        if (self.nVersion       != other.nVersion       or
+            self.hashPrevBlock  != other.hashPrevBlock  or
+            self.hashMerkleRoot != other.hashMerkleRoot or
+            self.nTime          != other.nTime          or
+            self.nBits          != other.nBits          or
+            self.nNonce         != other.nNonce):
+            return False
+        return True
     def __repr__(self):
         return ('Block(nVersion=%d, '
                       'hashPrevBlock=0x%064x, '
@@ -461,21 +441,6 @@ class Block(object):
             self.nBits,
             self.nNonce,
             repr(self.vtx)))
-
-# ===----------------------------------------------------------------------===
-
-class Chain(object):
-    def __init__(self, name=None, magic=None, port=None, genesis=None,
-                 checkpoints=None, *args, **kwargs):
-        if magic is None: magic = ''
-        if checkpoints is None: checkpoints = {}
-        super(Chain, self).__init__(*args, **kwargs)
-        self.name = name
-        self.magic = magic
-        self.port = port
-        self.genesis = genesis
-        self.checkpoints = checkpoints
-
 
 # ===----------------------------------------------------------------------===
 # End of File
