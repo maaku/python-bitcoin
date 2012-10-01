@@ -9,7 +9,6 @@
 # ===----------------------------------------------------------------------===
 
 from struct import pack, unpack
-from binascii import hexlify
 
 try:
     from cStringIO import StringIO
@@ -181,7 +180,6 @@ class Transaction(object):
         self.nLockTime = nLockTime
         self.nRefHeight = nRefHeight
 
-
     def vin_create(self):
         self.vin = []
     def vin_append(self, tin):
@@ -201,6 +199,18 @@ class Transaction(object):
     def vout_index(self, idx):
         return self.vout[idx]
     vout_clear = vout_create
+
+    @Property
+    def hash():
+        def fget(self):
+            return hash256(self.serialize())
+        return locals()
+
+    @Property
+    def size():
+        def fget(self):
+            return len(self.serialize())
+        return locals()
 
     def serialize(self):
         result  = pack('<I', self.nVersion)
@@ -229,18 +239,6 @@ class Transaction(object):
             initargs['nRefHeight'] = 0
         return cls(**initargs)
 
-    @Property
-    def hash():
-        def fget(self):
-            return hash256(self.serialize())
-        return locals()
-
-    @Property
-    def size():
-        def fget(self):
-            return len(self.serialize())
-        return locals()
-
     def is_final(self, block_height=None, block_time=None):
         #if self.nLockTime < LOCKTIME_THRESHOLD:
         #    if block_height is None:
@@ -261,7 +259,7 @@ class Transaction(object):
         vin_count = self.vin_count()
         if vin_count != other.vin_count():
             return False
-        # FIXME: this could be made more pythonic:
+        # FIXME: this could be made more pythonic...
         newer = False
         lowest = 0xffffffff
         for idx in xrange(vin_count):
