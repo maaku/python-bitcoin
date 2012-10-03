@@ -19,6 +19,7 @@ ASSETS = {
             'ayBvZiBzZWNvbmQgYmFpbG91dCBmb3IgYmFua3P/////AQDyBSoBAAAAQ0EEZ4r9sP5VSCcZZ/Gm'
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
         ).decode('base64'),
+        max_value = 2100000000000000L,
         checkpoints = {
             0:      0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
             11111:  0x0000000069e244f73d78e8fd29ba2fd2ed618bd6fa2ee92559f542fdb26e7c1dL,
@@ -28,7 +29,8 @@ ASSETS = {
             134444: 0x00000000000005b12ffd4cd315cd34ffd4a594f430ac814c91184a0d42d2b0feL,
             168000: 0x000000000000099e61ea72015e79632f216fe6cb33d7899acb35b75c8303b763L,
             193000: 0x000000000000059f452a5f7340de6682a977387c17010ff6e6c3bd83ca8b1317L,
-        }),
+        },
+        features = {}),
     'testnet3' : dict(
         magic = 'fabfb5da'.decode('hex'),
         port = 18333,
@@ -39,10 +41,12 @@ ASSETS = {
             'ayBvZiBzZWNvbmQgYmFpbG91dCBmb3IgYmFua3P/////AQDyBSoBAAAAQ0EEZ4r9sP5VSCcZZ/Gm'
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
         ).decode('base64'),
+        max_value = 2100000000000000L,
         checkpoints = {
             0:   0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L,
             546: 0x000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70L,
-        }),
+        },
+        features = {}),
     'namecoin' : dict(
         magic = 'f9beb4fe'.decode('hex'),
         port = 8334,
@@ -54,6 +58,7 @@ ASSETS = {
             'zYmf+7xOjuUejEU0qFW7RjQ51j0jXUd5aF2Lb0hwojjPNlrJT6E++aKiLNmdDV7obcq8r842x6z0'
             'POWsAAAAAA=='
         ).decode('base64'),
+        max_value = 2100000000000000L,
         checkpoints = {
             0:     0x000000000062b72c5e2ceb45fbc8587e807c155b0da735e6483dfba2f0a9c770L,
             2016:  0x0000000000660bad0d9fbde55ba7ee14ddf766ed5f527e3fbca523ac11460b92L,
@@ -67,7 +72,8 @@ ASSETS = {
             18940: 0x00000000000087f7fc0c8085217503ba86f796fa4984f7e5a08b6c4c12906c05L,
             30240: 0xe1c8c862ff342358384d4c22fa6ea5f669f3e1cdcf34111f8017371c3c0be1daL,
             57000: 0xaa3ec60168a0200799e362e2b572ee01f3c3852030d07d036e0aa884ec61f203L,
-        }),
+        },
+        features = {}),
     'freicoinbeta2' : dict(
         magic = 'c7d32389'.decode('hex'),
         port = 8639,
@@ -79,9 +85,11 @@ ASSETS = {
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
             'AAAAAA=='
         ).decode('base64'),
+        max_value = 1000000000000000000L,
         checkpoints = {
             0: 0x000000000c29f26697c30e29039927ab4241b5fc2cc76db7e0dafa5e2612ad46L,
-        }),
+        },
+        features = {}),
 }
 
 # ===----------------------------------------------------------------------===
