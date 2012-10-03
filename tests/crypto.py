@@ -29,6 +29,17 @@ MERKLE_LIST = [
                 0x4817fad15ce7604ae5a478888a29b4ade8000596a0e9267747b1d4f0bd1a6defL,
                 0x16952eba67618e90857d530a63477ea09dd89575ac00c114e20e8068b4e0297cL],
          root=0xb1cd750f2a242deeaf3b452aa69a4a46f9f66e866c07eda22677f1287688bb1eL),
+]
+
+class TestMerkle(unittest2.TestCase):
+    "Test merkle API under a variety of scenarios."
+    __metaclass__ = ScenarioMeta
+    class test_merkle_root(ScenarioTest):
+        scenarios = MERKLE_LIST
+        def __test__(self, list_, root):
+            self.assertEqual(merkle(list_), root)
+
+NESTED_MERKLE = [
     dict(list_=[0x67050eeb5f95abf57449d92629dcf69f80c26247e207ad006a862d1e4e6498ffL,
                 [0x9c2e4d8fe97d881430de4e754b4205b9c27ce96715231cffc4337340cb110280L,
                  [0x0c08173828583fc6ecd6ecdbcca7b6939c49c242ad5107e39deb7b0a5996b903L],
@@ -45,11 +56,11 @@ MERKLE_LIST = [
          root=0x681ac33995f3421e8302a55cf929b9d84031cf5f5bb6ec5898435b6dbdb5455fL),
 ]
 
-class TestMerkle(unittest2.TestCase):
-    "Test merkle API under a variety of scenarios."
+class TestNestedMerkle(unittest2.TestCase):
+    "Test merkle API using explicit (version=2) Merkle trees."
     __metaclass__ = ScenarioMeta
     class test_merkle_root(ScenarioTest):
-        scenarios = MERKLE_LIST
+        scenarios = NESTED_MERKLE
         def __test__(self, list_, root):
             self.assertEqual(merkle(list_), root)
 
