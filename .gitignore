@@ -4,4 +4,6 @@
 .pkg
 build
 .coverage
+MANIFEST
+dist/*
 tests/data/blk????.dat
