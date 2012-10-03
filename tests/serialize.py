@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.serialize_test ----------------------------------------------===
+# === tests.serialize -----------------------------------------------------===
 # Copyright © 2012 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying

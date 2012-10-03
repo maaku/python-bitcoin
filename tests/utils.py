@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.utils_test --------------------------------------------------===
+# === tests.utils ---------------------------------------------------------===
 # Copyright © 2012 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying
@@ -14,7 +14,7 @@ import unittest2
 # Python patterns, scenario unit-testing
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
-from .utils import target_from_compact
+from bitcoin.utils import target_from_compact
 
 TARGET_FROM_COMPACT = [
     dict(bits=0x1d00ffff,
