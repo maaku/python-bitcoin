@@ -8,8 +8,13 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 # ===----------------------------------------------------------------------===
 
+from collections import namedtuple
+
+AssetInfo = namedtuple('AssetInfo', ['magic', 'port', 'genesis', 'max_value',
+                                     'checkpoints', 'features'])
+
 ASSETS = {
-    'bitcoin' : dict(
+    'bitcoin' : AssetInfo(
         magic = 'f9beb4d9'.decode('hex'),
         port = 8333,
         genesis = (
@@ -31,7 +36,7 @@ ASSETS = {
             193000: 0x000000000000059f452a5f7340de6682a977387c17010ff6e6c3bd83ca8b1317L,
         },
         features = {}),
-    'testnet3' : dict(
+    'testnet3' : AssetInfo(
         magic = 'fabfb5da'.decode('hex'),
         port = 18333,
         genesis = (
@@ -47,7 +52,7 @@ ASSETS = {
             546: 0x000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70L,
         },
         features = {}),
-    'namecoin' : dict(
+    'namecoin' : AssetInfo(
         magic = 'f9beb4fe'.decode('hex'),
         port = 8334,
         genesis = (
@@ -74,7 +79,7 @@ ASSETS = {
             57000: 0xaa3ec60168a0200799e362e2b572ee01f3c3852030d07d036e0aa884ec61f203L,
         },
         features = {}),
-    'freicoinbeta2' : dict(
+    'freicoinbeta2' : AssetInfo(
         magic = 'c7d32389'.decode('hex'),
         port = 8639,
         genesis = (
