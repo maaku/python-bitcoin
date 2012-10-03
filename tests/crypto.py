@@ -14,7 +14,7 @@ import unittest2
 # Python patterns, scenario unit-testing
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
-from .crypto import merkle
+from bitcoin.crypto import merkle
 
 MERKLE_LIST = [
     dict(list_=[], root=0),
