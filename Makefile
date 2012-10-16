@@ -14,8 +14,6 @@ PKG_ROOT=${ROOT}/.pkg
 .PHONY: all
 all: ${PKG_ROOT}/.stamp-h
 
-http://sourceforge.net/projects/bitcoin/files/Bitcoin/testnet-in-a-box/testnet3-box.zip/download
-
 .PHONY: check-data
 check-data: tests/data/blk0001.dat
 tests/data/blk0001.dat: ${CACHE_ROOT}/testnet3/testnet3-box.zip
