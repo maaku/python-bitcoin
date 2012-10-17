@@ -8,6 +8,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 # ===----------------------------------------------------------------------===
 
+from datetime import datetime, timedelta
+import numbers
 from struct import pack, unpack
 
 try:
@@ -68,6 +70,13 @@ class OutPoint(Serializer):
     def is_null(self):
         return self.hash==0 and self.n==0xffffffff
 
+    def is_valid(self):
+        if self.hash<0 or self.hash>=2**256:
+            return False
+        if self.n<0 or self.n>=2**32:
+            return False
+        return True
+
     def __eq__(self, other):
         return self.hash==other.hash and self.n==other.n
     def __repr__(self):
@@ -116,6 +125,17 @@ class Input(Serializer):
     def is_final(self):
         return self.nSequence==0xffffffff
     def is_valid(self):
+        if not self.prevout.is_valid():
+            return False
+        if isinstance(self.scriptSig, str):
+            len_ = len(self.scriptSig)
+            if len_<2 or len_>100:
+                return False
+        else:
+            if not self.scriptSig.is_valid():
+                return False
+        if self.nSequence<0 or self.nSequence>=2**32:
+            return False
         return True
 
     def __eq__(self, other):
@@ -155,7 +175,9 @@ class Output(Serializer):
         return cls(asset, **initargs)
 
     def is_valid(self):
-        if self.nValue<0 or self.nValue>2100000000000000L:
+        if self.nValue<0 or self.nValue>self.asset.max_value:
+            return False
+        if not self.scriptPubKey.is_valid():
             return False
         return True
 
@@ -296,15 +318,61 @@ class Transaction(Serializer):
             return False
 
     def is_valid(self):
-        getattr(self, 'hash')
-        if not self.is_coinbase():
-            if not all(input_.is_valid() for input_ in self.vin):
+        allowed_versions = set([1])
+        # if TXVERSION2_REFHEIGHT in self.asset.features:
+        #     if allowed_versions.add(2)
+        if self.nVersion not in allowed_versions:
+            return False
+
+        if self.vin_count() <= 0:
+            return False
+        if any(self.vin_index(idx) is None for idx in xrange(self.vin_count())):
+            return False
+        if not all(txin.is_valid() for txin in self.vin):
+            return False
+        if self.is_coinbase():
+            coinbase = self.vin_index(0)
+            if isinstance(coinbase.scriptSig, str):
+                len_ = len(coinbase.scriptSig)
+            else:
+                len_ = len(coinbase.scriptSig.serialize())
+            if len_<2 or len_>100:
                 return False
-        if not all(output.is_valid() for output in self.vout):
+            start = 1
+        else:
+            if any(txin.prevout.is_null() for txin in self.vin):
+                return False
+            start = 0
+        if start != self.vin_count():
+            if any(isinstance(self.vin_index(idx).scriptSig, str)
+                   for idx in xrange(start, self.vin_count)):
+                return False
+
+        if self.vout_count() <= 0:
+            return False
+        if any(self.vout_index(idx) is None for idx in xrange(self.vout_count())):
+            return False
+        if not all(txout.is_valid() for txout in self.vout):
+            return False
+
+        if self.nLockTime<0 or self.nLockTime>=2**32:
+            return False
+
+        if self.nVersion<0 or self.nVersion>=2**32:
             return False
         if self.nVersion not in (2,):
             if self.nRefHeight != 0:
                 return False
+
+        #if self.size > self.asset.max_block_length):
+        #    return False
+
+        outpoints = set()
+        for txin in self.vin:
+            if txin.prevout in outpoints:
+                return False
+            outpoints.add(txin.prevout)
+
         return True
 
     def __eq__(self, other):
@@ -415,15 +483,62 @@ class Block(Serializer):
             mode = 'header'
         if mode not in ('full', 'header'):
             raise ValueError(u"unrecognized block validation mode")
+
+        allowed_versions = set([1])
+        # if BIP0032_BLOCKVERSION2 in self.asset.features:
+        #     if allowed_versions.add(2)
+        if self.nVersion not in allowed_versions:
+            return False
+        if self.hashPrevBlock<0 or self.hashPrevBlock>=2**256:
+            return False
+        if self.hashMerkleRoot<0 or self.hashMerkleRoot>=2**256:
+            return False
+        if self.nTime<0 or self.nTime>=2**32:
+            return False
+        # FIXME: replace datetime.now() with network-adjusted time, and then
+        #     eventually a hybrid NTP/network-adjusted time.
+        if datetime.utcfromtimestamp(self.nTime) > datetime.now() + timedelta(seconds=7200):
+            return False
         target = target_from_compact(self.nBits)
+        if target<=0 or target>=target_from_compact(0x1d00ffff):
+            return False
+        if self.nNonce<0 or self.nNonce>=2**32:
+            return False
+
         if self.hash > target:
             return False
+
         if mode in ('header',):
             return True
-        if self.hashMerkleRoot != merkle(tx.hash for tx in self.vtx):
+
+        if self.hashMerkleRoot not in self.asset.merkles:
             return False
+        tree = self.asset.merkls[self.hashMerkleRoot]
+        if self.vtx_count() != merkle_count(tree):
+            return False
+        mapTx = {}
+        for tx in self.vtx:
+            hash_ = tx.hash
+            if hash_ in mapTx:
+                return False
+            mapTx[hash_] = tx
+        if any(hash_ not in mapTx for hash_ in merkle_iter(tree)):
+            return False
+        if self.hashMerkleRoot != merkle(tree):
+            return False
+
         if not all(tx.is_valid for tx in self.vtx):
             return False
+
+        vtx = merkle_iter(tree)
+        if not mapTx[next(vtx)].is_coinbase():
+            return False
+        if any(mapTx[hash_].is_coinbase() for hash_ in vtx):
+            return False
+
+        # FIXME: make sure that sig-op count does not exceed
+        #   self.asset.max_block_sigops.
+
         return True
 
     def __eq__(self, other):
