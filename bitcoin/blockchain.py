@@ -283,8 +283,8 @@ class Transaction(Serializer):
         #        pass # FIXME: nBlockTime = GetAdjustedTime()
         #    if self.nLockTime < block_time:
         #        return False
-        for input_ in self.vin:
-            if not input_.is_final():
+        for txin in self.vin:
+            if not txin.is_final():
                 return False
         return True
 
