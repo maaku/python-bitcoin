@@ -35,9 +35,19 @@ __all__ = [
 
 # ===----------------------------------------------------------------------===
 
-class OutPoint(object):
-    def __init__(self, hash=0, n=0xffffffff, *args, **kwargs):
+from types import MethodType
+
+class Serializer(object):
+    def __init__(self, *args, **kwargs):
+        super(Serializer, self).__init__(*args, **kwargs)
+        self.deserialize = MethodType(self.deserialize, self, self.__class__)
+
+# ===----------------------------------------------------------------------===
+
+class OutPoint(Serializer):
+    def __init__(self, asset, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
+        self.asset = asset
         self.hash = hash
         self.n = n
 
@@ -46,11 +56,11 @@ class OutPoint(object):
         result += pack('<I', self.n)
         return result
     @classmethod
-    def deserialize(cls, file_):
+    def deserialize(cls, asset, file_):
         initargs = {}
         initargs['hash'] = deserialize_hash(file_, 32)
         initargs['n'] = unpack('<I', file_.read(4))[0]
-        return cls(**initargs)
+        return cls(asset, **initargs)
 
     def set_null(self):
         self.hash = 0
@@ -67,14 +77,15 @@ class OutPoint(object):
 
 # ===----------------------------------------------------------------------===
 
-class Input(object):
-    def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff,
-                 *args, **kwargs):
+class Input(Serializer):
+    def __init__(self, asset, prevout=None, scriptSig=None,
+                 nSequence=0xffffffff, *args, **kwargs):
         if prevout is None:
             prevout = self.deserialize_prevout(StringIO('\x00'*32 + '\xff'*4))
         if scriptSig is None:
             scriptSig = kwargs.pop('coinbase', Script())
         super(Input, self).__init__(*args, **kwargs)
+        self.asset = asset
         self.prevout = prevout
         self.scriptSig = scriptSig
         self.nSequence = nSequence
@@ -88,19 +99,19 @@ class Input(object):
         result += pack('<I', self.nSequence)
         return result
     @staticmethod
-    def deserialize_prevout(file_):
-        return OutPoint.deserialize(file_)
+    def deserialize_prevout(asset, file_):
+        return OutPoint.deserialize(asset, file_)
     @classmethod
-    def deserialize(cls, file_):
+    def deserialize(cls, asset, file_):
         initargs = {}
-        initargs['prevout'] = cls.deserialize_prevout(file_)
+        initargs['prevout'] = cls.deserialize_prevout(asset, file_)
         str_ = deserialize_varchar(file_)
         initargs['nSequence'] = unpack('<I', file_.read(4))[0]
         if initargs['prevout'].is_null() and initargs['nSequence']==0xffffffff:
             initargs['coinbase'] = str_ # <-- coinbase
         else:
             initargs['scriptSig'] = Script.deserialize(StringIO(str_))
-        return cls(**initargs)
+        return cls(asset, **initargs)
 
     def is_final(self):
         return self.nSequence==0xffffffff
@@ -123,11 +134,12 @@ class Input(object):
 
 # ===----------------------------------------------------------------------===
 
-class Output(object):
-    def __init__(self, nValue=0, scriptPubKey=None, *args, **kwargs):
+class Output(Serializer):
+    def __init__(self, asset, nValue=0, scriptPubKey=None, *args, **kwargs):
         if scriptPubKey is None:
             scriptPubKey = Script()
         super(Output, self).__init__(*args, **kwargs)
+        self.asset = asset
         self.nValue = nValue
         self.scriptPubKey = scriptPubKey
 
@@ -136,11 +148,11 @@ class Output(object):
         result += self.scriptPubKey.serialize()
         return result
     @classmethod
-    def deserialize(cls, file_):
+    def deserialize(cls, asset, file_):
         initargs = {}
         initargs['nValue'] = unpack('<Q', file_.read(8))[0]
         initargs['scriptPubKey'] = Script.deserialize(StringIO(deserialize_varchar(file_)))
-        return cls(**initargs)
+        return cls(asset, **initargs)
 
     def is_valid(self):
         if self.nValue<0 or self.nValue>2100000000000000L:
@@ -158,8 +170,8 @@ class Output(object):
 
 # ===----------------------------------------------------------------------===
 
-class Transaction(object):
-    def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0,
+class Transaction(Serializer):
+    def __init__(self, asset, nVersion=1, vin=None, vout=None, nLockTime=0,
                  nRefHeight=0, *args, **kwargs):
         # defaults
         if vin is None: vin = []
@@ -167,6 +179,7 @@ class Transaction(object):
         super(Transaction, self).__init__(*args, **kwargs)
 
         # serialized
+        self.asset = asset
         self.nVersion = nVersion
         if not hasattr(self, 'vin'):
             self.vin_create()
@@ -220,23 +233,23 @@ class Transaction(object):
             result += pack('<I', self.nRefHeight)
         return result
     @staticmethod
-    def deserialize_input(file_, *args, **kwargs):
-        return Input.deserialize(file_, *args, **kwargs)
+    def deserialize_input(asset, file_, *args, **kwargs):
+        return Input.deserialize(asset, file_, *args, **kwargs)
     @staticmethod
-    def deserialize_output(file_, *args, **kwargs):
-        return Output.deserialize(file_, *args, **kwargs)
+    def deserialize_output(asset, file_, *args, **kwargs):
+        return Output.deserialize(asset, file_, *args, **kwargs)
     @classmethod
-    def deserialize(cls, file_):
+    def deserialize(cls, asset, file_):
         initargs = {}
         initargs['nVersion'] = unpack('<I', file_.read(4))[0]
-        initargs['vin'] = list(deserialize_list(file_, cls.deserialize_input))
-        initargs['vout'] = list(deserialize_list(file_, cls.deserialize_output))
+        initargs['vin'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(asset, f)))
+        initargs['vout'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(asset, f)))
         initargs['nLockTime'] = unpack('<I', file_.read(4))[0]
         if initargs['nVersion']==2:
             initargs['nRefHeight'] = unpack('<I', file_.read(4))[0]
         else:
             initargs['nRefHeight'] = 0
-        return cls(**initargs)
+        return cls(asset, **initargs)
 
     def is_final(self, block_height=None, block_time=None):
         #if self.nLockTime < LOCKTIME_THRESHOLD:
@@ -320,10 +333,9 @@ class Transaction(object):
 
 # ===----------------------------------------------------------------------===
 
-class Block(object):
-    def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
-                 nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None,
-                 *args, **kwargs):
+class Block(Serializer):
+    def __init__(self, asset, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
+                 nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
         if vtx is None: vtx = []
         super(Block, self).__init__(*args, **kwargs)
 
@@ -366,10 +378,10 @@ class Block(object):
         result += serialize_list(self.vtx, lambda t:t.serialize())
         return result
     @staticmethod
-    def deserialize_transaction(file_, *args, **kwargs):
-        return Transaction.deserialize(file_, *args, **kwargs)
+    def deserialize_transaction(asset, file_, *args, **kwargs):
+        return Transaction.deserialize(asset, file_, *args, **kwargs)
     @classmethod
-    def deserialize(cls, file_, mode=None):
+    def deserialize(cls, asset, file_, mode=None):
         if mode is None:
             mode = 'header'
         if mode not in ('full', 'header'):
@@ -382,9 +394,9 @@ class Block(object):
         initargs['nBits'] = unpack('<I', file_.read(4))[0]
         initargs['nNonce'] = unpack('<I', file_.read(4))[0]
         if mode in ('header',):
-            return cls(**initargs)
-        initargs['vtx'] = list(deserialize_list(file_, cls.deserialize_transaction))
-        return cls(**initargs)
+            return cls(asset, **initargs)
+        initargs['vtx'] = list(deserialize_list(file_, lambda f:cls.deserialize_transaction(asset, f)))
+        return cls(asset, **initargs)
 
     @Property
     def hash():
