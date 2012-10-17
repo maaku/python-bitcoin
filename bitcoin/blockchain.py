@@ -246,6 +246,8 @@ class Transaction(Serializer):
         return locals()
 
     def serialize(self):
+        if self.nVersion not in (1,2):
+            raise NotImplementedError
         result  = pack('<I', self.nVersion)
         result += serialize_list(self.vin, lambda i:i.serialize())
         result += serialize_list(self.vout, lambda o:o.serialize())
@@ -263,6 +265,8 @@ class Transaction(Serializer):
     def deserialize(cls, asset, file_):
         initargs = {}
         initargs['nVersion'] = unpack('<I', file_.read(4))[0]
+        if initargs['nVersion'] not in (1,2):
+            raise NotImplementedError
         initargs['vin'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(asset, f)))
         initargs['vout'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(asset, f)))
         initargs['nLockTime'] = unpack('<I', file_.read(4))[0]
@@ -479,6 +483,8 @@ class Block(Serializer):
             mode = 'header'
         if mode not in ('full', 'header'):
             raise ValueError(u"unrecognized block serialization mode")
+        if self.nVersion not in (1,2):
+            raise NotImplementedError
         result  = pack('<I', self.nVersion)
         result += serialize_hash(self.hashPrevBlock, 32)
         result += serialize_hash(self.hashMerkleRoot, 32)
@@ -500,6 +506,8 @@ class Block(Serializer):
             raise ValueError(u"unrecognized block serialization mode")
         initargs = {}
         initargs['nVersion'] = unpack('<I', file_.read(4))[0]
+        if initargs['nVersion'] not in (1,2):
+            raise NotImplementedError
         initargs['hashPrevBlock'] = deserialize_hash(file_, 32)
         initargs['hashMerkleRoot'] = deserialize_hash(file_, 32)
         initargs['nTime'] = unpack('<I', file_.read(4))[0]
