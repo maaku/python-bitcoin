@@ -468,7 +468,7 @@ class Block(Serializer):
     def vtx_create(self):
         self.vtx = set()
     def vtx_add(self, tx):
-        self.vtx.append(tx)
+        self.vtx.add(tx)
     def vtx_count(self):
         return len(self.vtx)
     def vtx_clear(self):
