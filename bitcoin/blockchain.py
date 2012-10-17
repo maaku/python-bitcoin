@@ -125,6 +125,7 @@ class Input(Serializer):
 
     def is_final(self):
         return self.nSequence==0xffffffff
+
     def is_valid(self):
         if not self.prevout.is_valid():
             return False
@@ -196,12 +197,9 @@ class Output(Serializer):
 class Transaction(Serializer):
     def __init__(self, asset, nVersion=1, vin=None, vout=None, nLockTime=0,
                  nRefHeight=0, *args, **kwargs):
-        # defaults
         if vin is None: vin = []
         if vout is None: vout = []
         super(Transaction, self).__init__(*args, **kwargs)
-
-        # serialized
         self.asset = asset
         self.nVersion = nVersion
         if not hasattr(self, 'vin'):
