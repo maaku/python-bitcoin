@@ -32,6 +32,7 @@ __all__ = [
     'Input',
     'Output',
     'Transaction',
+    'Merkle',
     'Block',
 ]
 
@@ -398,6 +399,51 @@ class Transaction(Serializer):
             repr(self.vout),
             self.nLockTime,
             nRefHeight_str))
+
+# ===----------------------------------------------------------------------===
+
+class Merkle(Serializer):
+    def __init__(self, asset, children=None, *args, **kwargs):
+        if children is None: children = []
+        super(Merkle, self).__init__(*args, **kwargs)
+        self.asset = asset
+        if not hasattr(self, 'children'):
+            self.children_create()
+        for child in children:
+            if hasattr(child, 'hash'):
+                child = child.hash
+            self.children_append(child)
+
+    def children_create(self):
+        self.children = []
+    def children_append(self, tx):
+        self.children.append(tx)
+    def children_count(self):
+        return len(self.children)
+    def children_index(self, idx):
+        return self.children[idx]
+    children_clear = children_create
+
+    @Property
+    def hash():
+        def fget(self):
+            return hash256(self.serialize())
+        return locals()
+
+    @Property
+    def size():
+        def fget(self):
+            return len(self.serialize())
+        return locals()
+
+    def serialize(self):
+        # detect version=2 (explicit) merkle trees
+        if any(lambda h:not isinstance(h, numbers.Integral), self.children):
+            raise NotImplementedError
+        return serialize_list(self.children, lambda x:serialize_hash(x, 32))
+    @classmethod
+    def deserialize(cls, asset, file_):
+        return cls(deserialize_list(file_, lambda x:deserialize_hash(x, 32)))
 
 # ===----------------------------------------------------------------------===
 
