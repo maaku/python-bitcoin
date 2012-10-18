@@ -231,12 +231,6 @@ class Transaction(SerializableMixin):
             return hash256(self.serialize())
         return locals()
 
-    @Property
-    def size():
-        def fget(self):
-            return len(self.serialize())
-        return locals()
-
     def serialize(self):
         if self.nVersion not in (1,2):
             raise NotImplementedError
@@ -424,12 +418,6 @@ class Merkle(SerializableMixin):
             return hash256(self.serialize())
         return locals()
 
-    @Property
-    def size():
-        def fget(self):
-            return len(self.serialize())
-        return locals()
-
     def serialize(self):
         # detect version=2 (explicit) merkle trees
         if any(lambda h:not isinstance(h, numbers.Integral), self.children):
@@ -514,12 +502,6 @@ class Block(SerializableMixin):
     def hash():
         def fget(self):
             return hash256(self.serialize(mode='header'))
-        return locals()
-
-    @Property
-    def size():
-        def fget(self):
-            return len(self.serialize(mode='full'))
         return locals()
 
     def is_valid(self, mode=None):
