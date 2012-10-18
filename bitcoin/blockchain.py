@@ -20,6 +20,7 @@ except:
 from python_patterns.utils.decorators import Property
 
 from .crypto import hash256, merkle
+from .mixins import SerializableMixin
 from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
@@ -35,15 +36,6 @@ __all__ = [
     'Merkle',
     'Block',
 ]
-
-# ===----------------------------------------------------------------------===
-
-from types import MethodType
-
-class SerializableMixin(object):
-    def __init__(self, *args, **kwargs):
-        super(SerializableMixin, self).__init__(*args, **kwargs)
-        self.deserialize = MethodType(self.deserialize, self, self.__class__)
 
 # ===----------------------------------------------------------------------===
 
