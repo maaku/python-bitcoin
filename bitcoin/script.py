@@ -17,6 +17,7 @@ except:
 
 from python_patterns.utils.decorators import Property
 
+from .mixins import SerializableMixin, ValidatesMixin
 from .serialize import serialize_hash, deserialize_hash
 
 # ===----------------------------------------------------------------------===
@@ -421,7 +422,7 @@ OPCODE_NAMES = {
 
 # ===----------------------------------------------------------------------===
 
-class ScriptOp(object):
+class ScriptOp(SerializableMixin, ValidatesMixin):
     def __init__(self, opcode=None, data=None, *args, **kwargs):
         if opcode==OP_INVALIDOPCODE:
             raise ValueError(u"invalid opcode")
@@ -538,7 +539,12 @@ class ScriptOp(object):
                 self.data = data
         return locals()
 
+    def validate(*args, **kwargs):
+        return super(Script, self).validate(*args, **kwargs)
+
     def __eq__(self, other):
+        if isinstance(other, str):
+            return self.serialize() == other
         if self.opcode != other.opcode:
             return False
         if self.opcode<=OP_PUSHDATA4 and self.data != other.data:
@@ -553,7 +559,7 @@ class ScriptOp(object):
             else:
                 return "OP_UNKNOWN"
 
-class Script(tuple):
+class Script(SerializableMixin, ValidatesMixin, tuple):
     def __new__(cls, *args, **kwargs):
         if len(args)==1 and isinstance(args[0], str) and not kwargs:
             return cls.deserialize(StringIO(args[0]))
@@ -570,6 +576,14 @@ class Script(tuple):
         except StopIteration: pass
         return cls(l)
 
+    def validate(*args, **kwargs):
+        map(lambda op:op.validate(), self)
+        return super(Script, self).validate(*args, **kwargs)
+
+    def __eq__(self, other, *args, **kwargs):
+        if isinstance(other, str):
+            return self.serialize() == other
+        return super(Script, self).__eq__(other, *args, **kwargs)
     def __repr__(self):
         return u"Script([%s])" % ', '.join(map(repr, self))
 

@@ -9,6 +9,7 @@
 # ===----------------------------------------------------------------------===
 
 from datetime import datetime, timedelta
+from isodate import strftime
 import numbers
 from struct import pack, unpack
 
@@ -20,7 +21,7 @@ except:
 from python_patterns.utils.decorators import Property
 
 from .crypto import merkle
-from .mixins import HashableMixin, SerializableMixin
+from .mixins import HashableMixin, SerializableMixin, ValidatesMixin
 from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
@@ -39,7 +40,7 @@ __all__ = [
 
 # ===----------------------------------------------------------------------===
 
-class OutPoint(SerializableMixin):
+class OutPoint(SerializableMixin, ValidatesMixin):
     def __init__(self, asset, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
         self.asset = asset
@@ -63,12 +64,24 @@ class OutPoint(SerializableMixin):
     def is_null(self):
         return self.hash==0 and self.n==0xffffffff
 
-    def is_valid(self):
+    def validate(self, *args, **kwargs):
+        if not isinstance(self.hash, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid hash value in outpoint\n"
+                u"    hash: %s" % repr(self.hash))
         if self.hash<0 or self.hash>=2**256:
-            return False
+            raise self.ValidationError(
+                u"non-representable hash value in outpoint\n"
+                u"    hash: %s" % repr(self.hash))
+        if not isinstance(self.n, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid numeric index in outpoint\n"
+                u"    index: %s" % repr(self.n))
         if self.n<0 or self.n>=2**32:
-            return False
-        return True
+            raise self.ValidationError(
+                u"non-representable numeric index in outpoint\n"
+                u"    index: %s" % repr(self.n))
+        return super(OutPoint, self).validate(*args, **kwargs)
 
     def __eq__(self, other):
         return self.hash==other.hash and self.n==other.n
@@ -79,7 +92,7 @@ class OutPoint(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Input(SerializableMixin):
+class Input(SerializableMixin, ValidatesMixin):
     def __init__(self, asset, prevout=None, scriptSig=None,
                  nSequence=0xffffffff, *args, **kwargs):
         if prevout is None:
@@ -115,19 +128,45 @@ class Input(SerializableMixin):
             initargs['scriptSig'] = Script.deserialize(StringIO(str_))
         return cls(asset, **initargs)
 
-    def is_valid(self):
-        if not self.prevout.is_valid():
-            return False
+    def validate(self, *args, **kwargs):
+        self.prevout.validate()
         if isinstance(self.scriptSig, str):
+            if not self.prevout.is_null():
+                raise self.ValidationError(
+                    u"non-null prevout combined with coinbase script is "
+                    u"illegal: for non-coinbase inputs, make sure to "
+                    u"deserialize the script\n"
+                    u"    prevout:   %(prevout)s\n"
+                    u"    scriptSig: %(scriptSig)s" % {
+                        'prevout': repr(self.prevout),
+                        'scriptSig': repr(self.scriptSig),
+                    })
             len_ = len(self.scriptSig)
-            if len_<2 or len_>100:
-                return False
         else:
-            if not self.scriptSig.is_valid():
-                return False
+            self.scriptSig.validate()
+            len_ = self.scriptSig.size
+        if self.prevout.is_null():
+            if len_ < 2:
+                raise self.ValidationError(
+                    u"coinbase script shorter than 2 bytes detected: "
+                    u"coinbase script must be at least 2 bytes and no more "
+                    u"than 100 bytes in length\n"
+                    u"    scriptSig: %s" % repr(self.scriptSig))
+            if len_ > 100:
+                raise self.ValidationError(
+                    u"coinbase script longer than 100 bytes detected: "
+                    u"coinbase script must be at least 2 bytes and no more "
+                    u"than 100 bytes in length\n"
+                    u"    scriptSig: %s" % repr(self.scriptSig))
+        if not isinstance(self.nSequence, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid sequence number in input\n"
+                u"    nSequence: %s" % repr(self.nSequence))
         if self.nSequence<0 or self.nSequence>=2**32:
-            return False
-        return True
+            raise self.ValidationError(
+                u"non-representable sequence number in input\n"
+                u"    nSequence: %s" % repr(self.nSequence))
+        return super(Input, self).validate(*args, **kwargs)
 
     def is_final(self):
         return self.nSequence==0xffffffff
@@ -148,7 +187,7 @@ class Input(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Output(SerializableMixin):
+class Output(SerializableMixin, ValidatesMixin):
     def __init__(self, asset, nValue=0, scriptPubKey=None, *args, **kwargs):
         if scriptPubKey is None:
             scriptPubKey = Script()
@@ -168,12 +207,21 @@ class Output(SerializableMixin):
         initargs['scriptPubKey'] = Script.deserialize(StringIO(deserialize_varchar(file_)))
         return cls(asset, **initargs)
 
-    def is_valid(self):
-        if self.nValue<0 or self.nValue>self.asset.max_value:
-            return False
-        if not self.scriptPubKey.is_valid():
-            return False
-        return True
+    def validate(self, *args, **kwargs):
+        if not isinstance(self.nValue, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid/non-representable output value\n"
+                u"    nValue: %s" % repr(self.nValue))
+        if self.nValue < 0:
+            raise self.ValidationError(
+                u"output underflow/negative value detected\n"
+                u"    nValue: %s" % repr(self.nValue))
+        if self.nValue > self.asset.max_value:
+            raise self.ValidationError(
+                u"output overflow/value exceeds asset's allowed range\n"
+                u"    nValue: %s" % repr(self.nValue))
+        self.scriptPubKey.validate()
+        return super(Output, self).validate(*args, **kwargs)
 
     def __eq__(self, other):
         return (self.nValue == other.nValue and
@@ -186,7 +234,7 @@ class Output(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Transaction(SerializableMixin, HashableMixin):
+class Transaction(SerializableMixin, HashableMixin, ValidatesMixin):
     def __init__(self, asset, nVersion=1, vin=None, vout=None, nLockTime=0,
                  nRefHeight=0, *args, **kwargs):
         if vin is None: vin = []
@@ -300,63 +348,100 @@ class Transaction(SerializableMixin, HashableMixin):
         if self.nVersion not in (1,2):
             return False
 
-    def is_valid(self):
+    def validate(self, *args, **kwargs):
         allowed_versions = set([1])
         # if TXVERSION2_REFHEIGHT in self.asset.features:
         #     if allowed_versions.add(2)
         if self.nVersion not in allowed_versions:
-            return False
+            raise self.ValidationError(
+                u"unrecognized transaction version\n"
+                u"    nVersion: %s" % repr(self.nVersion))
 
         if self.vin_count() <= 0:
-            return False
-        if any(self.vin_index(idx) is None for idx in xrange(self.vin_count())):
-            return False
-        if not all(txin.is_valid() for txin in self.vin):
-            return False
+            raise self.ValidationError(
+                u"input vector empty: every transaction must have at least "
+                u"one input")
+        for idx, txin in enumerate(self.vin):
+            if txin is None:
+                raise self.ValidationError(
+                    u"transaction input missing at index %d: pruned "
+                    u"transactions cannot be validated" % idx)
+            txin.validate()
         if self.is_coinbase():
             coinbase = self.vin_index(0)
-            if isinstance(coinbase.scriptSig, str):
-                len_ = len(coinbase.scriptSig)
-            else:
-                len_ = len(coinbase.scriptSig.serialize())
-            if len_<2 or len_>100:
-                return False
+            if not coinbase.prevout.is_null():
+                raise self.ValidationError(
+                    u"coinbase input non-null: first input of a coinbase "
+                    u"transaction must be null")
             start = 1
         else:
-            if any(txin.prevout.is_null() for txin in self.vin):
-                return False
             start = 0
         if start != self.vin_count():
-            if any(isinstance(self.vin_index(idx).scriptSig, str)
-                   for idx in xrange(start, self.vin_count)):
-                return False
-
+            if any(self.vin_index(idx).prevout.is_null()
+                   for idx in xrange(start, self.vin_count())):
+                raise self.ValidationError(
+                    u"unexpected null input encountered: only the first "
+                    u"input of a coinbase transaction is allowed to be null; "
+                    u"it is illegal to have a null value for subsequent "
+                    u"inputs or any input of a non-coinbase transaction")
         if self.vout_count() <= 0:
-            return False
-        if any(self.vout_index(idx) is None for idx in xrange(self.vout_count())):
-            return False
-        if not all(txout.is_valid() for txout in self.vout):
-            return False
+            raise self.ValidationError(
+                u"output vector empty: every transaction must have at least "
+                u"one output")
+        for idx, txout in enumerate(self.vout):
+            if txout is None:
+                raise self.ValidationError(
+                    u"transaction output missing at index %d: pruned "
+                    u"transactions cannot be validated" % idx)
+            txout.validate()
 
+        if not isinstance(self.nLockTime, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid lock time\n"
+                u"    nLockTime: %s" %
+                repr(self.nLockTime))
         if self.nLockTime<0 or self.nLockTime>=2**32:
-            return False
+            raise self.ValidationError(
+                u"non-representable lock time\n"
+                u"    nLockTime: %s" %
+                repr(self.nLockTime))
 
-        if self.nVersion<0 or self.nVersion>=2**32:
-            return False
-        if self.nVersion not in (2,):
+        if self.nVersion in (2,):
+            if not isinstance(self.nRefHeight, numbers.Integral):
+                raise self.ValidationError(
+                    u"invalid reference height\n"
+                    u"    nRefHeight: %s" %
+                    repr(self.nRefHeight))
+            if self.nRefHeight<0 or self.nRefHeight>=2**32:
+                raise self.ValidationError(
+                    u"non-representable reference height\n"
+                    u"    nRefHeight: %s" %
+                    repr(self.nRefHeight))
+        else:
             if self.nRefHeight != 0:
-                return False
+                raise self.ValidationError(
+                    u"reference height must be zero if nVersion=%(nVersion_raw)d\n"
+                    u"    nRefHeight: %(nRefHeight)s" % {
+                        'nVersion_raw': self.nVersion,
+                        'nRefHeight': repr(self.nRefHeight),
+                    })
 
-        #if self.size > self.asset.max_block_length):
-        #    return False
+        if self.size > self.asset.max_block_length:
+            raise self.ValidationError(
+                u"transaction exceeds maximum block length\n"
+                u"    size: %d.%03dkB" % (
+                    self.size // 1000,
+                    self.size  % 1000))
 
         outpoints = set()
         for txin in self.vin:
             if txin.prevout in outpoints:
-                return False
+                raise self.ValidationError(
+                    u"duplicate input detected\n"
+                    u"    prevout: %s" % repr(txin.prevout))
             outpoints.add(txin.prevout)
 
-        return True
+        return super(Transaction, self).validate(*args, **kwargs)
 
     def __eq__(self, other):
         if (self.nVersion   != other.nVersion  or
@@ -422,7 +507,7 @@ class Merkle(SerializableMixin, HashableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Block(SerializableMixin, HashableMixin):
+class Block(SerializableMixin, HashableMixin, ValidatesMixin):
     def __init__(self, asset, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
                  nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
         if vtx is None: vtx = []
@@ -493,68 +578,94 @@ class Block(SerializableMixin, HashableMixin):
         initargs['vtx'] = list(deserialize_list(file_, lambda f:cls.deserialize_transaction(asset, f)))
         return cls(asset, **initargs)
 
-    def is_valid(self, mode=None):
-        if mode is None:
-            mode = 'header'
-        if mode not in ('full', 'header'):
-            raise ValueError(u"unrecognized block validation mode")
-
+    def validate(self, *args, **kwargs):
         allowed_versions = set([1])
         # if BIP0032_BLOCKVERSION2 in self.asset.features:
         #     if allowed_versions.add(2)
         if self.nVersion not in allowed_versions:
-            return False
+            raise self.ValidationError(
+                u"unrecognized block version\n"
+                u"    nVersion: %s" % repr(self.nVersion))
+        if not isinstance(self.hashPrevBlock, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid hash value for prevBlock\n"
+                u"    hashPrevBlock: %s" % repr(self.hashPrevBlock))
         if self.hashPrevBlock<0 or self.hashPrevBlock>=2**256:
-            return False
+            raise self.ValidationError(
+                u"non-representable hash value for prevBlock\n"
+                u"    hashPrevBlock: %s" % repr(self.hashPrevBlock))
+        if not isinstance(self.hashMerkleRoot, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid hash value for merkleRoot\n"
+                u"    hashMerkleRoot: %s" % repr(self.hashMerkleRoot))
         if self.hashMerkleRoot<0 or self.hashMerkleRoot>=2**256:
-            return False
+            raise self.ValidationError(
+                u"non-representable hash value for merkleRoot\n"
+                u"    hashMerkleRoot: %s" % repr(self.hashMerkleRoot))
+        if not isinstance(self.nTime, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid timestamp value\n"
+                u"    nTime: %s" % repr(self.nTime))
         if self.nTime<0 or self.nTime>=2**32:
-            return False
+            raise self.ValidationError(
+                u"non-representable timestamp value\n"
+                u"    nTime: %s" % repr(self.nTime))
         # FIXME: replace datetime.now() with network-adjusted time, and then
         #     eventually a hybrid NTP/network-adjusted time.
-        if datetime.utcfromtimestamp(self.nTime) > datetime.now() + timedelta(seconds=7200):
-            return False
+        allowed_drift = timedelta(seconds=7200)
+        maximum_timestamp = datetime.now() + maximum_future_drift
+        if datetime.utcfromtimestamp(self.nTime) > maximum_timestamp:
+            raise self.ValidationError(
+                u"timestamp exceeds network-adjusted time by more than the "
+                u"maximum allowed drift of %(allowed_drift)s\n"
+                u"    nTime > %(maximum_timestamp)s" % {
+                    'allowed_drift': strftime(allowed_drift, "%P"),
+                    'maximum_timestamp': maximum_timestamp.isoformat()[:19],
+                })
+        if not isinstance(self.nBits, numbers.Integeral):
+            raise self.ValidationError(
+                u"invalid target/nBits value\n"
+                u"    nBits: %s" % repr(self.nBits))
+        if self.nBits<0 or self.nBits>=2**32:
+            raise self.ValidationError(
+                u"non-representable target/nBits value\n"
+                u"    nBits: %s" % repr(self.nBits))
         target = target_from_compact(self.nBits)
-        if target<=0 or target>=target_from_compact(0x1d00ffff):
-            return False
+        maximum_target = target_from_compact(0x1d00ffff)
+        if target<=0 or target>maximum_target:
+            raise self.ValidationError(
+                u"target/nBits outside of allowed range\n"
+                u"    nBits:        0x%(nBits_raw)08x\n"
+                u"    target:       %(target)s"
+                u"    target (hex): 0x%(target_raw)064x"
+                u"    target (max): 0x%(target_max)064x"
+                u"    target (min): 0x%(target_min)064x" % {
+                    'nBits_raw': self.nBits,
+                    'target': repr(target),
+                    'target_raw': target,
+                    'target_max': maximum_target,
+                    'target_min': 1L,
+                })
+        if not isinstance(self.nNonce, numbers.Integral):
+            raise self.ValidationError(
+                u"invalid nonce\n"
+                u"    nNonce: %s" % repr(self.nNonce))
         if self.nNonce<0 or self.nNonce>=2**32:
-            return False
+            raise self.ValidationError(
+                u"non-representable nonce\n"
+                u"    nNonce: %s" % repr(self.nNonce))
 
-        if self.hash > target:
-            return False
+        hash_ = self.hash
+        if hash_ > target:
+            raise self.ValidationError(
+                u"hash does not meet target threshold\n"
+                u"    hash:   %(hash)064x\n"
+                u"    target: %(target)064x\n" % {
+                    'hash': hash_,
+                    'target': target,
+                })
 
-        if mode in ('header',):
-            return True
-
-        if self.hashMerkleRoot not in self.asset.merkles:
-            return False
-        tree = self.asset.merkls[self.hashMerkleRoot]
-        if self.vtx_count() != merkle_count(tree):
-            return False
-        mapTx = {}
-        for tx in self.vtx:
-            hash_ = tx.hash
-            if hash_ in mapTx:
-                return False
-            mapTx[hash_] = tx
-        if any(hash_ not in mapTx for hash_ in merkle_iter(tree)):
-            return False
-        if self.hashMerkleRoot != merkle(tree):
-            return False
-
-        if not all(tx.is_valid for tx in self.vtx):
-            return False
-
-        vtx = merkle_iter(tree)
-        if not mapTx[next(vtx)].is_coinbase():
-            return False
-        if any(mapTx[hash_].is_coinbase() for hash_ in vtx):
-            return False
-
-        # FIXME: make sure that sig-op count does not exceed
-        #   self.asset.max_block_sigops.
-
-        return True
+        return super(Block, self).validate(*args, **kwargs)
 
     def __eq__(self, other):
         if (self.nVersion       != other.nVersion       or
