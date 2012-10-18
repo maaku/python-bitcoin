@@ -40,14 +40,14 @@ __all__ = [
 
 from types import MethodType
 
-class Serializer(object):
+class SerializableMixin(object):
     def __init__(self, *args, **kwargs):
-        super(Serializer, self).__init__(*args, **kwargs)
+        super(SerializableMixin, self).__init__(*args, **kwargs)
         self.deserialize = MethodType(self.deserialize, self, self.__class__)
 
 # ===----------------------------------------------------------------------===
 
-class OutPoint(Serializer):
+class OutPoint(SerializableMixin):
     def __init__(self, asset, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
         self.asset = asset
@@ -87,7 +87,7 @@ class OutPoint(Serializer):
 
 # ===----------------------------------------------------------------------===
 
-class Input(Serializer):
+class Input(SerializableMixin):
     def __init__(self, asset, prevout=None, scriptSig=None,
                  nSequence=0xffffffff, *args, **kwargs):
         if prevout is None:
@@ -156,7 +156,7 @@ class Input(Serializer):
 
 # ===----------------------------------------------------------------------===
 
-class Output(Serializer):
+class Output(SerializableMixin):
     def __init__(self, asset, nValue=0, scriptPubKey=None, *args, **kwargs):
         if scriptPubKey is None:
             scriptPubKey = Script()
@@ -194,7 +194,7 @@ class Output(Serializer):
 
 # ===----------------------------------------------------------------------===
 
-class Transaction(Serializer):
+class Transaction(SerializableMixin):
     def __init__(self, asset, nVersion=1, vin=None, vout=None, nLockTime=0,
                  nRefHeight=0, *args, **kwargs):
         if vin is None: vin = []
@@ -404,7 +404,7 @@ class Transaction(Serializer):
 
 # ===----------------------------------------------------------------------===
 
-class Merkle(Serializer):
+class Merkle(SerializableMixin):
     def __init__(self, asset, children=None, *args, **kwargs):
         if children is None: children = []
         super(Merkle, self).__init__(*args, **kwargs)
@@ -449,7 +449,7 @@ class Merkle(Serializer):
 
 # ===----------------------------------------------------------------------===
 
-class Block(Serializer):
+class Block(SerializableMixin):
     def __init__(self, asset, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
                  nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
         if vtx is None: vtx = []
