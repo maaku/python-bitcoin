@@ -19,8 +19,8 @@ except:
 
 from python_patterns.utils.decorators import Property
 
-from .crypto import hash256, merkle
-from .mixins import SerializableMixin
+from .crypto import merkle
+from .mixins import HashableMixin, SerializableMixin
 from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
@@ -186,7 +186,7 @@ class Output(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Transaction(SerializableMixin):
+class Transaction(SerializableMixin, HashableMixin):
     def __init__(self, asset, nVersion=1, vin=None, vout=None, nLockTime=0,
                  nRefHeight=0, *args, **kwargs):
         if vin is None: vin = []
@@ -224,12 +224,6 @@ class Transaction(SerializableMixin):
     def vout_index(self, idx):
         return self.vout[idx]
     vout_clear = vout_create
-
-    @Property
-    def hash():
-        def fget(self):
-            return hash256(self.serialize())
-        return locals()
 
     def serialize(self):
         if self.nVersion not in (1,2):
@@ -390,7 +384,7 @@ class Transaction(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Merkle(SerializableMixin):
+class Merkle(SerializableMixin, HashableMixin):
     def __init__(self, asset, children=None, *args, **kwargs):
         if children is None: children = []
         super(Merkle, self).__init__(*args, **kwargs)
@@ -412,12 +406,6 @@ class Merkle(SerializableMixin):
         return self.children[idx]
     children_clear = children_create
 
-    @Property
-    def hash():
-        def fget(self):
-            return hash256(self.serialize())
-        return locals()
-
     def serialize(self):
         # detect version=2 (explicit) merkle trees
         if any(lambda h:not isinstance(h, numbers.Integral), self.children):
@@ -429,7 +417,7 @@ class Merkle(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class Block(SerializableMixin):
+class Block(SerializableMixin, HashableMixin):
     def __init__(self, asset, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
                  nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
         if vtx is None: vtx = []
@@ -475,6 +463,8 @@ class Block(SerializableMixin):
             return result
         result += serialize_list(self.vtx, lambda t:t.serialize())
         return result
+    def __bytes__(self):
+        return self.serialize(mode='header')
     @staticmethod
     def deserialize_transaction(asset, file_, *args, **kwargs):
         return Transaction.deserialize(asset, file_, *args, **kwargs)
@@ -497,12 +487,6 @@ class Block(SerializableMixin):
             return cls(asset, **initargs)
         initargs['vtx'] = list(deserialize_list(file_, lambda f:cls.deserialize_transaction(asset, f)))
         return cls(asset, **initargs)
-
-    @Property
-    def hash():
-        def fget(self):
-            return hash256(self.serialize(mode='header'))
-        return locals()
 
     def is_valid(self, mode=None):
         if mode is None:
