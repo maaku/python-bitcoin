@@ -115,9 +115,6 @@ class Input(SerializableMixin):
             initargs['scriptSig'] = Script.deserialize(StringIO(str_))
         return cls(asset, **initargs)
 
-    def is_final(self):
-        return self.nSequence==0xffffffff
-
     def is_valid(self):
         if not self.prevout.is_valid():
             return False
@@ -131,6 +128,9 @@ class Input(SerializableMixin):
         if self.nSequence<0 or self.nSequence>=2**32:
             return False
         return True
+
+    def is_final(self):
+        return self.nSequence==0xffffffff
 
     def __eq__(self, other):
         return (self.prevout   == other.prevout   and
