@@ -415,6 +415,11 @@ class Merkle(SerializableMixin, HashableMixin):
     def deserialize(cls, asset, file_):
         return cls(deserialize_list(file_, lambda x:deserialize_hash(x, 32)))
 
+    def __eq__(self, other):
+        return map(merkle, self.children) == map(merkle, other.children)
+    def __repr__(self):
+        return ''.join(['Merkle([', ', '.join(map(repr, self.children)), '])'])
+
 # ===----------------------------------------------------------------------===
 
 class Block(SerializableMixin, HashableMixin):
