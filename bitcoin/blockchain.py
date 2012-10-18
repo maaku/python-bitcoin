@@ -83,7 +83,7 @@ class Input(SerializableMixin):
     def __init__(self, asset, prevout=None, scriptSig=None,
                  nSequence=0xffffffff, *args, **kwargs):
         if prevout is None:
-            prevout = self.deserialize_prevout(StringIO('\x00'*32 + '\xff'*4))
+            prevout = self.deserialize_prevout(asset, StringIO('\x00'*32 + '\xff'*4))
         if scriptSig is None:
             scriptSig = kwargs.pop('coinbase', Script())
         super(Input, self).__init__(*args, **kwargs)
