@@ -96,9 +96,9 @@ dist:
 
 SOURCEFORGE_MIRROR := hivelocity.dl.sourceforge.net
 
-${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz:
+${CACHE_ROOT}/virtualenv/virtualenv-1.8.4.tar.gz:
 	mkdir -p "${CACHE_ROOT}"/virtualenv
-	sh -c "cd "${CACHE_ROOT}"/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.2.tar.gz'"
+	sh -c "cd '${CACHE_ROOT}'/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.4.tar.gz'"
 
 ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.8.4.tar.gz
 	# Because build and run-time dependencies are not thoroughly tracked,
@@ -122,14 +122,14 @@ ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv
 	# this project in `${PKG_ROOT}`.
 	tar \
 	    -C "${CACHE_ROOT}"/virtualenv --gzip \
-	    -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.2.tar.gz
-	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.2/virtualenv.py \
+	    -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.4.tar.gz
+	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.4/virtualenv.py \
 	    --clear \
 	    --distribute \
 	    --never-download \
 	    --prompt="(python-bitcoin) " \
 	    "${PKG_ROOT}"
-	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.2
+	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.4
 	
 	# M2Crypto is installed by easy_install so that we can fetch a binary
 	# install, which might have configuration options to perform better on
