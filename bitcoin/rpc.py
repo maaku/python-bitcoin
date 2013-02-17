@@ -26,10 +26,7 @@ try:
 except:
     from StringIO import StringIO
 
-try:
-    from cdecimal import Decimal
-except:
-    from decimal import Decimal
+from .numeric import mpd
 
 from .serialize import serialize_hash, deserialize_hash
 
@@ -119,7 +116,7 @@ def dumps(id, method, params):
 # method, paramsresponse)` tuple.
 #
 def loads(payload):
-    return json.loads(payload, parse_float=Decimal)
+    return json.loads(payload, parse_float=mpd)
 
 #
 # A proxy object manages communication with a remote bitcoind JSON-RPC server.

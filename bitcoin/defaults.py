@@ -8,13 +8,37 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
-from collections import namedtuple
+from .core import ChainParameters
+from .utils import target_from_compact
 
-AssetInfo = namedtuple('AssetInfo', ['magic', 'port', 'genesis', 'max_value',
-                                     'checkpoints', 'features'])
+LOCKTIME_THRESHOLD = 500000000
 
-ASSETS = {
-    'bitcoin' : AssetInfo(
+def SteppedGeometric(initial, interval):
+    def _func(height):
+        return mpq(initial, 2**(height//interval));
+    return _func
+
+def LinearArithmetic(initial, cutoff):
+    def _func(height):
+        if height < cutoff:
+            return mpq(initial * (cutoff-height), cutoff);
+        return 0
+    return _func
+
+def SquareCutoff(initial, cutoff):
+    def _func(height):
+        if height < cutoff:
+            return initial
+        return 0
+    return _func
+
+def Constant(initial):
+    def _func(height):
+        return initial
+    return _func
+
+CHAIN_PARAMETERS = {
+    'org.bitcoin' : ChainParameters(
         magic = 'f9beb4d9'.decode('hex'),
         port = 8333,
         genesis = (
@@ -24,7 +48,16 @@ ASSETS = {
             'ayBvZiBzZWNvbmQgYmFpbG91dCBmb3IgYmFua3P/////AQDyBSoBAAAAQ0EEZ4r9sP5VSCcZZ/Gm'
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
         ).decode('base64'),
+        testnet = False,
         max_value = 2100000000000000L,
+        transient_reward = SteppedGeometric(50*100000000, 210000),
+        transient_budget = lambda *args, **kwargs:(0, {}),
+        perpetual_reward = Constant(0),
+        perpetual_budget = lambda *args, **kwargs:(0, {}),
+        fee_budget = lambda *args, **kwargs:(0, {}),
+        maximum_target = target_from_compact(0x1d00ffff),
+        next_target = lambda *args, **kwargs:0,
+        alert_keys = [],
         checkpoints = {
             0:      0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
             11111:  0x0000000069e244f73d78e8fd29ba2fd2ed618bd6fa2ee92559f542fdb26e7c1dL,
@@ -36,7 +69,7 @@ ASSETS = {
             193000: 0x000000000000059f452a5f7340de6682a977387c17010ff6e6c3bd83ca8b1317L,
         },
         features = {}),
-    'testnet3' : AssetInfo(
+    'org.bitcoin.testnet3' : ChainParameters(
         magic = 'fabfb5da'.decode('hex'),
         port = 18333,
         genesis = (
@@ -46,13 +79,22 @@ ASSETS = {
             'ayBvZiBzZWNvbmQgYmFpbG91dCBmb3IgYmFua3P/////AQDyBSoBAAAAQ0EEZ4r9sP5VSCcZZ/Gm'
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
         ).decode('base64'),
+        testnet = True,
         max_value = 2100000000000000L,
+        transient_reward = SteppedGeometric(50*100000000, 210000),
+        transient_budget = lambda *args, **kwargs:(0, {}),
+        perpetual_reward = Constant(0),
+        perpetual_budget = lambda *args, **kwargs:(0, {}),
+        fee_budget = lambda *args, **kwargs:(0, {}),
+        maximum_target = target_from_compact(0x1d00ffff),
+        next_target = lambda *args, **kwargs:0,
+        alert_keys = [],
         checkpoints = {
             0:   0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L,
             546: 0x000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70L,
         },
         features = {}),
-    'namecoin' : AssetInfo(
+    'org.dot-bit.namecoin' : ChainParameters(
         magic = 'f9beb4fe'.decode('hex'),
         port = 8334,
         genesis = (
@@ -63,7 +105,16 @@ ASSETS = {
             'zYmf+7xOjuUejEU0qFW7RjQ51j0jXUd5aF2Lb0hwojjPNlrJT6E++aKiLNmdDV7obcq8r842x6z0'
             'POWsAAAAAA=='
         ).decode('base64'),
+        testnet = False,
         max_value = 2100000000000000L,
+        transient_reward = SteppedGeometric(50*100000000, 210000),
+        transient_budget = lambda *args, **kwargs:(0, {}),
+        perpetual_reward = Constant(0),
+        perpetual_budget = lambda *args, **kwargs:(0, {}),
+        fee_budget = lambda *args, **kwargs:(0, {}),
+        maximum_target = target_from_compact(0x1d00ffff),
+        next_target = lambda *args, **kwargs:0,
+        alert_keys = [],
         checkpoints = {
             0:     0x000000000062b72c5e2ceb45fbc8587e807c155b0da735e6483dfba2f0a9c770L,
             2016:  0x0000000000660bad0d9fbde55ba7ee14ddf766ed5f527e3fbca523ac11460b92L,
@@ -79,7 +130,7 @@ ASSETS = {
             57000: 0xaa3ec60168a0200799e362e2b572ee01f3c3852030d07d036e0aa884ec61f203L,
         },
         features = {}),
-    'freicoinbeta2' : AssetInfo(
+    'in.freico' : ChainParameters(
         magic = 'c7d32389'.decode('hex'),
         port = 8639,
         genesis = (
@@ -90,7 +141,16 @@ ASSETS = {
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
             'AAAAAA=='
         ).decode('base64'),
-        max_value = 1000000000000000000L,
+        testnet = False,
+        max_value = 9999999999999999L,
+        transient_reward = LinearArithmetic(50*100000000, 210000),
+        transient_budget = lambda *args, **kwargs:(0, {}),
+        perpetual_reward = Constant(0),
+        perpetual_budget = lambda *args, **kwargs:(0, {}),
+        fee_budget = lambda *args, **kwargs:(0, {}),
+        maximum_target = target_from_compact(0x1d00ffff),
+        next_target = lambda *args, **kwargs:0,
+        alert_keys = [],
         checkpoints = {
             0: 0x000000000c29f26697c30e29039927ab4241b5fc2cc76db7e0dafa5e2612ad46L,
         },

@@ -8,11 +8,21 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
-"Miscellaneous utility functions used in other parts of python-bitcoin."
+"Miscellaneous types and utility codes used in other parts of python-bitcoin."
 
 __all__ = [
+    'StringIO'
     'target_from_compact',
 ]
+
+# ===----------------------------------------------------------------------===
+
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
+
+# ===----------------------------------------------------------------------===
 
 def target_from_compact(bits):
     len_ = (bits >> 24) & 0xff

@@ -17,8 +17,10 @@ except:
 
 from python_patterns.utils.decorators import Property
 
-from .mixins import SerializableMixin, ValidatesMixin
-from .serialize import serialize_hash, deserialize_hash
+from .mixins import SerializableMixin
+from .serialize import (
+    serialize_varchar, deserialize_varchar,
+    serialize_hash, deserialize_hash)
 
 # ===----------------------------------------------------------------------===
 
@@ -177,7 +179,7 @@ OP_INVALIDOPCODE = 0xff
 
 # ===----------------------------------------------------------------------===
 
-VALID_OPCODES = [
+VALID_OPCODES = set([
     OP_1NEGATE,
     OP_RESERVED,
     OP_1,
@@ -300,7 +302,7 @@ VALID_OPCODES = [
     OP_PUBKEYS,
     OP_PUBKEYHASH,
     OP_PUBKEY,
-]
+])
 
 OPCODE_NAMES = {
     OP_0 : 'OP_0',
@@ -422,7 +424,7 @@ OPCODE_NAMES = {
 
 # ===----------------------------------------------------------------------===
 
-class ScriptOp(SerializableMixin, ValidatesMixin):
+class ScriptOp(SerializableMixin):
     def __init__(self, opcode=None, data=None, *args, **kwargs):
         if opcode==OP_INVALIDOPCODE:
             raise ValueError(u"invalid opcode")
@@ -487,7 +489,7 @@ class ScriptOp(SerializableMixin, ValidatesMixin):
                     any(map(lambda c:c!='\x00', self.data[:-1])) or
                     self.data[-1] not in ('\x00', '\x80'))
             else:
-                return ValueError(u"non-data script-op cannot be interpreted as integer")
+                raise ValueError(u"non-data script-op cannot be interpreted as truth value")
         def fset(self, value):
             if value:
                 self.opcode, self.data = OP_TRUE, None
@@ -511,7 +513,7 @@ class ScriptOp(SerializableMixin, ValidatesMixin):
                     return -bignum
                 return bignum
             else:
-                return ValueError(u"non-data script-op cannot be interpreted as integer")
+                raise ValueError(u"non-data script-op cannot be interpreted as integer")
         def fset(self, value):
             self.data = None
             if value == -1:
@@ -539,9 +541,6 @@ class ScriptOp(SerializableMixin, ValidatesMixin):
                 self.data = data
         return locals()
 
-    def validate(*args, **kwargs):
-        return super(Script, self).validate(*args, **kwargs)
-
     def __eq__(self, other):
         if isinstance(other, str):
             return self.serialize() == other
@@ -559,26 +558,23 @@ class ScriptOp(SerializableMixin, ValidatesMixin):
             else:
                 return "OP_UNKNOWN"
 
-class Script(SerializableMixin, ValidatesMixin, tuple):
+class Script(SerializableMixin, tuple):
     def __new__(cls, *args, **kwargs):
         if len(args)==1 and isinstance(args[0], str) and not kwargs:
             return cls.deserialize(StringIO(args[0]))
         return super(Script, cls).__new__(cls, *args, **kwargs)
 
     def serialize(self):
-        return ''.join(map(lambda op:op.serialize(), self))
+        return serialize_varchar(''.join(map(lambda op:op.serialize(), self)))
     @classmethod
     def deserialize(cls, file_):
         l = []
+        input_ = StringIO(deserialize_varchar(file_))
         try:
             while True:
-                l.append(ScriptOp.deserialize(file_))
+                l.append(ScriptOp.deserialize(input_))
         except StopIteration: pass
         return cls(l)
-
-    def validate(*args, **kwargs):
-        map(lambda op:op.validate(), self)
-        return super(Script, self).validate(*args, **kwargs)
 
     def __eq__(self, other, *args, **kwargs):
         if isinstance(other, str):

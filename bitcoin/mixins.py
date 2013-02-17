@@ -85,19 +85,6 @@ class HashableMixin(object):
     def __bytes__(self):
         return self.serialize()
 
-# ===----------------------------------------------------------------------===
-
-class ValidatesMixin(object):
-    # `ValidationError` is raised by `validate()` if the object does not pass
-    # validation.
-    from .exceptions import ValidationError
-
-    def validate(self):
-        """The terminal `validate()` method. Takes no arguments and simply
-        returns (so that subclasses can safely call `super.validate()` under
-        any circumstance)."""
-        return
-
 #
 # End of File
 #
