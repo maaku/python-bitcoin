@@ -38,7 +38,9 @@ for dirpath, dirnames, filenames in os.walk('bitcoin'):
 version = get_version().replace(' ', '-')
 setup(name='python-bitcoin',
     version=version,
-    description='A collection of serialization and utility methods needed to implement the bitcoin protocol.',
+    description=
+        u"A collection of serialization and utility methods needed to "
+        u"implement the bitcoin protocol.",
     author='RokuSigma Inc.',
     author_email='python-bitcoin@monetize.io',
     url='http://www.github.com/monetizeio/python-bitcoin/',
