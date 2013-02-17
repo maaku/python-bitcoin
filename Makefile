@@ -100,11 +100,7 @@ ${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz:
 	mkdir -p "${CACHE_ROOT}"/virtualenv
 	sh -c "cd "${CACHE_ROOT}"/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.2.tar.gz'"
 
-${CACHE_ROOT}/scipy/scipy-0.10.1.tar.gz:
-	mkdir -p "${CACHE_ROOT}"/scipy
-	sh -c "cd "${CACHE_ROOT}"/scipy && curl -O 'http://pypi.python.org/packages/source/s/scipy/scipy-0.10.1.tar.gz'"
-
-${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz ${CACHE_ROOT}/numpy/numpy-1.6.2.tar.gz ${CACHE_ROOT}/scipy/scipy-0.10.1.tar.gz
+${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.8.4.tar.gz
 	# Because build and run-time dependencies are not thoroughly tracked,
 	# it is entirely possible that rebuilding the development environment
 	# on top of an existing one could result in a broken build. For the
@@ -142,56 +138,6 @@ ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv
 	# installed from pip.
 	"${PKG_ROOT}"/bin/easy_install M2Crypto
 	"${PKG_ROOT}"/bin/easy_install readline
-	
-	tar \
-	  -C "${CACHE_ROOT}"/numpy --gzip \
-	  -xf "${CACHE_ROOT}"/numpy/numpy-1.6.2.tar.gz
-	bash -c " \
-	  source '${PKG_ROOT}'/bin/activate; \
-	  if [ \"x`uname -s`\" == \"xDarwin\" ]; then \
-	    if [ -x /usr/bin/clang ]; then \
-	      export CC=/usr/bin/clang; \
-	      export CXX=/usr/bin/clang; \
-	    else \
-	      export CC=/usr/bin/gcc-4.0; \
-	      export CXX=/usr/bin/g++-4.0; \
-	    fi; \
-	    if [ \"x`uname -s -r`\" == \"xDarwin 11.3.0\" ]; then \
-	      export FFLAGS=-ff2c; \
-	    fi; \
-	  elif [ \"x`uname -s`\" == \"xLinux\" ]; then \
-	    export BLAS=/usr/lib64/libblas.so; \
-	    export LAPACK=/usr/lib64/liblapack.so; \
-	  fi; \
-	  cd '${CACHE_ROOT}'/numpy/numpy-1.6.2; \
-	  python setup.py build && \
-	  python setup.py install"
-	-rm -rf "${CACHE_ROOT}"/numpy/numpy-1.6.2
-	
-	tar \
-	  -C "${CACHE_ROOT}"/scipy --gzip \
-	  -xf "${CACHE_ROOT}"/scipy/scipy-0.10.1.tar.gz
-	bash -c " \
-	  source '${PKG_ROOT}'/bin/activate; \
-	  if [ \"x`uname -s`\" == \"xDarwin\" ]; then \
-	    if [ -x /usr/bin/clang ]; then \
-	      export CC=/usr/bin/clang; \
-	      export CXX=/usr/bin/clang; \
-	    else \
-	      export CC=/usr/bin/gcc-4.0; \
-	      export CXX=/usr/bin/g++-4.0; \
-	    fi; \
-	    if [ \"x`uname -s -r`\" == \"xDarwin 11.3.0\" ]; then \
-	      export FFLAGS=-ff2c; \
-	    fi; \
-	  elif [ \"x`uname -s`\" == \"xLinux\" ]; then \
-	    export BLAS=/usr/lib64/libblas.so; \
-	    export LAPACK=/usr/lib64/liblapack.so; \
-	  fi; \
-	  cd '${CACHE_ROOT}'/scipy/scipy-0.10.1; \
-	  python setup.py build && \
-	  python setup.py install"
-	-rm -rf "${CACHE_ROOT}"/scipy/scipy-0.10.1
 	
 	# pip is used to install Python dependencies for this project.
 	for reqfile in conf/requirements*.pip; do \

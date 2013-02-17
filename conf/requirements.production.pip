@@ -1,9 +1,6 @@
 M2Crypto>=0.21.1
 cdecimal>=2.3
 isodate>=0.4.8
-numpy>=1.6.2
-pandas>=0.8.1
 python-patterns>=0.0.1
 requests>=0.14.0
-scipy>=0.10.1
 simplejson>=2.6.2
