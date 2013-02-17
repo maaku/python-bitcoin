@@ -31,7 +31,7 @@ check: all check-data
 	@echo >>.pytest.py "    testRunner=xmlrunner.XMLTestRunner("
 	@echo >>.pytest.py "        output='build/report/xunit'),"
 	@echo >>.pytest.py "    argv=['unit2', 'discover',"
-	@echo >>.pytest.py "        '-s','tests',"
+	@echo >>.pytest.py "        '-s','xunit',"
 	@echo >>.pytest.py "        '-p','*.py',"
 	@echo >>.pytest.py "        '-t','.',"
 	@echo >>.pytest.py "    ]"
@@ -60,7 +60,7 @@ debugcheck: all
 	@echo >>.pytest.py "    testRunner=xmlrunner.XMLTestRunner("
 	@echo >>.pytest.py "        output='build/report/xunit'),"
 	@echo >>.pytest.py "    argv=['unit2', 'discover',"
-	@echo >>.pytest.py "        '-s','tests',"
+	@echo >>.pytest.py "        '-s','xunit',"
 	@echo >>.pytest.py "        '-p','*.py',"
 	@echo >>.pytest.py "        '-t','.',"
 	@echo >>.pytest.py "    ]"
@@ -103,12 +103,8 @@ dist:
 SOURCEFORGE_MIRROR := hivelocity.dl.sourceforge.net
 
 ${CACHE_ROOT}/virtualenv/virtualenv-1.8.2.tar.gz:
-	mkdir -p ${CACHE_ROOT}/virtualenv
-	sh -c "cd ${CACHE_ROOT}/virtualenv && curl -O http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.2.tar.gz"
-
-${CACHE_ROOT}/numpy/numpy-1.6.2.tar.gz:
-	mkdir -p "${CACHE_ROOT}"/numpy
-	sh -c "cd "${CACHE_ROOT}"/numpy && curl -O 'http://pypi.python.org/packages/source/n/numpy/numpy-1.6.2.tar.gz'"
+	mkdir -p "${CACHE_ROOT}"/virtualenv
+	sh -c "cd "${CACHE_ROOT}"/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.2.tar.gz'"
 
 ${CACHE_ROOT}/scipy/scipy-0.10.1.tar.gz:
 	mkdir -p "${CACHE_ROOT}"/scipy
