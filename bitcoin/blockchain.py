@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.blockchain --------------------------------------------------===
-# Copyright © 2012 by its contributors. See AUTHORS for details.
+#
+# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-# ===----------------------------------------------------------------------===
+#
 
 from datetime import datetime, timedelta
 from isodate import strftime
@@ -692,6 +692,5 @@ class Block(SerializableMixin, HashableMixin, ValidatesMixin):
             self.nNonce,
             repr(self.vtx)))
 
-# ===----------------------------------------------------------------------===
 # End of File
-# ===----------------------------------------------------------------------===
+#
