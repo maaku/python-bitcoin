@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.rpc ---------------------------------------------------------===
+#
 # Copyright © 2012-2013 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-# ===----------------------------------------------------------------------===
+#
 
 import time
 from random import randrange
@@ -187,6 +187,6 @@ class Proxy(object):
         else:
             raise ResponseError(u"server reply must contain one of 'result' or 'error'")
 
-# ===----------------------------------------------------------------------===
+#
 # End of File
-# ===----------------------------------------------------------------------===
+#

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === tests.serialize -----------------------------------------------------===
+#
 # Copyright © 2012-2013 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-# ===----------------------------------------------------------------------===
+#
 
 # Python standard library, unit-testing
 import unittest2
@@ -302,6 +302,6 @@ class TestInvalidListSerialization(unittest2.TestCase):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_list, (file_, deserializer))
 
-# ===----------------------------------------------------------------------===
+#
 # End of File
-# ===----------------------------------------------------------------------===
+#

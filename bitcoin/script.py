@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.script ------------------------------------------------------===
+#
 # Copyright © 2012-2013 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-# ===----------------------------------------------------------------------===
+#
 
 from struct import pack, unpack
 
@@ -597,6 +597,6 @@ __all__ = OPCODE_NAMES.values() + [
     'ScriptOp',
 ]
 
-# ===----------------------------------------------------------------------===
+#
 # End of File
-# ===----------------------------------------------------------------------===
+#

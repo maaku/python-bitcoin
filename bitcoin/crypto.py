@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# === bitcoin.crypto ------------------------------------------------------===
+#
 # Copyright © 2012-2013 by its contributors. See AUTHORS for details.
 #
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-# ===----------------------------------------------------------------------===
+#
 
 import hashlib
 from itertools import count, izip
@@ -225,6 +225,6 @@ def merkle(hashes):
                   for l,r in izip(*[iter(hashes)]*2)]
     return hashes and hashes[0] or 0L
 
-# ===----------------------------------------------------------------------===
+#
 # End of File
-# ===----------------------------------------------------------------------===
+#
