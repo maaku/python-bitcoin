@@ -45,9 +45,8 @@ ChainParameters = namedtuple('ChainParameters', ['magic', 'port', 'genesis',
 # ===----------------------------------------------------------------------===
 
 class OutPoint(SerializableMixin):
-    def __init__(self, chain, hash=0, n=0xffffffff, *args, **kwargs):
+    def __init__(self, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
-        self.chain = chain
         self.hash = hash
         self.n = n
 
@@ -56,11 +55,11 @@ class OutPoint(SerializableMixin):
         result += pack('<I', self.n)
         return result
     @classmethod
-    def deserialize(cls, chain, file_):
+    def deserialize(cls, file_):
         initargs = {}
         initargs['hash'] = deserialize_hash(file_, 32)
         initargs['n'] = unpack('<I', file_.read(4))[0]
-        return cls(chain, **initargs)
+        return cls(**initargs)
 
     def __eq__(self, other):
         return self.hash==other.hash and self.n==other.n
@@ -79,14 +78,13 @@ class OutPoint(SerializableMixin):
 # ===----------------------------------------------------------------------===
 
 class Input(SerializableMixin):
-    def __init__(self, chain, prevout=None, scriptSig=None,
-                 nSequence=0xffffffff, *args, **kwargs):
+    def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff,
+                 *args, **kwargs):
         if prevout is None:
-            prevout = self.deserialize_prevout(chain, StringIO('\x00'*32 + '\xff'*4))
+            prevout = self.deserialize_prevout(StringIO('\x00'*32 + '\xff'*4))
         if scriptSig is None:
             scriptSig = kwargs.pop('coinbase', Script())
         super(Input, self).__init__(*args, **kwargs)
-        self.chain = chain
         self.prevout = prevout
         self.scriptSig = scriptSig
         self.nSequence = nSequence
@@ -100,19 +98,19 @@ class Input(SerializableMixin):
         result += pack('<I', self.nSequence)
         return result
     @staticmethod
-    def deserialize_prevout(chain, file_):
-        return OutPoint.deserialize(chain, file_)
+    def deserialize_prevout(file_):
+        return OutPoint.deserialize(file_)
     @classmethod
-    def deserialize(cls, chain, file_):
+    def deserialize(cls, file_):
         initargs = {}
-        initargs['prevout'] = cls.deserialize_prevout(chain, file_)
+        initargs['prevout'] = cls.deserialize_prevout(file_)
         str_ = deserialize_varchar(file_) # <-- coinbase?
         initargs['nSequence'] = unpack('<I', file_.read(4))[0]
         if initargs['prevout'].is_null() and initargs['nSequence']==0xffffffff:
             initargs['coinbase'] = str_
         else:
             initargs['scriptSig'] = Script.deserialize(StringIO(serialize_varchar(str_)))
-        return cls(chain, **initargs)
+        return cls(**initargs)
 
     def __eq__(self, other):
         return (self.prevout   == other.prevout   and
@@ -134,11 +132,10 @@ class Input(SerializableMixin):
 # ===----------------------------------------------------------------------===
 
 class Output(SerializableMixin):
-    def __init__(self, chain, nValue=0, scriptPubKey=None, *args, **kwargs):
+    def __init__(self, nValue=0, scriptPubKey=None, *args, **kwargs):
         if scriptPubKey is None:
             scriptPubKey = Script()
         super(Output, self).__init__(*args, **kwargs)
-        self.chain = chain
         self.nValue = nValue
         self.scriptPubKey = scriptPubKey
 
@@ -147,11 +144,11 @@ class Output(SerializableMixin):
         result += self.scriptPubKey.serialize()
         return result
     @classmethod
-    def deserialize(cls, chain, file_):
+    def deserialize(cls, file_):
         initargs = {}
         initargs['nValue'] = unpack('<Q', file_.read(8))[0]
         initargs['scriptPubKey'] = Script.deserialize(file_)
-        return cls(chain, **initargs)
+        return cls(**initargs)
 
     def __eq__(self, other):
         return (self.nValue == other.nValue and
@@ -165,12 +162,11 @@ class Output(SerializableMixin):
 # ===----------------------------------------------------------------------===
 
 class Transaction(SerializableMixin, HashableMixin):
-    def __init__(self, chain, nVersion=1, vin=None, vout=None, nLockTime=0,
+    def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0,
                  nRefHeight=0, *args, **kwargs):
         if vin is None: vin = []
         if vout is None: vout = []
         super(Transaction, self).__init__(*args, **kwargs)
-        self.chain = chain
         self.nVersion = nVersion
         self.vin_create()
         for tin in vin:
@@ -200,25 +196,25 @@ class Transaction(SerializableMixin, HashableMixin):
             result += pack('<I', self.nRefHeight)
         return result
     @staticmethod
-    def deserialize_input(chain, file_, *args, **kwargs):
-        return Input.deserialize(chain, file_, *args, **kwargs)
+    def deserialize_input(file_, *args, **kwargs):
+        return Input.deserialize(file_, *args, **kwargs)
     @staticmethod
-    def deserialize_output(chain, file_, *args, **kwargs):
-        return Output.deserialize(chain, file_, *args, **kwargs)
+    def deserialize_output(file_, *args, **kwargs):
+        return Output.deserialize(file_, *args, **kwargs)
     @classmethod
-    def deserialize(cls, chain, file_):
+    def deserialize(cls, file_):
         initargs = {}
         initargs['nVersion'] = unpack('<I', file_.read(4))[0]
         if initargs['nVersion'] not in (1,2):
             raise NotImplementedError
-        initargs['vin'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(chain, f)))
-        initargs['vout'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(chain, f)))
+        initargs['vin'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(f)))
+        initargs['vout'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(f)))
         initargs['nLockTime'] = unpack('<I', file_.read(4))[0]
         if initargs['nVersion']==2:
             initargs['nRefHeight'] = unpack('<I', file_.read(4))[0]
         else:
             initargs['nRefHeight'] = 0
-        return cls(chain, **initargs)
+        return cls(**initargs)
 
     def __eq__(self, other):
         if (self.nVersion   != other.nVersion  or
@@ -291,10 +287,9 @@ class Transaction(SerializableMixin, HashableMixin):
 # ===----------------------------------------------------------------------===
 
 class Merkle(SerializableMixin, HashableMixin):
-    def __init__(self, chain, children=None, *args, **kwargs):
+    def __init__(self, children=None, *args, **kwargs):
         if children is None: children = []
         super(Merkle, self).__init__(*args, **kwargs)
-        self.chain = chain
         self.children_create()
         for child in children:
             if hasattr(child, 'hash'):
@@ -311,7 +306,7 @@ class Merkle(SerializableMixin, HashableMixin):
             raise NotImplementedError
         return serialize_list(self.children, lambda x:serialize_hash(x, 32))
     @classmethod
-    def deserialize(cls, chain, file_):
+    def deserialize(cls, file_):
         return cls(deserialize_list(file_, lambda x:deserialize_hash(x, 32)))
 
     def hash__getter(self):
@@ -402,8 +397,8 @@ class Block(SerializableMixin, HashableMixin):
     def __bytes__(self):
         return self.serialize(mode='header')
     @staticmethod
-    def deserialize_transaction(chain, file_, *args, **kwargs):
-        return Transaction.deserialize(chain, file_, *args, **kwargs)
+    def deserialize_transaction(file_, *args, **kwargs):
+        return Transaction.deserialize(file_, *args, **kwargs)
     @classmethod
     def deserialize(cls, chain, file_, mode=None):
         if mode is None:
@@ -421,7 +416,7 @@ class Block(SerializableMixin, HashableMixin):
         initargs['nNonce'] = unpack('<I', file_.read(4))[0]
         if mode in ('header',):
             return cls(chain, **initargs)
-        initargs['vtx'] = list(deserialize_list(file_, lambda f:cls.deserialize_transaction(chain, f)))
+        initargs['vtx'] = list(deserialize_list(file_, lambda f:cls.deserialize_transaction(f)))
         return cls(chain, **initargs)
 
     def __eq__(self, other):
