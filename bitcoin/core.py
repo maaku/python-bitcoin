@@ -71,7 +71,6 @@ class OutPoint(SerializableMixin):
     def set_null(self):
         self.hash = 0
         self.n = 0xffffffff
-
     def is_null(self):
         return self.hash==0 and self.n==0xffffffff
 
@@ -420,14 +419,12 @@ class Block(SerializableMixin, HashableMixin):
         return cls(chain, **initargs)
 
     def __eq__(self, other):
-        if (self.nVersion       != other.nVersion       or
-            self.hashPrevBlock  != other.hashPrevBlock  or
-            self.hashMerkleRoot != other.hashMerkleRoot or
-            self.nTime          != other.nTime          or
-            self.nBits          != other.nBits          or
-            self.nNonce         != other.nNonce):
-            return False
-        return True
+        return (self.nVersion       == other.nVersion       and
+                self.hashPrevBlock  == other.hashPrevBlock  and
+                self.hashMerkleRoot == other.hashMerkleRoot and
+                self.nTime          == other.nTime          and
+                self.nBits          == other.nBits          and
+                self.nNonce         == other.nNonce)
     def __repr__(self):
         return ('Block(nVersion=%d, '
                       'hashPrevBlock=0x%064x, '
