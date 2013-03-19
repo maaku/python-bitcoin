@@ -298,7 +298,7 @@ class Block(SerializableMixin, HashableMixin):
         initargs['nTime'] = unpack('<I', file_.read(4))[0]
         initargs['nBits'] = unpack('<I', file_.read(4))[0]
         initargs['nNonce'] = unpack('<I', file_.read(4))[0]
-        return cls(chain, **initargs)
+        return cls(**initargs)
 
     def __eq__(self, other):
         return (self.nVersion       == other.nVersion       and
