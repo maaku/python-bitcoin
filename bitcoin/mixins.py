@@ -13,7 +13,6 @@ from python_patterns.utils.decorators import Property
 __all__ = [
     'SerializableMixin',
     'HashableMixin',
-    'ValidatesMixin'
 ]
 
 # ===----------------------------------------------------------------------===

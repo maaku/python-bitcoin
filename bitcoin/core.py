@@ -24,23 +24,14 @@ from .serialize import (
 from .utils import StringIO, target_from_compact
 
 __all__ = [
-    'ChainParameters',
     'OutPoint',
     'Input',
     'Output',
     'Transaction',
     'Merkle',
     'Block',
+    'ChainParameters',
 ]
-
-# ===----------------------------------------------------------------------===
-
-from collections import namedtuple
-
-ChainParameters = namedtuple('ChainParameters', ['magic', 'port', 'genesis',
-    'testnet', 'max_value', 'transient_reward', 'transient_budget',
-    'perpetual_reward', 'perpetual_budget', 'fee_budget', 'maximum_target',
-    'next_target', 'alert_keys','checkpoints', 'features'])
 
 # ===----------------------------------------------------------------------===
 
@@ -67,12 +58,6 @@ class OutPoint(SerializableMixin):
         return 'OutPoint(hash=%064x, n=%d)' % (
             self.hash,
             self.n==0xffffffff and -1 or self.n)
-
-    def set_null(self):
-        self.hash = 0
-        self.n = 0xffffffff
-    def is_null(self):
-        return self.hash==0 and self.n==0xffffffff
 
 # ===----------------------------------------------------------------------===
 
@@ -103,7 +88,7 @@ class Input(SerializableMixin):
     def deserialize(cls, file_):
         initargs = {}
         initargs['prevout'] = cls.deserialize_prevout(file_)
-        str_ = deserialize_varchar(file_) # <-- coinbase?
+        str_ = deserialize_varchar(file_) # <-- might be coinbase!
         initargs['nSequence'] = unpack('<I', file_.read(4))[0]
         if initargs['prevout'].is_null() and initargs['nSequence']==0xffffffff:
             initargs['coinbase'] = str_
@@ -124,9 +109,6 @@ class Input(SerializableMixin):
             self.prevout.is_null() and 'coinbase' or 'scriptSig',
             repr(self.scriptSig),
             nSequence_str)
-
-    def is_final(self):
-        return self.nSequence==0xffffffff
 
 # ===----------------------------------------------------------------------===
 
@@ -216,15 +198,11 @@ class Transaction(SerializableMixin, HashableMixin):
         return cls(**initargs)
 
     def __eq__(self, other):
-        if (self.nVersion   != other.nVersion  or
-            self.nLockTime  != other.nLockTime or
-            self.nRefHeight != other.nRefHeight):
-            return False
-        if list(self.vin) != list(other.vin):
-            return False
-        if list(self.vout) != list(other.vout):
-            return False
-        return True
+        return (self.nVersion   != other.nVersion   or
+                self.nLockTime  != other.nLockTime  or
+                self.nRefHeight != other.nRefHeight or
+                list(self.vin)  != list(other.vin)  or
+                list(self.vout) != list(other.vout))
     def __repr__(self):
         nRefHeight_str = (self.nVersion==2
             and ', nRefHeight=%d' % self.nRefHeight
@@ -239,50 +217,6 @@ class Transaction(SerializableMixin, HashableMixin):
             self.nLockTime,
             nRefHeight_str))
 
-    def is_final(self, block_height, block_time):
-        if self.nLockTime < LOCKTIME_THRESHOLD:
-            if block_height is None:
-                # FIXME: nBlockHeight = nBestHeight
-                raise ValueError(
-                    u"block_height required but missing")
-            if self.nLockTime < block_height:
-                return False
-        else:
-            if block_time is None:
-                # FIXME: nBlockTime = GetAdjustedTime()
-                raise ValueError(
-                    u"block_time required but missing")
-            if self.nLockTime < block_time:
-                return False
-        for txin in self.vin:
-            if not txin.is_final():
-                return False
-        return True
-
-    def is_newer_than(self, other):
-        vin_count = len(self.vin)
-        if vin_count != len(other.vin):
-            return False
-        # FIXME: this could be made more pythonic...
-        newer = False
-        lowest = 0xffffffff
-        for idx in xrange(vin_count):
-            self_vin = self.vin[idx]
-            other_vin = other.vin[idx]
-            if self_vin.prevout != other_vin.prevout:
-                return False
-            if self_vin.nSequence != other_vin.nSequence:
-                if self_vin.nSequence <= lowest:
-                    newer = False
-                    lowest = self_vin.nSequence
-                if other_vin.nSequence < lowest:
-                    newer = True
-                    lowest = other_vin.nSequence
-        return newer
-
-    def is_coinbase(self):
-        return len(self.vin)==1 and self.vin[0].prevout.is_null()
-
 # ===----------------------------------------------------------------------===
 
 class Merkle(SerializableMixin, HashableMixin):
@@ -291,7 +225,7 @@ class Merkle(SerializableMixin, HashableMixin):
         super(Merkle, self).__init__(*args, **kwargs)
         self.children_create()
         for child in children:
-            if hasattr(child, 'hash'):
+            if hasattr(child, 'hash') and not isinstance(child, Merkle):
                 child = child.hash
             self.children.append(child)
 
@@ -300,7 +234,7 @@ class Merkle(SerializableMixin, HashableMixin):
     children_clear = children_create
 
     def serialize(self):
-        # detect version=2 (explicit) merkle trees
+        # TODO: detect version=2 (explicit) merkle trees
         if any(map(lambda h:not isinstance(h, numbers.Integral), self.children)):
             raise NotImplementedError
         return serialize_list(self.children, lambda x:serialize_hash(x, 32))
@@ -319,7 +253,7 @@ class Merkle(SerializableMixin, HashableMixin):
 # ===----------------------------------------------------------------------===
 
 class Block(SerializableMixin, HashableMixin):
-    def __init__(self, chain, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
+    def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
                  nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
         if None not in (hashMerkleRoot, vtx):
             if hashMerkleRoot != merkle(vtx):
@@ -331,7 +265,6 @@ class Block(SerializableMixin, HashableMixin):
             if hashMerkleRoot is None: hashMerkleRoot = merkle(vtx)
         super(Block, self).__init__(*args, **kwargs)
 
-        self.chain = chain
         self.nVersion = nVersion
         self.hashPrevBlock = hashPrevBlock
         self.hashMerkleRoot = hashMerkleRoot
@@ -339,30 +272,7 @@ class Block(SerializableMixin, HashableMixin):
         self.nBits = nBits
         self.nNonce = nNonce
 
-    @Property
-    def merkleTree():
-        def fget(self):
-            return self.chain.merkles.get(self.hashMerkleRoot, None)
-        def fset(self, merkleTree):
-            hashMerkleRoot = merkle(merkleTree)
-            if not isinstance(hashMerkleRoot, numbers.Integral):
-                raise ValueError(
-                    u"Merkle-tree could not be reduced to root hash value\n"
-                    u"    merkleTree:     %(merkleTree)s\n"
-                    u"    hashMerkleRoot: %(hashMerkleRoot)s" % {
-                        'merkleTree': repr(merkleTree),
-                        'hashMerkleRoot': repr(hashMerkleRoot),
-                    })
-            self.hashMerkleRoot = hashMerkleRoot
-        def fdel(self):
-            self.hashMerkleRoot = 0L
-        return locals()
-
-    def serialize(self, mode=None):
-        if mode is None:
-            mode = 'header'
-        if mode not in ('full', 'header'):
-            raise ValueError(u"unrecognized block serialization mode")
+    def serialize(self):
         if self.nVersion not in (1,2):
             raise NotImplementedError
         result  = pack('<I', self.nVersion)
@@ -371,39 +281,14 @@ class Block(SerializableMixin, HashableMixin):
         result += pack('<I', self.nTime)
         result += pack('<I', self.nBits)
         result += pack('<I', self.nNonce)
-        if mode in ('header',):
-            return result
-        merkleTree = self.merkleTree
-        if merkleTree is None:
-            raise self.ValidationError(
-                u"block-transaction Merkle-tree missing; cannot serialize "
-                u"transaction list without the Merkle-tree\n"
-                u"    hashMerkleRoot: %064x" % self.hashMerkleRoot)
-        vtxid = [txid for txid in merkle_iter(merkleTree)]
-        vtx = [self.chain.transactions.get(txid, None) for txid in vtxid]
-        if None in vtx:
-            desc = (
-                u"missing transactions; the following transactions from the "
-                u"Merkle-tree are missing unaccounted for\n"
-                u"    txid: ")
-            desc += u"\n    txid: ".join(
-                vtxid[idx]
-                for idx, tx in enumerate(vtx)
-                if tx is None)
-            raise self.ValidationError(desc)
-        result += serialize_list(vtx, lambda t:t.serialize())
         return result
     def __bytes__(self):
-        return self.serialize(mode='header')
+        return self.serialize()
     @staticmethod
     def deserialize_transaction(file_, *args, **kwargs):
         return Transaction.deserialize(file_, *args, **kwargs)
     @classmethod
-    def deserialize(cls, chain, file_, mode=None):
-        if mode is None:
-            mode = 'header'
-        if mode not in ('full', 'header'):
-            raise ValueError(u"unrecognized block serialization mode")
+    def deserialize(cls, file_):
         initargs = {}
         initargs['nVersion'] = unpack('<I', file_.read(4))[0]
         if initargs['nVersion'] not in (1,2):
@@ -413,9 +298,6 @@ class Block(SerializableMixin, HashableMixin):
         initargs['nTime'] = unpack('<I', file_.read(4))[0]
         initargs['nBits'] = unpack('<I', file_.read(4))[0]
         initargs['nNonce'] = unpack('<I', file_.read(4))[0]
-        if mode in ('header',):
-            return cls(chain, **initargs)
-        initargs['vtx'] = list(deserialize_list(file_, lambda f:cls.deserialize_transaction(f)))
         return cls(chain, **initargs)
 
     def __eq__(self, other):
@@ -444,6 +326,15 @@ class Block(SerializableMixin, HashableMixin):
         def fget(self):
             return mpq(2**256-1, target_from_compact(self.nBits))
         return locals()
+
+# ===----------------------------------------------------------------------===
+
+from collections import namedtuple
+
+ChainParameters = namedtuple('ChainParameters', ['magic', 'port', 'genesis',
+    'testnet', 'max_value', 'transient_reward', 'transient_budget',
+    'perpetual_reward', 'perpetual_budget', 'fee_budget', 'maximum_target',
+    'next_target', 'alert_keys','checkpoints', 'features'])
 
 #
 # End of File
