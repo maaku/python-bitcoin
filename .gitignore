@@ -1,9 +1,10 @@
-*.pyc
 .*.swp
-.cache
-.pkg
-build
-.coverage
+*.pyc
+/Makefile.local
+/.cache/
+/.pyenv/
+/build/
+/.coverage
 MANIFEST
 dist/*
 tests/data/blk????.dat

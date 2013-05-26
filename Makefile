@@ -7,12 +7,14 @@
 
 ROOT=$(shell pwd)
 CACHE_ROOT=${ROOT}/.cache
-PKG_ROOT=${ROOT}/.pkg
+PYENV=${ROOT}/.pyenv
+APP_NAME=python-bitcoin
+PACKAGE=bitcoin
 
 -include Makefile.local
 
 .PHONY: all
-all: ${PKG_ROOT}/.stamp-h
+all: ${PYENV}/.stamp-h
 
 .PHONY: check
 check: all
@@ -29,8 +31,8 @@ check: all
 	@echo >>.pytest.py "    ]"
 	@echo >>.pytest.py ")"
 	chmod +x .pytest.py
-	"${PKG_ROOT}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
-	"${PKG_ROOT}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
+	"${PYENV}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
+	"${PYENV}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
 	rm -f .pytest.py
 
 .PHONY: debugcheck
@@ -58,13 +60,13 @@ debugcheck: all
 	@echo >>.pytest.py "    ]"
 	@echo >>.pytest.py ")"
 	@chmod +x .pytest.py
-	"${PKG_ROOT}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
-	"${PKG_ROOT}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
+	"${PYENV}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
+	"${PYENV}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
 	rm -f .pytest.py
 
 .PHONY: shell
 shell: all
-	"${PKG_ROOT}"/bin/ipython
+	"${PYENV}"/bin/ipython
 
 .PHONY: mostlyclean
 mostlyclean:
@@ -74,7 +76,7 @@ mostlyclean:
 
 .PHONY: clean
 clean: mostlyclean
-	-rm -rf "${PKG_ROOT}"
+	-rm -rf "${PYENV}"
 
 .PHONY: distclean
 distclean: clean
@@ -90,21 +92,15 @@ maintainer-clean: distclean
 
 .PHONY: dist
 dist:
-	"${PKG_ROOT}"/bin/python setup.py sdist
+	"${PYENV}"/bin/python setup.py sdist
 
 # ===--------------------------------------------------------------------===
 
-SOURCEFORGE_MIRROR := hivelocity.dl.sourceforge.net
-
-${CACHE_ROOT}/virtualenv/virtualenv-1.8.4.tar.gz:
+${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.tar.gz:
 	mkdir -p "${CACHE_ROOT}"/virtualenv
-	sh -c "cd '${CACHE_ROOT}'/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.8.4.tar.gz'"
+	sh -c "cd '${CACHE_ROOT}'/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.9.1.tar.gz'"
 
-${CACHE_ROOT}/gmpy2/gmpy2-2.0.0b3.zip:
-	mkdir -p "${CACHE_ROOT}"/gmpy2
-	sh -c "cd "${CACHE_ROOT}"/gmpy2 && curl -O 'http://gmpy.googlecode.com/files/gmpy2-2.0.0b3.zip'"
-
-${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.8.4.tar.gz ${CACHE_ROOT}/gmpy2/gmpy2-2.0.0b3.zip
+${PYENV}/.stamp-h: requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.tar.gz
 	# Because build and run-time dependencies are not thoroughly tracked,
 	# it is entirely possible that rebuilding the development environment
 	# on top of an existing one could result in a broken build. For the
@@ -113,52 +109,57 @@ ${PKG_ROOT}/.stamp-h: conf/requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv
 	# everytime this make target is selected.
 	${MAKE} clean
 	
-	# The `${PKG_ROOT}` directory, if it exists, is removed by the
-	# `clean` target. The PyPI cache is nonexistant if this is a freshly
-	# checked-out repository, or if the `distclean` target has been run.
-	# This might cause problems with build scripts executed later which
+	# The ${PYENV} directory, if it exists, was removed above. The
+	# PyPI cache is nonexistant if this is a freshly checked-out
+	# repository, or if the `distclean` target has been run.  This
+	# might cause problems with build scripts executed later which
 	# assume their existence, so they are created now if they don't
 	# already exist.
-	mkdir -p "${PKG_ROOT}"
+	mkdir -p "${PYENV}"
 	mkdir -p "${CACHE_ROOT}"/pypi
 	
 	# `virtualenv` is used to create a separate Python installation for
-	# this project in `${PKG_ROOT}`.
+	# this project in `${PYENV}`.
 	tar \
 	    -C "${CACHE_ROOT}"/virtualenv --gzip \
-	    -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.4.tar.gz
-	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.4/virtualenv.py \
+	    -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1.tar.gz
+	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1/virtualenv.py \
 	    --clear \
 	    --distribute \
 	    --never-download \
-	    --prompt="(python-bitcoin) " \
-	    "${PKG_ROOT}"
-	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.8.4
+	    --prompt="(${APP_NAME}) " \
+	    "${PYENV}"
+	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1
 	
 	# M2Crypto is installed by easy_install so that we can fetch a binary
 	# install, which might have configuration options to perform better on
-	# a wider variety of targets. readline is installed here to get around
-	# a bug on Mac OS X which is causing readline to not build properly if
-	# installed from pip.
-	"${PKG_ROOT}"/bin/easy_install M2Crypto
-	"${PKG_ROOT}"/bin/easy_install readline
+	# a wider variety of targets.
+	"${PYENV}"/bin/easy_install M2Crypto
 	
-	# gmpy2 is installed here since the 2.x series is not yet included in the
-	# python packaging index.
-	CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
-	"${PKG_ROOT}"/bin/easy_install \
-	    "${CACHE_ROOT}"/gmpy2/gmpy2-2.0.0b3.zip
+	# readline is installed here to get around a bug on Mac OS X
+	# which is causing readline to not build properly if installed
+	# from pip, and the fact that a different package must be used
+	# to support it on Windows/Cygwin.
+	if [ "x`uname -o`" == "xCygwin" ]; then \
+	    "${PYENV}"/bin/pip install pyreadline; \
+	else \
+	    "${PYENV}"/bin/easy_install readline; \
+	fi
 	
 	# pip is used to install Python dependencies for this project.
-	for reqfile in "${ROOT}"/conf/requirements*.pip; do \
+	CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
+	"${PYENV}"/bin/python "${PYENV}"/bin/pip install \
+	    --download-cache="${CACHE_ROOT}"/pypi \
+	    -r "${ROOT}"/requirements.pip; \
+	for reqfile in "${ROOT}"/requirements-*.pip; do \
 	    CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
-	    "${PKG_ROOT}"/bin/python "${PKG_ROOT}"/bin/pip install \
+	    "${PYENV}"/bin/python "${PYENV}"/bin/pip install \
 	        --download-cache="${CACHE_ROOT}"/pypi \
 	        -r "$$reqfile"; \
 	done
 	
 	# All done!
-	touch "${PKG_ROOT}"/.stamp-h
+	touch "${PYENV}"/.stamp-h
 
 #
 # End of File

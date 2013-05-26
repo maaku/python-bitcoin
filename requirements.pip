@@ -1,7 +1,7 @@
 M2Crypto>=0.21.1
 bigfloat>=0.3.0a2
 cdecimal>=2.3
-gmpy2>=2.0.0b2
+gmpy2>=2.0.0
 isodate>=0.4.8
 python-patterns>=0.0.1
 requests>=0.14.0
