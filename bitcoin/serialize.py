@@ -87,6 +87,42 @@ def deserialize_hash(file_, len_):
         result += limb << ((len_ & ~1) * 8)
     return result
 
+def serialize_beint(long_, len_):
+    if long_ < 0:
+        raise ValueError(u"received integer value is negative")
+    result = ''
+    for _ in xrange(len_//8):
+        result = pack(">Q", long_ & 0xffffffffffffffffL) + result
+        long_ >>= 64
+    if len_ & 4:
+        result = pack(">I", long_ & 0xffffffffL) + result
+        long_ >>= 32
+    if len_ & 2:
+        result = pack(">H", long_ & 0xffffL) + result
+        long_ >>= 16
+    if len_ & 1:
+        result = pack(">B", long_ & 0xffL) + result
+        long_ >>= 8
+    if long_:
+        raise ValueError(u"integer value exceeds maximum representable value")
+    return result
+
+def deserialize_beint(file_, len_):
+    result = 0L
+    for idx in xrange(len_//8):
+        limb = unpack(">Q", file_.read(8))[0]
+        result = (result << 64) + limb
+    if len_ & 4:
+        limb = unpack(">I", file_.read(4))[0]
+        result = (result << 32) + limb
+    if len_ & 2:
+        limb = unpack(">H", file_.read(2))[0]
+        result = (result << 16) + limb
+    if len_ & 1:
+        limb = unpack(">B", file_.read(1))[0]
+        result = (result << 8) + limb
+    return result
+
 def serialize_list(list_, serializer):
     result = serialize_varint(len(list_))
     for item in list_:

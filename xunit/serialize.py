@@ -18,6 +18,7 @@ from bitcoin.serialize import (
     serialize_varint, deserialize_varint,
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
+    serialize_beint, deserialize_beint,
     serialize_list, deserialize_list,
 )
 
@@ -210,6 +211,30 @@ class TestInvalidHashSerialization(unittest2.TestCase):
         def __test__(self, len_, invalid):
             file_ = StringIO(invalid)
             self.assertRaises(BaseException, deserialize_hash, (file_, len_))
+
+# ===----------------------------------------------------------------------===
+
+BEINT = [
+    dict(hash_=0L, len_=2, result='\x00'*2),
+    dict(hash_=0x0100L, len_=2, result='\x01\x00'),
+    dict(hash_=0x020100L, len_=3, result='\x02\x01\x00'),
+    dict(hash_=0x020100L, len_=4, result='\x00\x02\x01\x00'),
+    dict(hash_=0x06050403020100L, len_=7, result='\x06\x05\x04\x03\x02\x01\x00'),
+]
+
+class TestSerializeBeint(unittest2.TestCase):
+    """Test serialization and deserialization of big integer values under a
+    variety of standard scenarios."""
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = BEINT
+        def __test__(self, hash_, len_, result):
+            self.assertEqual(serialize_beint(hash_, len_), result)
+    class test_deserialize(ScenarioTest):
+        scenarios = BEINT
+        def __test__(self, hash_, len_, result):
+            file_ = StringIO(result)
+            self.assertEqual(deserialize_beint(file_, len_), hash_)
 
 # ===----------------------------------------------------------------------===
 
