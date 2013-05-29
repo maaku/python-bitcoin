@@ -7,6 +7,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
+import six
+
 from .crypto import hash256
 from .errors import InvalidBase58Error, Base58ChecksumError
 from .serialize import serialize_beint, deserialize_beint
@@ -31,7 +33,7 @@ def b58_encode(b, errors='strict'):
     # Encode leading zeros as base58 zeros
     pad = 0
     for c in b:
-        if c == chr(0): pad += 1
+        if c == six.int2byte(0): pad += 1
         else: break
     return (b58_digits[0] * pad + res, len_)
 
@@ -45,7 +47,8 @@ def b58_decode(s, errors='strict'):
     for c in s:
         n *= 58
         if c not in b58_digits:
-            raise InvalidBase58Error('Character %r is not a valid base58 character' % c)
+            raise InvalidBase58Error(u"character %r is not a valid base58 "
+                u"character" % c)
         digit = b58_digits.index(c)
         n += digit
 

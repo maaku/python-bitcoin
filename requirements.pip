@@ -6,3 +6,4 @@ isodate>=0.4.8
 python-patterns>=0.0.1
 requests>=0.14.0
 simplejson>=2.6.2
+six>=1.3.0
