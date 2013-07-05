@@ -22,6 +22,8 @@ BASE58_CODEC = [
     dict(data=chr(0), result=u"1"),
     dict(data     = chr(0)+('1f8b1340c286881bcc449c37569ae320b013785d'+'48427760').decode('hex'),
          result   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP"),
+    dict(data     = chr(5)+('5ece0cadddc415b1980f001785947120acdb36fc'+'b43c48af').decode('hex'),
+         result   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G"),
     # src/test/data/base58_encode_decode.json:
     dict(data='61'.decode('hex'), result=u"2g"),
     dict(data='626262'.decode('hex'), result=u"a3gV"),
