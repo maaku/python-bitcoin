@@ -131,11 +131,6 @@ ${PYENV}/.stamp-h: requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.t
 	    "${PYENV}"
 	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1
 	
-	# M2Crypto is installed by easy_install so that we can fetch a binary
-	# install, which might have configuration options to perform better on
-	# a wider variety of targets.
-	"${PYENV}"/bin/easy_install M2Crypto
-	
 	# readline is installed here to get around a bug on Mac OS X
 	# which is causing readline to not build properly if installed
 	# from pip, and the fact that a different package must be used
