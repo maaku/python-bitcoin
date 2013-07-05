@@ -48,7 +48,7 @@ CHAIN_PARAMETERS = {
         },
         features = {}),
     'org.bitcoin.testnet3' : ChainParameters(
-        magic = 'fabfb5da'.decode('hex'),
+        magic = '0b110907'.decode('hex'),
         port = 18333,
         genesis = (
             'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO6Pt/Xp7ErJ6xyw+Z3aPYX/IG8OI'
@@ -109,15 +109,80 @@ CHAIN_PARAMETERS = {
         },
         features = {}),
     'in.freico' : ChainParameters(
-        magic = 'c7d32389'.decode('hex'),
+        magic = '2cfe7e6d'.decode('hex'),
         port = 8639,
         genesis = (
-            'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtgN4/8leZxiafMA6JQwtK5IyLyLQ'
-            'Y/Ya1KexQ5+r5D+QYlNQ//8AHecX/DcBAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+            'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvcj0mpGkU1oV92tIbMn+DXC9qogS'
+            '9YzoC6Qel6obO/XQzdRQ//8AHWpylRABAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
             'AAAAAP////9NBP//AB0BBEVUZWxlZ3JhcGggMjcvSnVuLzIwMTIgQmFyY2xheXMgaGl0IHdpdGgg'
-            'wqMyOTBtIGZpbmUgb3ZlciBMaWJvciBmaXhpbmf/////AUeLBhg7BwAAQ0EEZ4r9sP5VSCcZZ/Gm'
-            'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
-            'AAAAAA=='
+            'wqMyOTBtIGZpbmUgb3ZlciBMaWJvciBmaXhpbmf/////CIk0KO0FAAAAQ0EEZ4r9sP5VSCcZZ/Gm'
+            'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wBAAAA'
+            'AAAAACMgUCnRgODF7XmNh3sa2pl3KYbBQiypMsQbLQQAAAAAAAB1AAEAAAAAAAAA/VMBAyAgIHVN'
+            'MQFNZXRhbHMgd2VyZSBhbiBpbXBsaWNpdGx5IGFidXNpdmUgYWdyZWVtZW50LgpNb2Rlcm4gInBh'
+            'cGVyIiBpcyBhIGZsYXdlZCB0b29sLCBpdHMgZW5naW5lZXJpbmcgaXMgYSBuZXN0IG9mIGxlZWNo'
+            'ZXMuClRoZSBvbGQgbW9uZXkgaXMgb2Jzb2xldGUuCkxldCB0aGUgaW5kaXZpZHVhbCBtb25ldGl6'
+            'ZSBpdHMgY3JlZGl0IHdpdGhvdXQgY2FydGVsIGludGVybWVkaWFyaWVzLgpHaXZlIHVzIGEgcmVu'
+            'dC1sZXNzIGNhc2ggc28gd2UgY2FuIGJlIGZyZWUgZm9yIHRoZSBmaXJzdCB0aW1lLgpMZXQgdGhp'
+            'cyBiZSB0aGUgYXdhaXRlZCBkYXduLnV2qRQO8PnRmmUwI1VBRqhmI4uIIryE34isAQAAAAAAAAD6'
+            'CCAgICAgICAgdUzUIkxldCB1cyBjYWxjdWxhdGUsIHdpdGhvdXQgZnVydGhlciBhZG8sIGluIG9y'
+            'ZGVyIHRvIHNlZSB3aG8gaXMgcmlnaHQuIiAtLUdvdHRmcmllZCBXaWxoZWxtIExlaWJuaXoKzr7C'
+            'tO+9peKIgO+9pWDvvInjgIDjgIDjgIDjgIAgIG4K77+j44CA44CA44CAICDvvLzjgIDjgIAgIO+8'
+            'iCBF77yJIGdvb2Qgam9iLCBtYWFrdSEK776M44CA44CA44CAICAv44O9IOODvV/vvI/vvI91dqkU'
+            'wmvl7ICapL9rMKqJgjz/fO3DZ5qIrAEAAAAAAAAAXwYgICAgICB1PEljaCB3w7xuc2NoZSBGcmVp'
+            'Y29pbiB2aWVsIEVyZm9sZyB6dW0gTnV0emVuIGRlciA5OSBQcm96ZW50IXV2qRQpOazWADcoGnCO'
+            'sR5OntpFLAKeyoisAQAAAAAAAACYDSAgICAgICAgICAgICB1TG0iVGhlIHZhbHVlIG9mIGEgbWFu'
+            'IHNob3VsZCBiZSBzZWVuIGluIHdoYXQgaGUgZ2l2ZXMgYW5kIG5vdCBpbiB3aGF0IGhlIGlzIGFi'
+            'bGUgdG8gcmVjZWl2ZS4iIC0tQWxiZXJ0IEVpbnN0ZWludXapFPnKXKq0vaTcKLVVaqeaLuwER/C/'
+            'iKwBAAAAAAAAAIAMICAgICAgICAgICAgdUxWIkFuIGFybXkgb2YgcHJpbmNpcGxlcyBjYW4gcGVu'
+            'ZXRyYXRlIHdoZXJlIGFuIGFybXkgb2Ygc29sZGllcnMgY2Fubm90LiIgLS1UaG9tYXMgUGFpbmV1'
+            'dqkUCPMgy7QaGuJbeU9hdflggGgZifOIrMxglIwLAAAAGXapFIXlQUTEAgpl+gqP26yLunXbwv0A'
+            'iKwAAAAAAAAAAA=='
+        ).decode('base64'),
+        testnet = False,
+        max_value = 9999999999999999L,
+        transient_reward = LinearArithmetic(50*100000000, 210000),
+        transient_budget = lambda *args, **kwargs:(0, {}),
+        perpetual_reward = Constant(0),
+        perpetual_budget = lambda *args, **kwargs:(0, {}),
+        fee_budget = lambda *args, **kwargs:(0, {}),
+        maximum_target = target_from_compact(0x1d00ffff),
+        next_target = lambda *args, **kwargs:0,
+        alert_keys = [],
+        checkpoints = {
+            0:     0x000000000c29f26697c30e29039927ab4241b5fc2cc76db7e0dafa5e2612ad46L,
+            10080: 0x00000000003ff9c4b806639ec4376cc9acafcdded0e18e9dbcc2fc42e8e72331L,
+            15779: 0x000000000003eb31742b35f5efd8ffb5cdd19dcd8e82cdaad90e592c450363b6L,
+        },
+        features = {}),
+    'in.freico.testnet' : ChainParameters(
+        magic = '5ed67cf3'.decode('hex'),
+        port = 18639,
+        genesis = (
+            'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvcj0mpGkU1oV92tIbMn+DXC9qogS'
+            '9YzoC6Qel6obO/XQzdRQ//8AHfF1q7gBAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+            'AAAAAP////9NBP//AB0BBEVUZWxlZ3JhcGggMjcvSnVuLzIwMTIgQmFyY2xheXMgaGl0IHdpdGgg'
+            'wqMyOTBtIGZpbmUgb3ZlciBMaWJvciBmaXhpbmf/////CIk0KO0FAAAAQ0EEZ4r9sP5VSCcZZ/Gm'
+            'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wBAAAA'
+            'AAAAACMgUCnRgODF7XmNh3sa2pl3KYbBQiypMsQbLQQAAAAAAAB1AAEAAAAAAAAA/VMBAyAgIHVN'
+            'MQFNZXRhbHMgd2VyZSBhbiBpbXBsaWNpdGx5IGFidXNpdmUgYWdyZWVtZW50LgpNb2Rlcm4gInBh'
+            'cGVyIiBpcyBhIGZsYXdlZCB0b29sLCBpdHMgZW5naW5lZXJpbmcgaXMgYSBuZXN0IG9mIGxlZWNo'
+            'ZXMuClRoZSBvbGQgbW9uZXkgaXMgb2Jzb2xldGUuCkxldCB0aGUgaW5kaXZpZHVhbCBtb25ldGl6'
+            'ZSBpdHMgY3JlZGl0IHdpdGhvdXQgY2FydGVsIGludGVybWVkaWFyaWVzLgpHaXZlIHVzIGEgcmVu'
+            'dC1sZXNzIGNhc2ggc28gd2UgY2FuIGJlIGZyZWUgZm9yIHRoZSBmaXJzdCB0aW1lLgpMZXQgdGhp'
+            'cyBiZSB0aGUgYXdhaXRlZCBkYXduLnV2qRQO8PnRmmUwI1VBRqhmI4uIIryE34isAQAAAAAAAAD6'
+            'CCAgICAgICAgdUzUIkxldCB1cyBjYWxjdWxhdGUsIHdpdGhvdXQgZnVydGhlciBhZG8sIGluIG9y'
+            'ZGVyIHRvIHNlZSB3aG8gaXMgcmlnaHQuIiAtLUdvdHRmcmllZCBXaWxoZWxtIExlaWJuaXoKzr7C'
+            'tO+9peKIgO+9pWDvvInjgIDjgIDjgIDjgIAgIG4K77+j44CA44CA44CAICDvvLzjgIDjgIAgIO+8'
+            'iCBF77yJIGdvb2Qgam9iLCBtYWFrdSEK776M44CA44CA44CAICAv44O9IOODvV/vvI/vvI91dqkU'
+            'wmvl7ICapL9rMKqJgjz/fO3DZ5qIrAEAAAAAAAAAXwYgICAgICB1PEljaCB3w7xuc2NoZSBGcmVp'
+            'Y29pbiB2aWVsIEVyZm9sZyB6dW0gTnV0emVuIGRlciA5OSBQcm96ZW50IXV2qRQpOazWADcoGnCO'
+            'sR5OntpFLAKeyoisAQAAAAAAAACYDSAgICAgICAgICAgICB1TG0iVGhlIHZhbHVlIG9mIGEgbWFu'
+            'IHNob3VsZCBiZSBzZWVuIGluIHdoYXQgaGUgZ2l2ZXMgYW5kIG5vdCBpbiB3aGF0IGhlIGlzIGFi'
+            'bGUgdG8gcmVjZWl2ZS4iIC0tQWxiZXJ0IEVpbnN0ZWludXapFPnKXKq0vaTcKLVVaqeaLuwER/C/'
+            'iKwBAAAAAAAAAIAMICAgICAgICAgICAgdUxWIkFuIGFybXkgb2YgcHJpbmNpcGxlcyBjYW4gcGVu'
+            'ZXRyYXRlIHdoZXJlIGFuIGFybXkgb2Ygc29sZGllcnMgY2Fubm90LiIgLS1UaG9tYXMgUGFpbmV1'
+            'dqkUCPMgy7QaGuJbeU9hdflggGgZifOIrMxglIwLAAAAGXapFIXlQUTEAgpl+gqP26yLunXbwv0A'
+            'iKwAAAAAAAAAAA=='
         ).decode('base64'),
         testnet = False,
         max_value = 9999999999999999L,
