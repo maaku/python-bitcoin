@@ -11,14 +11,10 @@ import hashlib
 from itertools import count, izip
 import numbers
 
-try:
-    from cStringIO import StringIO
-except:
-    from StringIO import StringIO
-
 from python_patterns.utils.decorators import Property
 
 from .serialize import serialize_hash, deserialize_hash
+from .utils import StringIO
 
 __all__ = [
     'hash256',

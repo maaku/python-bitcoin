@@ -9,10 +9,7 @@
 
 from struct import pack, unpack
 
-try:
-    from cStringIO import StringIO
-except:
-    from StringIO import StringIO
+from .utils import StringIO
 
 from python_patterns.utils.decorators import Property
 
