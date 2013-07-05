@@ -557,6 +557,8 @@ class ScriptOp(SerializableMixin):
             else:
                 return "OP_UNKNOWN"
 
+# ===----------------------------------------------------------------------===
+
 class Script(SerializableMixin, tuple):
     def __new__(cls, *args, **kwargs):
         if len(args)==1 and isinstance(args[0], str) and not kwargs:

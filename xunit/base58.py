@@ -15,6 +15,8 @@ from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 import bitcoin.base58
 
+# ===----------------------------------------------------------------------===
+
 BASE58_CODEC = [
     dict(data='', result=''),
     dict(data=chr(0), result='1'),

@@ -14,6 +14,8 @@ from .errors import InvalidBase58Error, Base58ChecksumError
 from .serialize import serialize_beint, deserialize_beint
 from .utils import StringIO
 
+# ===----------------------------------------------------------------------===
+
 b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 def b58_encode(b, errors='strict'):

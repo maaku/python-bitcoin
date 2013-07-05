@@ -15,6 +15,8 @@ from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 from bitcoin.crypto import merkle
 
+# ===----------------------------------------------------------------------===
+
 MERKLE_LIST = [
     dict(list_=[], root=0),
     dict(list_=[0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33bL],
