@@ -12,6 +12,9 @@
 from struct import pack, unpack
 
 __all__ = [
+    'SER_NETWORK',
+    'SER_DISK',
+    'SER_HASH',
     'serialize_varint',
     'deserialize_varint',
     'serialize_varchar',
@@ -21,6 +24,10 @@ __all__ = [
     'serialize_list',
     'deserialize_list',
 ]
+
+SER_NETWORK = 1 << 0
+SER_DISK    = 1 << 1
+SER_HASH    = 1 << 2
 
 def serialize_varint(long_):
     if long_ < 253:
