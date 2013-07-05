@@ -15,6 +15,10 @@ class InvalidBase58Error(Base58Error):
     "Base58 string cannot be properly decoded."
     pass
 
+class HashChecksumError(Base58Error):
+    "Checksum doesn't match data for base58 string."
+    pass
+
 class ValidationError(Exception):
     "An error while validating data."
     pass

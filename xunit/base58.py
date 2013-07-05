@@ -13,7 +13,7 @@ import unittest2
 # Python patterns, scenario unit-testing
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
-import bitcoin.base58
+from bitcoin.base58 import *
 
 # ===----------------------------------------------------------------------===
 
@@ -49,6 +49,106 @@ class TestCodecBase58(unittest2.TestCase):
         scenarios = BASE58_CODEC
         def __test__(self, data, result):
             self.assertEqual(result.decode('base58'), data)
+
+# ===----------------------------------------------------------------------===
+
+from bitcoin.errors import HashChecksumError
+
+HASH_CHECKED_DATA = [
+    dict(data     = b'\x00' + '1f8b1340c286881bcc449c37569ae320b013785d'.decode('hex'),
+         checksum = '48427760'.decode('hex'),
+         base58   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP"),
+    dict(data     = b'\x05' + '5ece0cadddc415b1980f001785947120acdb36fc'.decode('hex'),
+         checksum = 'b43c48af'.decode('hex'),
+         base58   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G"),
+]
+
+class TestHashCheckedData(unittest2.TestCase):
+    "Test checksummed base58 values"
+    __metaclass__ = ScenarioMeta
+    class test_init(ScenarioTest):
+        scenarios = HASH_CHECKED_DATA
+        def __test__(self, data, checksum, base58):
+            checked = HashCheckedData(base58.decode('base58'))
+            self.assertEqual(checked, b''.join([data, checksum]))
+            self.assertEqual(checked.data, data)
+            self.assertEqual(checked.checksum, checksum)
+            self.assertEqual(checked.encode('base58'), base58)
+            checked = HashCheckedData(data, add_hash=True)
+            self.assertEqual(checked, b''.join([data, checksum]))
+            self.assertEqual(checked.data, data)
+            self.assertEqual(checked.checksum, checksum)
+            self.assertEqual(checked.encode('base58'), base58)
+
+BAD_HASH_DATA = [
+    # Too short:
+    dict(data=b''),
+    dict(data=b'\x00'),
+    dict(data=b'\x00'*2),
+    dict(data=b'\x00'*3),
+    # Bad checksum:
+    dict(data=b'\x00'*4),
+]
+
+class TestBadHashChecksum(unittest2.TestCase):
+    "Test bad checksums for HashCheckedData"
+    __metaclass__ = ScenarioMeta
+    class test_bad_checksum(ScenarioTest):
+        scenarios = BAD_HASH_DATA
+        def __test__(self, data):
+            with self.assertRaises(HashChecksumError):
+                checked = HashCheckedData(data, add_hash=False)
+
+# ===----------------------------------------------------------------------===
+
+VERSIONED_PAYLOAD = [
+    dict(version  = 0,
+         payload  = '1f8b1340c286881bcc449c37569ae320b013785d'.decode('hex'),
+         checksum = '48427760'.decode('hex'),
+         base58   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP"),
+    dict(version  = 5,
+         payload  = '5ece0cadddc415b1980f001785947120acdb36fc'.decode('hex'),
+         checksum = 'b43c48af'.decode('hex'),
+         base58   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G"),
+]
+
+class TestVersionedPayload(unittest2.TestCase):
+    "Test versioned base58 payloads"
+    __metaclass__ = ScenarioMeta
+    class test_init(ScenarioTest):
+        scenarios = VERSIONED_PAYLOAD
+        def __test__(self, version, payload, checksum, base58):
+            data = b''.join([six.int2byte(version), payload])
+            checked = VersionedPayload(base58.decode('base58'))
+            self.assertEqual(checked, b''.join([data, checksum]))
+            self.assertEqual(checked.version, version)
+            self.assertEqual(checked.payload, payload)
+            self.assertEqual(checked.data, data)
+            self.assertEqual(checked.checksum, checksum)
+            self.assertEqual(checked.encode('base58'), base58)
+    class test_init_with_version(ScenarioTest):
+        scenarios = VERSIONED_PAYLOAD
+        def __test__(self, version, payload, checksum, base58):
+            data = b''.join([six.int2byte(version), payload])
+            checked = VersionedPayload(payload, version=version)
+            self.assertEqual(checked, b''.join([data, checksum]))
+            self.assertEqual(checked.version, version)
+            self.assertEqual(checked.payload, payload)
+            self.assertEqual(checked.data, data)
+            self.assertEqual(checked.checksum, checksum)
+            self.assertEqual(checked.encode('base58'), base58)
+    class test_init_with_version_explicit_hash(ScenarioTest):
+        scenarios = VERSIONED_PAYLOAD
+        def __test__(self, version, payload, checksum, base58):
+            data = b''.join([six.int2byte(version), payload])
+            checked = VersionedPayload(payload + checksum,
+                version = version, add_hash = False)
+            self.assertEqual(checked, b''.join([data, checksum]))
+            self.assertEqual(checked.version, version)
+            self.assertEqual(checked.payload, payload)
+            self.assertEqual(checked.data, data)
+            self.assertEqual(checked.checksum, checksum)
+            self.assertEqual(checked.encode('base58'), base58)
 
 #
 # End of File
