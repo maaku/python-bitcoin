@@ -23,6 +23,8 @@ __all__ = [
     'deserialize_varchar',
     'serialize_hash',
     'deserialize_hash',
+    'serialize_beint',
+    'deserialize_beint',
     'serialize_list',
     'deserialize_list',
 ]
