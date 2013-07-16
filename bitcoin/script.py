@@ -7,6 +7,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
+import six
+
 from struct import pack, unpack
 
 from .utils import StringIO
@@ -420,8 +422,30 @@ OPCODE_NAMES = {
 
 # ===----------------------------------------------------------------------===
 
-class ScriptOp(SerializableMixin):
-    def __init__(self, opcode=None, data=None, *args, **kwargs):
+class ScriptOp(SerializableMixin, six.binary_type):
+    def __new__(cls, opcode=None, data=None, *args, **kwargs):
+        # If just data is specified, then we automatically fill-in the opcode
+        # as required to push the data on the stack.
+        if opcode is None and data:
+            len_ = len(data)
+            if 0 < len_ < OP_PUSHDATA1:
+                opcode = len_
+            elif OP_PUSHDATA1 <= len_ <= 0xff:
+                opcode = OP_PUSHDATA1
+            elif 0xff < len_ < 0xffff:
+                opcode = OP_PUSHDATA2
+            elif 0xffff < len_ < 0xffffffff:
+                opcode = OP_PUSHDATA4
+            else:
+                if not len_:
+                    raise TypeError(u"cannot push empty string")
+                else:
+                    raise TypeError(u"string exceeds maximum length")
+
+        # The push opcode encodes the length of the data to be pushed, or
+        # the size of the length which directly follows. In either case we
+        # need to make sure the actual data length meets or does not exceed
+        # this limit.
         if opcode==OP_INVALIDOPCODE:
             raise ValueError(u"invalid opcode")
         elif opcode>0 and opcode<OP_PUSHDATA1 and opcode!=len(data):
@@ -430,21 +454,36 @@ class ScriptOp(SerializableMixin):
               opcode==OP_PUSHDATA2 and len(data)>0xffff or
               opcode==OP_PUSHDATA4 and len(data)>0xffffffff):
             raise ValueError(u"data length exceeds serialization limit")
-        super(ScriptOp, self).__init__(*args, **kwargs)
-        self.opcode = opcode
-        self.data = data
+
+        result = pack('<B', opcode)
+        if opcode==OP_PUSHDATA1:
+            result += pack('<B', len(data))
+        elif opcode==OP_PUSHDATA2:
+            result += pack('<H', len(data))
+        elif opcode==OP_PUSHDATA4:
+            result += pack('<I', len(data))
+        if opcode>0 and opcode<=OP_PUSHDATA4:
+            result += data
+
+        return super(ScriptOp, cls).__new__(cls, result, *args, **kwargs)
+
+    @Property
+    def opcode():
+        def fget(self):
+            return unpack('>B', self[:1])[0]
+        return locals()
+
+    @Property
+    def data():
+        def fget(self):
+            if self.opcode <= OP_PUSHDATA4:
+                return self[1:]
+            else:
+                return None
+        return locals()
 
     def serialize(self):
-        result  = chr(self.opcode)
-        if self.opcode==OP_PUSHDATA1:
-            result += pack('<B', len(self.data))
-        elif self.opcode==OP_PUSHDATA2:
-            result += pack('<H', len(self.data))
-        elif self.opcode==OP_PUSHDATA4:
-            result += pack('<I', len(self.data))
-        if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
-            result += self.data
-        return result
+        return self
     @classmethod
     def deserialize(cls, file_):
         opcode = file_.read(1)
@@ -537,14 +576,6 @@ class ScriptOp(SerializableMixin):
                 self.data = data
         return locals()
 
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return self.serialize() == other
-        if self.opcode != other.opcode:
-            return False
-        if self.opcode<=OP_PUSHDATA4 and self.data != other.data:
-            return False
-        return True
     def __repr__(self):
         if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
             return ''.join(['0x', self.data.encode('hex')])
