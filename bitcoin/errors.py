@@ -19,6 +19,10 @@ class HashChecksumError(Base58Error):
     "Checksum doesn't match data for base58 string."
     pass
 
+class BadAddressError(Base58Error):
+    "Unrecognized bitcoin address version."
+    pass
+
 class ValidationError(Exception):
     "An error while validating data."
     pass

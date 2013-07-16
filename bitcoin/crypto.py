@@ -20,6 +20,12 @@ __all__ = [
     'hash256',
     'hash160',
     'merkle',
+    'SECP256k1',
+    'Secret',
+    'Signature',
+    'CompactSignature',
+    'SigningKey',
+    'VerifyingKey'
 ]
 
 # ===----------------------------------------------------------------------===
@@ -219,6 +225,19 @@ def merkle(hashes):
         hashes = [deserialize_hash(StringIO(hash256(l+r).digest()), 32)
                   for l,r in izip(*[iter(hashes)]*2)]
     return hashes and hashes[0] or 0L
+
+# ===----------------------------------------------------------------------===
+
+try:
+    from .ecdsa_openssl import (
+        SECP256k1, Secret,
+        Signature, CompactSignature,
+        SigningKey, VerifyingKey)
+except:
+    from .ecdsa_generic import (
+        SECP256k1, Secret,
+        Signature, CompactSignature,
+        SigningKey, VerifyingKey)
 
 #
 # End of File
