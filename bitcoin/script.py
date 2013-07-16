@@ -614,12 +614,156 @@ class Script(SerializableMixin, tuple):
 
 # ===----------------------------------------------------------------------===
 
+from .crypto import VerifyingKey
+from .defaults import CLIENT_VERSION
+from .serialize import SER_DISK, serialize_varint, deserialize_varchar
+from .utils import StringIO
+
+class ScriptPickler(object):
+    """Compact serializer for scripts.
+
+    It detects common cases and encodes them much more efficiently.
+    3 special cases are defined:
+      * Pay to pubkey hash (encoded as 21 bytes)
+      * Pay to script hash (encoded as 21 bytes)
+      * Pay to pubkey starting with 0x02, 0x03 or 0x04 (encoded as 33 bytes)
+
+    Other scripts up to 121 bytes require 1 byte + script length. Above
+    that, scripts up to 16505 bytes require 2 bytes + script length."""
+    def __init__(self, file=None, protocol=SER_DISK, version=CLIENT_VERSION,
+                 *args, **kwargs):
+        if file is None: file = StringIO()
+        super(ScriptPickler, self).__init__(*args, **kwargs)
+        self._file = file
+        self._protocol = protocol
+        self._version = version
+
+    @staticmethod
+    def _dump(script, file_, protocol, version):
+        if hasattr(script, 'serialize'):
+            script = script.serialize()
+            script = deserialize_varchar(StringIO(script))
+        script_len = len(script)
+        if 23 == script_len and all(
+            script[k:k+1] == six.int2byte(v)
+                    for k,v in six.iteritems({
+                        0:  OP_HASH160,
+                        1:  20,
+                        22: OP_EQUAL})):
+            str_ = b''.join([b'\x01', script[2:22]])
+        elif 25 == script_len and all(
+                script[k:k+1] == six.int2byte(v)
+                    for k,v in six.iteritems({
+                        0:  OP_DUP,
+                        1:  OP_HASH160,
+                        2:  20,
+                        23: OP_EQUALVERIFY,
+                        24: OP_CHECKSIG})):
+            str_ = b''.join([b'\x00', script[3:23]])
+        elif 35 == script_len and script[1:2] in map(six.int2byte, [2, 3]) and all(
+                script[k:k+1] == six.int2byte(v)
+                    for k,v in six.iteritems({
+                        0:  33,
+                        34: OP_CHECKSIG})):
+            str_ = script[1:34]
+        elif 67 == script_len and all(
+                script[k:k+1] == six.int2byte(v)
+                    for k,v in six.iteritems({
+                        0:  65,
+                        1:  4,
+                        66: OP_CHECKSIG})):
+            str_ = b''.join([six.int2byte(0x04 | ord(script[65:66])&0x01), script[2:34]])
+        else:
+            str_ = b''.join([serialize_varint(script_len + 0x06), script])
+        file_.write(str_)
+
+    @staticmethod
+    def _load(file_, protocol, version):
+        size = unpack("<B", file_.read(1))[0]
+        if size == 0:
+            hash_ = file_.read(20)
+            return b''.join([
+                six.int2byte(25),
+                six.int2byte(OP_DUP),
+                six.int2byte(OP_HASH160),
+                six.int2byte(20), hash_,
+                six.int2byte(OP_EQUALVERIFY),
+                six.int2byte(OP_CHECKSIG),
+            ])
+        elif size == 1:
+            hash_ = file_.read(20)
+            return b''.join([
+                six.int2byte(23),
+                six.int2byte(OP_HASH160),
+                six.int2byte(20), hash_,
+                six.int2byte(OP_EQUAL),
+            ])
+        elif size in (2, 3):
+            compressed_key = file_.read(32)
+            return b''.join([
+                six.int2byte(35),
+                six.int2byte(33),
+                six.int2byte(size),
+                compressed_key,
+                six.int2byte(OP_CHECKSIG),
+            ])
+        elif size in (4, 5):
+            verifying_key = VerifyingKey.deserialize(StringIO(
+                b''.join([six.int2byte(size-2), file_.read(32)])))
+            verifying_key.compressed = False
+            return b''.join([
+                six.int2byte(67),
+                six.int2byte(65),
+                verifying_key.serialize(),
+                six.int2byte(OP_CHECKSIG),
+            ])
+        elif size == 0xfd:
+            size = unpack("<H", file_.read(2))[0]
+        elif size == 0xfe:
+            size = unpack("<I", file_.read(4))[0]
+        elif size == 0xff:
+            size = unpack("<Q", file_.read(8))[0]
+        size = size - 6
+        script = file_.read(size)
+        return serialize_varchar(script)
+
+    def get_script_class(self):
+        return getattr(self, 'script_class', Script)
+
+    def dump(self, script):
+        "Write a compressed representation of script to the Pickler's file object."
+        self._dump(script, self._file, self._protocol, self._version)
+
+    def dumps(self, script):
+        "Return a compressed representation of script as a binary string."
+        string = StringIO()
+        self._dump(script, string, self._protocol, self._version)
+        return string.getvalue()
+
+    def load(self):
+        "Read and decompress a compact script from the Pickler's file object."
+        script_class = self.get_script_class()
+        script = self._load(self._file, self._protocol, self._version)
+        return script_class.deserialize(StringIO(script))
+
+    def loads(self, string):
+        "Decompress the passed-in compact script and return the result."
+        script_class = self.get_script_class()
+        script = self._load(StringIO(string), self._protocol, self._version)
+        return script_class.deserialize(StringIO(script))
+
+ScriptUnpickler = ScriptPickler
+
+# ===----------------------------------------------------------------------===
+
 __all__ = OPCODE_NAMES.values() + [
     'OP_TRUE',
     'OP_FALSE',
     'OP_INVALIDOPCODE',
     'Script',
     'ScriptOp',
+    'ScriptPickler',
+    'ScriptUnpickler',
 ]
 
 #
