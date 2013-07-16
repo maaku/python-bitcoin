@@ -109,10 +109,26 @@ class HashCheckedData(six.binary_type):
 # ===----------------------------------------------------------------------===
 
 class VersionedPayload(HashCheckedData):
-    def __new__(cls, payload=b'', version=None, *args, **kwargs):
-        # A versioned payload is a hash checked data string that is prefixed by
-        # a single-byte version number. It is used primarily for serializing
-        # bitcoin addresses and private keys into human-readible format.
+    """A versioned payload is a hash checked data string that is prefixed by a
+    single-byte version number. It is used primarily for serializing bitcoin
+    addresses and private keys into human-readible format."""
+    def __new__(cls, payload=None, version=None, *args, **kwargs):
+        # It is possible to explicitly create from serialized data by passing
+        # a 'data' keyword argument:
+        if payload is None:
+            # The version is encoded as the first byte of the 'data' keyword
+            # argument, so you can't specify it explicitly as well
+            assert version is None, (u"cannot specify version when initializing "
+                u"from serialized data")
+
+            payload = super(VersionedPayload, cls).__new__(cls, *args, **kwargs)
+
+            # A versioned payload must have a data field at least one byte in
+            # length, as the first byte is the version:
+            assert payload.data, (u"not enough bytes in data for version prefix")
+
+            return payload
+
         if version is not None:
             # It is the typical case that if the 'version' kwarg is specified,
             # the user also would want the hash to be auto-generated as well,

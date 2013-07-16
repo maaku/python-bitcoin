@@ -81,6 +81,14 @@ class TestHashCheckedData(unittest2.TestCase):
             self.assertEqual(checked.data, data)
             self.assertEqual(checked.checksum, checksum)
             self.assertEqual(checked.encode('base58'), base58)
+            with self.assertRaises(HashChecksumError):
+                checked = HashCheckedData(
+                    add_hash = False,
+                    data     = b''.join([
+                            data,
+                            checksum[:-1],
+                            six.int2byte(0xff & ~ord(checksum[-1:]))
+                        ]))
 
 BAD_HASH_DATA = [
     # Too short:
@@ -151,6 +159,14 @@ class TestVersionedPayload(unittest2.TestCase):
             self.assertEqual(checked.data, data)
             self.assertEqual(checked.checksum, checksum)
             self.assertEqual(checked.encode('base58'), base58)
+
+class TestInvalidInit(unittest2.TestCase):
+    def test_invalid_init_with_version_only(self):
+        with self.assertRaises(Exception):
+            VersionedPayload(version=0)
+    def test_invalid_init_with_empty_data(self):
+        with self.assertRaises(Exception):
+            VersionedPayload(data=b'', add_hash=True)
 
 #
 # End of File
