@@ -465,7 +465,7 @@ class ScriptOp(SerializableMixin):
         else:
             data = ''
         if len(data) != datalen:
-            raise ValueError(u"unespected end-of-file in data string")
+            raise ValueError(u"unexpected end-of-file in data string")
 
         if opcode<=OP_PUSHDATA4:
             return cls(opcode, data)
