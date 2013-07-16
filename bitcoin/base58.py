@@ -97,7 +97,7 @@ class HashCheckedData(six.binary_type):
             # Verify that the stored checksum matches the actual value:
             if checksum != hash256(data).digest()[:4]:
                 raise HashChecksumError(u"checksum doesn't match: %s != %s" % (
-                    repr(hash256(data).digest()[:4]), repr(checksum)))
+                    hash256(data).hexdigest()[:8], checksum.encode('hex')))
         # We're little more than a wrapper around Python's native binary type.
         # Use that constructor to create the instance:
         return super(HashCheckedData, cls).__new__(cls, bytes_, *args, **kwargs)
