@@ -9,6 +9,8 @@
 
 "Utility functions used in implementing the block chain serialization format."
 
+import six
+
 from struct import pack, unpack
 
 __all__ = [
@@ -94,24 +96,24 @@ def deserialize_hash(file_, len_):
         result += limb << ((len_ & ~1) * 8)
     return result
 
-def serialize_beint(long_, len_):
+def serialize_beint(long_, len_=None):
     if long_ < 0:
         raise ValueError(u"received integer value is negative")
+
     result = ''
-    for _ in xrange(len_//8):
+    while long_:
         result = pack(">Q", long_ & 0xffffffffffffffffL) + result
         long_ >>= 64
-    if len_ & 4:
-        result = pack(">I", long_ & 0xffffffffL) + result
-        long_ >>= 32
-    if len_ & 2:
-        result = pack(">H", long_ & 0xffffL) + result
-        long_ >>= 16
-    if len_ & 1:
-        result = pack(">B", long_ & 0xffL) + result
-        long_ >>= 8
-    if long_:
-        raise ValueError(u"integer value exceeds maximum representable value")
+    result = result[next((i for i,e in enumerate(result[:8])
+                                    if e != six.int2byte(0)), 8):]
+
+    if len_ is not None:
+        result_len = len(result)
+        if result_len < len_:
+            result = '\x00' * (len_ - result_len) + result
+        elif result_len > len_:
+            raise ValueError(u"integer value exceeds maximum representable value")
+
     return result
 
 def deserialize_beint(file_, len_):
