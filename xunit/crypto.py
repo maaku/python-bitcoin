@@ -84,6 +84,8 @@ class TestHash160(unittest2.TestCase):
         def __test__(self, data, hash_):
             self.assertEqual(hash160(data).intdigest(), hash_)
 
+# ===----------------------------------------------------------------------===
+
 HASH256 = [
     dict(data  = b'',
          hash_ = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d),
