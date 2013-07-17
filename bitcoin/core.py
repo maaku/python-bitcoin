@@ -10,6 +10,8 @@
 import numbers
 from struct import pack, unpack
 
+from blist import blist, btuple
+
 from python_patterns.utils.decorators import Property
 
 from .crypto import merkle
@@ -22,20 +24,65 @@ from .serialize import (
 from .utils import StringIO, target_from_compact
 
 __all__ = [
+    'ChainParameters',
+    'Output',
     'OutPoint',
     'Input',
-    'Output',
     'Transaction',
-    'Merkle',
+    'MerkleNode',
     'Block',
-    'ChainParameters',
 ]
+
+# ===----------------------------------------------------------------------===
+
+from collections import namedtuple
+
+ChainParameters = namedtuple('ChainParameters', ['magic', 'port', 'genesis',
+    'testnet', 'max_value', 'transient_reward', 'transient_budget',
+    'perpetual_reward', 'perpetual_budget', 'fee_budget', 'maximum_target',
+    'next_target', 'alert_keys','checkpoints', 'features'])
 
 # ===----------------------------------------------------------------------===
 
 from .script import Script
 
 # ===----------------------------------------------------------------------===
+
+class Output(SerializableMixin):
+    def __init__(self, amount=0, contract=None, *args, **kwargs):
+        if contract is None:
+            contract = self.get_script_class()()
+        super(Output, self).__init__(*args, **kwargs)
+        self.amount = amount
+        self.contract = contract
+
+    @classmethod
+    def get_script_class(cls):
+        return getattr(cls, 'script_class', Script)
+
+    def serialize(self):
+        result  = pack('<Q', self.amount)
+        result += self.contract.serialize()
+        return result
+    @classmethod
+    def deserialize(cls, file_):
+        initargs = {}
+        initargs['amount'] = unpack('<Q', file_.read(8))[0]
+        initargs['contract'] = cls.get_script_class().deserialize(file_)
+        return cls(**initargs)
+
+    def __eq__(self, other):
+        return (self.amount   == other.amount and
+                self.contract == other.contract)
+    def __repr__(self):
+        return '%s(amount=%d.%08d, contract=%s)' % (
+            self.__class__.__name__,
+            self.amount // 100000000,
+            self.amount  % 100000000,
+            repr(self.contract))
+
+# ===----------------------------------------------------------------------===
+
 class OutPoint(SerializableMixin):
     def __init__(self, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
@@ -53,191 +100,180 @@ class OutPoint(SerializableMixin):
         initargs['n'] = unpack('<I', file_.read(4))[0]
         return cls(**initargs)
 
+    def __nonzero__(self):
+        return not (self.hash==0 and self.n==0xffffffff)
+
     def __eq__(self, other):
         return self.hash==other.hash and self.n==other.n
     def __repr__(self):
-        return 'OutPoint(hash=%064x, n=%d)' % (
+        return '%s(hash=%064x, n=%d)' % (
+            self.__class__.__name__,
             self.hash,
             self.n==0xffffffff and -1 or self.n)
 
 # ===----------------------------------------------------------------------===
 
 class Input(SerializableMixin):
-    def __init__(self, prevout=None, scriptSig=None, nSequence=0xffffffff,
+    def __init__(self, outpoint=None, endorsement=None, sequence=0xffffffff,
                  *args, **kwargs):
-        if prevout is None:
-            prevout = self.deserialize_prevout(StringIO('\x00'*32 + '\xff'*4))
-        if scriptSig is None:
-            scriptSig = kwargs.pop('coinbase', Script())
+        if outpoint is None:
+            outpoint = self.deserialize_outpoint(StringIO('\x00'*32 + '\xff'*4))
+        if endorsement is None:
+            endorsement = kwargs.pop('coinbase', self.get_script_class()())
         super(Input, self).__init__(*args, **kwargs)
-        self.prevout = prevout
-        self.scriptSig = scriptSig
-        self.nSequence = nSequence
+        self.outpoint = outpoint
+        self.endorsement = endorsement
+        self.sequence = sequence
+
+    @classmethod
+    def get_outpoint_class(cls):
+        return getattr(cls, 'outpoint_class', OutPoint)
+
+    @classmethod
+    def get_script_class(cls):
+        return getattr(cls, 'script_class', Script)
 
     def serialize(self):
-        result = self.prevout.serialize()
-        if hasattr(self.scriptSig, 'serialize'):
-            result += self.scriptSig.serialize()
+        result = self.outpoint.serialize()
+        if hasattr(self.endorsement, 'serialize'):
+            result += self.endorsement.serialize()
         else:
-            result += serialize_varchar(self.scriptSig) # <-- coinbase
-        result += pack('<I', self.nSequence)
+            result += serialize_varchar(self.endorsement) # <-- coinbase
+        result += pack('<I', self.sequence)
         return result
     @staticmethod
-    def deserialize_prevout(file_):
-        return OutPoint.deserialize(file_)
+    def deserialize_outpoint(file_):
+        return self.get_outpoint_class().deserialize(file_)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        initargs['prevout'] = cls.deserialize_prevout(file_)
+        initargs['outpoint'] = cls.deserialize_outpoint(file_)
         str_ = deserialize_varchar(file_) # <-- might be coinbase!
-        initargs['nSequence'] = unpack('<I', file_.read(4))[0]
-        if initargs['prevout'].is_null() and initargs['nSequence']==0xffffffff:
+        initargs['sequence'] = unpack('<I', file_.read(4))[0]
+        if not initargs['outpoint'] and initargs['sequence']==0xffffffff:
             initargs['coinbase'] = str_
         else:
-            initargs['scriptSig'] = Script.deserialize(StringIO(serialize_varchar(str_)))
+            initargs['endorsement'] = cls.get_script_class().deserialize(
+                StringIO(serialize_varchar(str_)))
         return cls(**initargs)
 
+    @Property
+    def is_coinbase():
+        def fget(self):
+            return not outpoint and sequence==0xffffffff
+        return locals()
+
     def __eq__(self, other):
-        return (self.prevout   == other.prevout   and
-                self.scriptSig == other.scriptSig and
-                self.nSequence == other.nSequence)
+        return (self.outpoint    == other.outpoint    and
+                self.endorsement == other.endorsement and
+                self.sequence    == other.sequence)
     def __repr__(self):
-        nSequence_str = (self.nSequence!=0xffffffff
-            and ', nSequence=%d' % self.nSequence
+        sequence_str = (self.sequence!=0xffffffff
+            and ', sequence=%d' % self.sequence
              or '')
-        return 'Input(prevout=%s, %s=%s%s)' % (
-            repr(self.prevout),
-            self.prevout.is_null() and 'coinbase' or 'scriptSig',
-            repr(self.scriptSig),
-            nSequence_str)
-
-# ===----------------------------------------------------------------------===
-
-class Output(SerializableMixin):
-    def __init__(self, nValue=0, scriptPubKey=None, *args, **kwargs):
-        if scriptPubKey is None:
-            scriptPubKey = Script()
-        super(Output, self).__init__(*args, **kwargs)
-        self.nValue = nValue
-        self.scriptPubKey = scriptPubKey
-
-    def serialize(self):
-        result  = pack('<Q', self.nValue)
-        result += self.scriptPubKey.serialize()
-        return result
-    @classmethod
-    def deserialize(cls, file_):
-        initargs = {}
-        initargs['nValue'] = unpack('<Q', file_.read(8))[0]
-        initargs['scriptPubKey'] = Script.deserialize(file_)
-        return cls(**initargs)
-
-    def __eq__(self, other):
-        return (self.nValue == other.nValue and
-            self.scriptPubKey == other.scriptPubKey)
-    def __repr__(self):
-        return 'Output(nValue=%d.%08d, scriptPubKey=%s)' % (
-            self.nValue // 100000000,
-            self.nValue % 100000000,
-            repr(self.scriptPubKey))
+        return '%s(outpoint=%s, %s=%s%s)' % (
+            self.__class__.__name__,
+            repr(self.outpoint),
+            self.outpoint and 'endorsement' or 'coinbase',
+            repr(self.endorsement),
+            sequence_str)
 
 # ===----------------------------------------------------------------------===
 
 class Transaction(SerializableMixin, HashableMixin):
-    def __init__(self, nVersion=1, vin=None, vout=None, nLockTime=0,
-                 nRefHeight=0, *args, **kwargs):
-        if vin is None: vin = []
-        if vout is None: vout = []
+    def __init__(self, version=1, inputs=None, outputs=None, lock_time=0,
+                 reference_height=0, *args, **kwargs):
+        if inputs is None: inputs = ()
+        if outputs is None: outputs = ()
         super(Transaction, self).__init__(*args, **kwargs)
-        self.nVersion = nVersion
-        self.vin_create()
-        for tin in vin:
-            self.vin.append(tin)
-        self.vout_create()
-        for tout in vout:
-            self.vout.append(tout)
-        self.nLockTime = nLockTime
-        self.nRefHeight = nRefHeight
+        self.version = version
+        getattr(self, 'inputs_create', lambda x:setattr(x, 'inputs', blist()))(self)
+        self.inputs.extend(inputs)
+        getattr(self, 'outputs_create', lambda x:setattr(x, 'outputs', blist()))(self)
+        self.outputs.extend(outputs)
+        self.lock_time = lock_time
+        self.reference_height = reference_height
 
-    def vin_create(self):
-        self.vin = []
-    vin_clear = vin_create
+    @classmethod
+    def get_input_class(cls):
+        return getattr(cls, 'input_class', Input)
 
-    def vout_create(self):
-        self.vout = []
-    vout_clear = vout_create
+    @classmethod
+    def get_output_class(cls):
+        return getattr(cls, 'output_class', Output)
 
     def serialize(self):
-        if self.nVersion not in (1,2):
-            raise NotImplementedError
-        result  = pack('<I', self.nVersion)
-        result += serialize_list(self.vin, lambda i:i.serialize())
-        result += serialize_list(self.vout, lambda o:o.serialize())
-        result += pack('<I', self.nLockTime)
-        if self.nVersion==2:
-            result += pack('<I', self.nRefHeight)
+        if self.version not in (1,2):
+            raise NotImplementedError()
+        result  = pack('<I', self.version)
+        result += serialize_list(self.inputs, lambda i:i.serialize())
+        result += serialize_list(self.outputs, lambda o:o.serialize())
+        result += pack('<I', self.lock_time)
+        if self.version==2:
+            result += pack('<I', self.reference_height)
         return result
-    @staticmethod
-    def deserialize_input(file_, *args, **kwargs):
-        return Input.deserialize(file_, *args, **kwargs)
-    @staticmethod
-    def deserialize_output(file_, *args, **kwargs):
-        return Output.deserialize(file_, *args, **kwargs)
+    @classmethod
+    def deserialize_input(cls, file_, *args, **kwargs):
+        return cls.get_input_class().deserialize(file_, *args, **kwargs)
+    @classmethod
+    def deserialize_output(cls, file_, *args, **kwargs):
+        return cls.get_output_class().deserialize(file_, *args, **kwargs)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        initargs['nVersion'] = unpack('<I', file_.read(4))[0]
-        if initargs['nVersion'] not in (1,2):
-            raise NotImplementedError
-        initargs['vin'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(f)))
-        initargs['vout'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(f)))
-        initargs['nLockTime'] = unpack('<I', file_.read(4))[0]
-        if initargs['nVersion']==2:
-            initargs['nRefHeight'] = unpack('<I', file_.read(4))[0]
-        else:
-            initargs['nRefHeight'] = 0
+        initargs['version'] = unpack('<I', file_.read(4))[0]
+        if initargs['version'] not in (1,2):
+            raise NotImplementedError()
+        initargs['inputs'] = blist(deserialize_list(file_, lambda f:cls.deserialize_input(f)))
+        initargs['outputs'] = blist(deserialize_list(file_, lambda f:cls.deserialize_output(f)))
+        initargs['lock_time'] = unpack('<I', file_.read(4))[0]
+        if initargs['version'] in (2,):
+            initargs['reference_height'] = unpack('<I', file_.read(4))[0]
         return cls(**initargs)
 
+    @Property
+    def is_coinbase():
+        def fget(self):
+            return 1==len(self.inputs) and not self.inputs[0].outpoint
+        return locals()
+
     def __eq__(self, other):
-        return (self.nVersion   != other.nVersion   or
-                self.nLockTime  != other.nLockTime  or
-                self.nRefHeight != other.nRefHeight or
-                list(self.vin)  != list(other.vin)  or
-                list(self.vout) != list(other.vout))
+        return (self.version          == other.version          and
+                self.lock_time        == other.lock_time        and
+                self.reference_height == other.reference_height and
+                btuple(self.inputs)   == btuple(other.inputs)   and
+                btuple(self.outputs)  == btuple(other.outputs))
     def __repr__(self):
-        nRefHeight_str = (self.nVersion==2
-            and ', nRefHeight=%d' % self.nRefHeight
+        reference_height_str = (self.version in (2,)
+            and ', reference_height=%d' % self.reference_height
              or '')
-        return ('Transaction(nVersion=%d, '
-                            'vin=%s, '
-                            'vout=%s, '
-                            'nLockTime=%d%s)' % (
-            self.nVersion,
-            repr(self.vin),
-            repr(self.vout),
-            self.nLockTime,
-            nRefHeight_str))
+        return ('%s(version=%d, '
+                   'inputs=%s, '
+                   'outputs=%s, '
+                   'lock_time=%d%s)' % (
+            self.__class__.__name__,
+            self.version,
+            repr(self.inputs),
+            repr(self.outputs),
+            self.lock_time,
+            reference_height_str))
 
 # ===----------------------------------------------------------------------===
 
-class Merkle(SerializableMixin, HashableMixin):
+class MerkleNode(SerializableMixin, HashableMixin):
     def __init__(self, children=None, *args, **kwargs):
-        if children is None: children = []
-        super(Merkle, self).__init__(*args, **kwargs)
-        self.children_create()
+        if children is None: children = ()
+        super(MerkleNode, self).__init__(*args, **kwargs)
+        getattr(self, 'children_create', lambda x:setattr(x, 'children', blist()))(self)
         for child in children:
-            if hasattr(child, 'hash') and not isinstance(child, Merkle):
+            if hasattr(child, 'hash') and not isinstance(child, MerkleNode):
                 child = child.hash
             self.children.append(child)
 
-    def children_create(self):
-        self.children = []
-    children_clear = children_create
-
+    # TODO: handle explicit merkle trees
     def serialize(self):
-        # TODO: detect version=2 (explicit) merkle trees
-        if any(map(lambda h:not isinstance(h, numbers.Integral), self.children)):
-            raise NotImplementedError
+        if not all(map(lambda h:isinstance(h, numbers.Integral), self.children)):
+            raise NotImplementedError()
         return serialize_list(self.children, lambda x:serialize_hash(x, 32))
     @classmethod
     def deserialize(cls, file_):
@@ -247,41 +283,44 @@ class Merkle(SerializableMixin, HashableMixin):
         return merkle(self.children)
 
     def __eq__(self, other):
-        return map(merkle, self.children) == map(merkle, other.children)
+        return self.hash == other.hash
     def __repr__(self):
-        return ''.join(['Merkle([', ', '.join(map(repr, self.children)), '])'])
+        return ''.join([
+            self.__class__.__name__,
+            '([',
+            ', '.join(map(repr, self.children)),
+            '])'])
 
 # ===----------------------------------------------------------------------===
 
 class Block(SerializableMixin, HashableMixin):
-    def __init__(self, nVersion=1, hashPrevBlock=0, hashMerkleRoot=None,
-                 nTime=0, nBits=0x1d00ffff, nNonce=0, vtx=None, *args, **kwargs):
-        if None not in (hashMerkleRoot, vtx):
-            if hashMerkleRoot != merkle(vtx):
+    def __init__(self, version=1, prev_block=0, merkle_root=None, time=0,
+                 bits=0x1d00ffff, nonce=0, vtx=None, *args, **kwargs):
+        if None not in (merkle_root, vtx):
+            if getattr(merkle_root, 'hash', merkle_root) != merkle(vtx):
                 raise ValueError(
-                    u"hashMerkleRoot does not match merkle(vtx); are you "
+                    u"merkle_root does not match merkle(vtx); are you "
                     u"sure you know what you're doing?")
         else:
-            if vtx            is None: vtx            = []
-            if hashMerkleRoot is None: hashMerkleRoot = merkle(vtx)
+            if vtx         is None: vtx         = ()
+            if merkle_root is None: merkle_root = MerkleNode(children=vtx)
         super(Block, self).__init__(*args, **kwargs)
-
-        self.nVersion = nVersion
-        self.hashPrevBlock = hashPrevBlock
-        self.hashMerkleRoot = hashMerkleRoot
-        self.nTime = nTime
-        self.nBits = nBits
-        self.nNonce = nNonce
+        self.version = version
+        self.prev_block_hash = getattr(prev_block, 'hash', prev_block)
+        self.merkle_root_hash = getattr(merkle_root, 'hash', merkle_root)
+        self.time = time
+        self.bits = bits
+        self.nonce = nonce
 
     def serialize(self):
-        if self.nVersion not in (1,2):
-            raise NotImplementedError
-        result  = pack('<I', self.nVersion)
-        result += serialize_hash(self.hashPrevBlock, 32)
-        result += serialize_hash(self.hashMerkleRoot, 32)
-        result += pack('<I', self.nTime)
-        result += pack('<I', self.nBits)
-        result += pack('<I', self.nNonce)
+        if self.version not in (1,2):
+            raise NotImplementedError()
+        result  = pack('<I', self.version)
+        result += serialize_hash(self.prev_block_hash, 32)
+        result += serialize_hash(self.merkle_root_hash, 32)
+        result += pack('<I', self.time)
+        result += pack('<I', self.bits)
+        result += pack('<I', self.nonce)
         return result
     def __bytes__(self):
         return self.serialize()
@@ -291,51 +330,43 @@ class Block(SerializableMixin, HashableMixin):
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        initargs['nVersion'] = unpack('<I', file_.read(4))[0]
-        if initargs['nVersion'] not in (1,2):
-            raise NotImplementedError
-        initargs['hashPrevBlock'] = deserialize_hash(file_, 32)
-        initargs['hashMerkleRoot'] = deserialize_hash(file_, 32)
-        initargs['nTime'] = unpack('<I', file_.read(4))[0]
-        initargs['nBits'] = unpack('<I', file_.read(4))[0]
-        initargs['nNonce'] = unpack('<I', file_.read(4))[0]
+        initargs['version'] = unpack('<I', file_.read(4))[0]
+        if initargs['version'] not in (1,2):
+            raise NotImplementedError()
+        initargs['prev_block'] = deserialize_hash(file_, 32)
+        initargs['merkle_root'] = deserialize_hash(file_, 32)
+        initargs['time'] = unpack('<I', file_.read(4))[0]
+        initargs['bits'] = unpack('<I', file_.read(4))[0]
+        initargs['nonce'] = unpack('<I', file_.read(4))[0]
         return cls(**initargs)
 
     def __eq__(self, other):
-        return (self.nVersion       == other.nVersion       and
-                self.hashPrevBlock  == other.hashPrevBlock  and
-                self.hashMerkleRoot == other.hashMerkleRoot and
-                self.nTime          == other.nTime          and
-                self.nBits          == other.nBits          and
-                self.nNonce         == other.nNonce)
+        return (self.version          == other.version          and
+                self.prev_block_hash  == other.prev_block_hash  and
+                self.merkle_root_hash == other.merkle_root_hash and
+                self.time             == other.time             and
+                self.bits             == other.bits             and
+                self.nonce            == other.nonce)
     def __repr__(self):
-        return ('Block(nVersion=%d, '
-                      'hashPrevBlock=0x%064x, '
-                      'hashMerkleRoot=0x%064x, '
-                      'nTime=%s, '
-                      'nBits=0x%08x, '
-                      'nNonce=0x%08x)' % (
-            self.nVersion,
-            self.hashPrevBlock,
-            self.hashMerkleRoot,
-            self.nTime,
-            self.nBits,
-            self.nNonce))
+        return ('%s(version=%d, '
+                   'prev_block=0x%064x, '
+                   'merkle_root=0x%064x, '
+                   'time=%s, '
+                   'bits=0x%08x, '
+                   'nonce=0x%08x)' % (
+            self.__class__.__name__,
+            self.version,
+            self.prev_block_hash,
+            self.merkle_root_hash,
+            self.time,
+            self.bits,
+            self.nonce))
 
     @Property
     def difficulty():
         def fget(self):
-            return mpq(2**256-1, target_from_compact(self.nBits))
+            return mpq(2**256-1, target_from_compact(self.bits))
         return locals()
-
-# ===----------------------------------------------------------------------===
-
-from collections import namedtuple
-
-ChainParameters = namedtuple('ChainParameters', ['magic', 'port', 'genesis',
-    'testnet', 'max_value', 'transient_reward', 'transient_budget',
-    'perpetual_reward', 'perpetual_budget', 'fee_budget', 'maximum_target',
-    'next_target', 'alert_keys','checkpoints', 'features'])
 
 #
 # End of File
