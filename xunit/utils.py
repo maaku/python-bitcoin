@@ -13,7 +13,7 @@ import unittest2
 # Python patterns, scenario unit-testing
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
-from bitcoin.utils import target_from_compact
+from bitcoin.utils import *
 
 TARGET_FROM_COMPACT = [
     dict(bits=0x1d00ffff,
