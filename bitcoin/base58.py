@@ -9,7 +9,15 @@
 
 import six
 
-from .errors import InvalidBase58Error, HashChecksumError
+__all__ = [
+    'InvalidBase58Error',
+    'HashCheckedData',
+    'HashChecksumError',
+    'VersionedPayload',
+    'VersionedPayloadError',
+]
+
+from .errors import InvalidBase58Error, HashChecksumError, VersionedPayloadError
 from .serialize import serialize_beint, deserialize_beint
 from .utils import StringIO
 
@@ -118,14 +126,17 @@ class VersionedPayload(HashCheckedData):
         if payload is None:
             # The version is encoded as the first byte of the 'data' keyword
             # argument, so you can't specify it explicitly as well
-            assert version is None, (u"cannot specify version when initializing "
-                u"from serialized data")
+            if version is not None:
+                raise VersionedPayloadError(u"cannot specify version when "
+                     u"initializing from serialized data")
 
             payload = super(VersionedPayload, cls).__new__(cls, *args, **kwargs)
 
             # A versioned payload must have a data field at least one byte in
             # length, as the first byte is the version:
-            assert payload.data, (u"not enough bytes in data for version prefix")
+            if not payload.data:
+                raise VersionedPayloadError(
+                    u"not enough bytes in data for version prefix")
 
             return payload
 

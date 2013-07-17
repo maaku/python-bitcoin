@@ -14,6 +14,7 @@ import unittest2
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 from bitcoin.address import *
+from bitcoin.errors import Base58Error
 
 # ===----------------------------------------------------------------------===
 
@@ -155,8 +156,11 @@ class TestInvalidAddresses(unittest2.TestCase):
     class test_invalid_address(ScenarioTest):
         scenarios = INVALID_ADDRESSES
         def __test__(self, address):
-            with self.assertRaises(Exception):
-                BitcoinAddress(address.decode('base58'))
+            with self.assertRaises(InvalidAddressError):
+                try:
+                    BitcoinAddress(address.decode('base58'))
+                except Base58Error:
+                    raise InvalidAddressError(Base58Error)
 
 #
 # End of File

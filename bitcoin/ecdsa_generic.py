@@ -17,6 +17,7 @@ from python_patterns.utils.decorators import Property
 # ===----------------------------------------------------------------------===
 
 from .base58 import VersionedPayload
+from .errors import InvalidSecretError
 from .serialize import serialize_beint, deserialize_beint
 from .utils import StringIO
 
@@ -68,8 +69,9 @@ class Secret(VersionedPayload):
             # encryption, and as stupid as it sounds, it is a mistake that
             # can happen, so we check for it.
             exponent = exponent % SECP256k1.order
-            assert exponent, (u"the secret exponent must be an integer x such "
-                u"that 1 <= x < %d (received %d)" % (SECP256k1.order, exponent))
+            if not exponent:
+                raise InvalidSecretError(u"the secret exponent must be an integer x such "
+                    u"that 1 <= x < 0x%x (received 0x%x)" % (SECP256k1.order, exponent))
 
             # The exponent is always stored as 32 bytes, even if some of the
             # leading bits are zero.
@@ -112,15 +114,18 @@ class Secret(VersionedPayload):
 
         # Do some basic checks to make sure that what we received was actually
         # a valid serialized Secret.
-        assert len(secret) in (37, 38), (u"serialized secret must be "
-            u"either 37 (uncompressed) or 38 (compressed) bytes in length")
-        assert secret[0:1] == six.int2byte(128), (u"incorrect version for "
-            u"serialized secret; expected 0x80 (128)")
-        if len(secret) == 38:
-            assert secret[33:34] == six.int2byte(1), (u"compression flag "
-                u"must be 0x01 (1)")
+        if len(secret) not in (37, 38):
+            raise InvalidSecretError(u"serialized secret must be either 37 "
+                u"(uncompressed) or 38 (compressed) bytes in length, not "
+                u"%d" % len(secret))
+        if secret[:1] != six.int2byte(128):
+            raise InvalidSecretError(u"incorrect version for serialized secret; "
+                u"expected 0x80 (128), not 0x%x (%d)" % ((ord(secret[:1]),)*2))
+        if len(secret) == 38 and secret[33:34] != six.int2byte(1):
+            raise InvalidSecretError(u"compression flag must be 0x01 (1), "
+                u"not 0x%x (%d)" % ((ord(secret[33:34]),)*2))
         assert 1 <= secret.exponent < SECP256k1.order, (u"encoded exponent "
-            u"must be an integer x such that 1 <= x < %d" % SECP256k1.order)
+            u"must be an integer x such that 1 <= x < 0x%x" % SECP256k1.order)
 
         # Return the newly generated Secret
         return secret

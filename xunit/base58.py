@@ -7,6 +7,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
+# Python 2 and 3 compatibility utilities
+import six
+
 # Python standard library, unit-testing
 import unittest2
 
@@ -162,10 +165,10 @@ class TestVersionedPayload(unittest2.TestCase):
 
 class TestInvalidInit(unittest2.TestCase):
     def test_invalid_init_with_version_only(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(VersionedPayloadError):
             VersionedPayload(version=0)
     def test_invalid_init_with_empty_data(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(VersionedPayloadError):
             VersionedPayload(data=b'', add_hash=True)
 
 #

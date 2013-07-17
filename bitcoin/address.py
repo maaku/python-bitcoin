@@ -19,7 +19,7 @@ from .utils import StringIO
 
 from .base58 import VersionedPayload
 from .destination import PubKeyHashId, ScriptHashId
-from .errors import BadAddressError
+from .errors import InvalidAddressError
 
 class BitcoinAddress(VersionedPayload):
     PUBKEY_HASH = 0
@@ -54,9 +54,12 @@ class BitcoinAddress(VersionedPayload):
         # the script, so we can't make scripts for address types we aren't aware
         # of, and (2) the bitcoin unit tests reject unknown address versions as
         # well.
-        assert len(address) == 25, u"serialized address must be 25 bytes"
-        assert address.version in (cls.PUBKEY_HASH, cls.SCRIPT_HASH), (
-            u"unrecognized address version")
+        if len(address) != 25:
+            raise InvalidAddressError(
+                u"serialized address must be 25 bytes, not %d" % len(address))
+        if address.version not in (cls.PUBKEY_HASH, cls.SCRIPT_HASH):
+            raise InvalidAddressError(
+                u"unrecognized address version: %x (%d)" % ((address.version,)*2))
 
         # Return the newly generated address:
         return address
@@ -75,7 +78,7 @@ class BitcoinAddress(VersionedPayload):
             if self.version == self.SCRIPT_HASH:
                 return ScriptHashId(hash=deserialize_hash(StringIO(self.payload), 20))
             # Any futue defined address format is not understood:
-            raise BadAddressError(u"unknown address version: %s" % repr(self.version))
+            raise InvalidAddressError(u"unknown address version: %s" % repr(self.version))
         return locals()
 
     def __nonzero__(self):

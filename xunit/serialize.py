@@ -68,13 +68,13 @@ class TestSerializeVarint(unittest2.TestCase):
 class TestNegativeNumberEncode(unittest2.TestCase):
     "Test that encoding a negative number results in a value error."
     def test_negative_number(self):
-        self.assertRaises(BaseException, serialize_varint, -1)
+        self.assertRaises(ValueError, serialize_varint, -1)
 
 class TestLargeValueEncode(unittest2.TestCase):
     """Test that encoding a number greater than 2**64-1 results in a value
     error."""
     def test_large_number(self):
-        self.assertRaises(BaseException, serialize_varint, 2**64)
+        self.assertRaises(ValueError, serialize_varint, 2**64)
 
 INVALID_VARINT = [
     dict(invalid='\xfd'),
@@ -101,7 +101,7 @@ class TestInvalidVarintSerialization(unittest2.TestCase):
         scenarios = INVALID_VARINT
         def __test__(self, invalid):
             file_ = StringIO(invalid)
-            self.assertRaises(BaseException, deserialize_varint, file_)
+            self.assertRaises(EOFError, deserialize_varint, file_)
 
 # ===----------------------------------------------------------------------===
 
@@ -150,7 +150,7 @@ class TestInvalidVarcharSerialization(unittest2.TestCase):
         scenarios = INVALID_VARCHAR
         def __test__(self, invalid):
             file_ = StringIO(invalid)
-            self.assertRaises(BaseException, deserialize_varchar, file_)
+            self.assertRaises(EOFError, deserialize_varchar, file_)
 
 # ===----------------------------------------------------------------------===
 
@@ -185,13 +185,13 @@ class TestSerializeHash(unittest2.TestCase):
 class TestNegativeHashValue(unittest2.TestCase):
     "Test that serializing a negative hash results in an exception."
     def test_negative_hash(self):
-        self.assertRaises(BaseException, serialize_hash, (-1, 32))
+        self.assertRaises(ValueError, serialize_hash, -1, 32)
 
 class TestLargeHashValue(unittest2.TestCase):
     """Test that encoding a hash value greater than is representable results
     in an exception."""
     def test_large_hash(self):
-        self.assertRaises(BaseException, serialize_hash, (2**256, 32))
+        self.assertRaises(ValueError, serialize_hash, 2**256, 32)
 
 INVALID_HASH = [
     dict(len_=1, invalid=''),
@@ -210,7 +210,7 @@ class TestInvalidHashSerialization(unittest2.TestCase):
         scenarios = INVALID_HASH
         def __test__(self, len_, invalid):
             file_ = StringIO(invalid)
-            self.assertRaises(BaseException, deserialize_hash, (file_, len_))
+            self.assertRaises(EOFError, deserialize_hash, file_, len_)
 
 # ===----------------------------------------------------------------------===
 
@@ -324,7 +324,7 @@ class TestInvalidListSerialization(unittest2.TestCase):
         scenarios = INVALID_LIST
         def __test__(self, invalid, deserializer):
             file_ = StringIO(invalid)
-            self.assertRaises(BaseException, deserialize_list, (file_, deserializer))
+            self.assertRaises(EOFError, lambda f,d:list(deserialize_list(f,d)), file_, deserializer)
 
 #
 # End of File

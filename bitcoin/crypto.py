@@ -22,6 +22,7 @@ __all__ = [
     'merkle',
     'SECP256k1',
     'Secret',
+    'InvalidSecretError',
     'Signature',
     'CompactSignature',
     'SigningKey',
@@ -227,6 +228,8 @@ def merkle(hashes):
     return hashes and hashes[0] or 0L
 
 # ===----------------------------------------------------------------------===
+
+from .errors import InvalidSecretError
 
 try:
     from .ecdsa_openssl import (

@@ -33,23 +33,32 @@ SER_NETWORK = 1 << 0
 SER_DISK    = 1 << 1
 SER_HASH    = 1 << 2
 
+def _force_read(file_, len_):
+    data = file_.read(len_)
+    if len(data) != len_:
+        raise EOFError(u"unexpected end-of-file")
+    return data
+
 def serialize_varint(long_):
-    if long_ < 253:
-        return chr(long_)
-    elif long_ <= 0xffffL:
-        return chr(253) + pack("<H", long_)
-    elif long_ <= 0xffffffffL:
-        return chr(254) + pack("<I", long_)
-    return chr(255) + pack("<Q", long_)
+    if 0 <= long_:
+        if long_ < 253:
+            return chr(long_)
+        elif long_ <= 0xffffL:
+            return chr(253) + pack("<H", long_)
+        elif long_ <= 0xffffffffL:
+            return chr(254) + pack("<I", long_)
+        elif long_ <= 0xffffffffffffffffL:
+            return chr(255) + pack("<Q", long_)
+    raise ValueError(u"out of bounds: %d" % long_)
 
 def deserialize_varint(file_):
-    result = unpack("<B", file_.read(1))[0]
+    result = unpack("<B", _force_read(file_, 1))[0]
     if result == 253:
-        result = unpack("<H", file_.read(2))[0]
+        result = unpack("<H", _force_read(file_, 2))[0]
     elif result == 254:
-        result = unpack("<I", file_.read(4))[0]
+        result = unpack("<I", _force_read(file_, 4))[0]
     elif result == 255:
-        result = unpack("<Q", file_.read(8))[0]
+        result = unpack("<Q", _force_read(file_, 8))[0]
     return result
 
 def serialize_varchar(str_):
@@ -57,10 +66,7 @@ def serialize_varchar(str_):
 
 def deserialize_varchar(file_):
     len_ = deserialize_varint(file_)
-    result = len_ and file_.read(len_) or ''
-    if len_ != len(result):
-        raise ValueError('unexpected end-of-file in varchar serialization')
-    return result
+    return len_ and _force_read(file_, len_) or b''
 
 def serialize_hash(long_, len_):
     if long_ < 0:
@@ -85,16 +91,16 @@ def serialize_hash(long_, len_):
 def deserialize_hash(file_, len_):
     result = 0L
     for idx in xrange(len_//8):
-        limb = unpack("<Q", file_.read(8))[0]
+        limb = unpack("<Q", _force_read(file_, 8))[0]
         result += limb << (idx * 64)
     if len_ & 4:
-        limb = unpack("<I", file_.read(4))[0]
+        limb = unpack("<I", _force_read(file_, 4))[0]
         result += limb << ((len_ & ~7) * 8)
     if len_ & 2:
-        limb = unpack("<H", file_.read(2))[0]
+        limb = unpack("<H", _force_read(file_, 2))[0]
         result += limb << ((len_ & ~3) * 8)
     if len_ & 1:
-        limb = unpack("<B", file_.read(1))[0]
+        limb = unpack("<B", _force_read(file_, 1))[0]
         result += limb << ((len_ & ~1) * 8)
     return result
 
@@ -121,16 +127,16 @@ def serialize_beint(long_, len_=None):
 def deserialize_beint(file_, len_):
     result = 0L
     for idx in xrange(len_//8):
-        limb = unpack(">Q", file_.read(8))[0]
+        limb = unpack(">Q", _force_read(file_, 8))[0]
         result = (result << 64) + limb
     if len_ & 4:
-        limb = unpack(">I", file_.read(4))[0]
+        limb = unpack(">I", _force_read(file_, 4))[0]
         result = (result << 32) + limb
     if len_ & 2:
-        limb = unpack(">H", file_.read(2))[0]
+        limb = unpack(">H", _force_read(file_, 2))[0]
         result = (result << 16) + limb
     if len_ & 1:
-        limb = unpack(">B", file_.read(1))[0]
+        limb = unpack(">B", _force_read(file_, 1))[0]
         result = (result << 8) + limb
     return result
 

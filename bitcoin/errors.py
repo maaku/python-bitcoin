@@ -19,8 +19,20 @@ class HashChecksumError(Base58Error):
     "Checksum doesn't match data for base58 string."
     pass
 
-class BadAddressError(Base58Error):
-    "Unrecognized bitcoin address version."
+class VersionedPayloadError(Base58Error):
+    "Invalid versioned payload string."
+    pass
+
+class BaseSerializationError(Exception):
+    "An error related to parsing serialization formats."
+    pass
+
+class InvalidAddressError(BaseSerializationError):
+    "Unrecognized / invalid format for Bitcoin address."
+    pass
+
+class InvalidSecretError(BaseSerializationError):
+    "Unrecognized / invalid format for ECDSA secret."
     pass
 
 class ValidationError(Exception):
