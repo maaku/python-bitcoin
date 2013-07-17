@@ -60,7 +60,7 @@ NESTED_MERKLE = [
 class TestNestedMerkle(unittest2.TestCase):
     "Test merkle API using explicit (version=2) Merkle trees."
     __metaclass__ = ScenarioMeta
-    class test_merkle_root(ScenarioTest):
+    class test_nested_merkle_root(ScenarioTest):
         scenarios = NESTED_MERKLE
         def __test__(self, list_, root):
             self.assertEqual(merkle(list_), root)
