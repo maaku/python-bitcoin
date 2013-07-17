@@ -15,7 +15,6 @@ from python_patterns.utils.decorators import Property
 from .crypto import merkle
 from .mixins import HashableMixin, SerializableMixin
 from .numeric import mpq
-from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
@@ -34,6 +33,9 @@ __all__ = [
 
 # ===----------------------------------------------------------------------===
 
+from .script import Script
+
+# ===----------------------------------------------------------------------===
 class OutPoint(SerializableMixin):
     def __init__(self, hash=0, n=0xffffffff, *args, **kwargs):
         super(OutPoint, self).__init__(*args, **kwargs)
