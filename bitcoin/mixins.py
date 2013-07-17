@@ -44,9 +44,8 @@ class HashableMixin(object):
         # When such an event occurs that could change the objects hash value
         # `_hash`, the underlying column, set to `None` so that it will be
         # recomputed on next access.
-        # FIXME: enable caching
-        #if getattr(self, '_hash', None) is not None:
-        #    return self._hash
+        if getattr(self, '_hash', None) is not None:
+            return self._hash
         # Hash can't be computed without a compressor object:
         compressor = self.compressor
         if compressor is None:
@@ -60,8 +59,7 @@ class HashableMixin(object):
         return value
 
     def hash__setter(self, value):
-        # FIXME: enable caching
-        return#self._hash = value
+        self._hash = value
 
     def hash__deleter(self):
         # As a convenient shortcut, other methods can indicate the hash needs
