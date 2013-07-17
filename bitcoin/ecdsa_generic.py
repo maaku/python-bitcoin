@@ -98,8 +98,9 @@ class Secret(VersionedPayload):
         # extracting (and validating) the version, payload, and checksum.
         # Other than the checksum, it is our responsibilty to make sure
         # that the internal fields make sense:
-        assert compressed is None, (u"cannot specify compression when "
-            u"constructing from an existing serialized secret")
+        if compressed is not None:
+            raise InvalidSecretError(u"cannot specify compression when "
+                u"constructing from an existing serialized secret")
 
         # The 'payload' parameter of VersionedPayload may be specified as
         # either a positional or keyword argument, or not at all. Since we
