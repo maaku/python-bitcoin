@@ -17,13 +17,7 @@ import unittest2
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 # Python patterns, base encoding
-from bitcoin.serialize import (
-    serialize_varint, deserialize_varint,
-    serialize_varchar, deserialize_varchar,
-    serialize_hash, deserialize_hash,
-    serialize_beint, deserialize_beint,
-    serialize_list, deserialize_list,
-)
+from bitcoin.serialize import *
 
 try:
     from cStringIO import StringIO
