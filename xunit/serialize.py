@@ -233,6 +233,7 @@ class TestSerializeBeint(unittest2.TestCase):
         scenarios = BEINT
         def __test__(self, hash_, len_, result):
             self.assertEqual(serialize_beint(hash_, len_), result)
+            self.assertEqual(serialize_beint(hash_), result.lstrip(six.int2byte(0)))
     class test_deserialize(ScenarioTest):
         scenarios = BEINT
         def __test__(self, hash_, len_, result):
