@@ -70,27 +70,27 @@ def deserialize_varchar(file_):
     len_ = deserialize_varint(file_)
     return len_ and _force_read(file_, len_) or b''
 
-def serialize_hash(long_, len_):
+def serialize_leint(long_, len_=None):
     if long_ < 0:
-        raise ValueError(u"received hash value is negative")
-    result = ''
-    for _ in xrange(len_//8):
-        result += pack("<Q", long_ & 0xffffffffffffffffL)
+        raise ValueError(u"received integer value is negative")
+
+    result = []
+    while long_:
+        result.append(pack("<Q", long_ & 0xffffffffffffffffL))
         long_ >>= 64
-    if len_ & 4:
-        result += pack("<I", long_ & 0xffffffffL)
-        long_ >>= 32
-    if len_ & 2:
-        result += pack("<H", long_ & 0xffffL)
-        long_ >>= 16
-    if len_ & 1:
-        result += pack("<B", long_ & 0xffL)
-        long_ >>= 8
-    if long_:
-        raise ValueError(u"hash value exceeds maximum representable value")
+    result = b''.join(result)
+    result = result.rstrip('\x00')
+
+    if len_ is not None:
+        result_len = len(result)
+        if result_len < len_:
+            result = result + b'\x00' * (len_ - result_len)
+        elif result_len > len_:
+            raise ValueError(u"integer value exceeds maximum representable value")
+
     return result
 
-def deserialize_hash(file_, len_):
+def deserialize_leint(file_, len_):
     result = 0L
     for idx in xrange(len_//8):
         limb = unpack("<Q", _force_read(file_, 8))[0]
@@ -106,29 +106,8 @@ def deserialize_hash(file_, len_):
         result += limb << ((len_ & ~1) * 8)
     return result
 
-def serialize_leint(long_, len_=None):
-    return serialize_beint(long_, len_)[::-1]
-deserialize_leint = deserialize_hash
-
 def serialize_beint(long_, len_=None):
-    if long_ < 0:
-        raise ValueError(u"received integer value is negative")
-
-    result = ''
-    while long_:
-        result = pack(">Q", long_ & 0xffffffffffffffffL) + result
-        long_ >>= 64
-    result = result[next((i for i,e in enumerate(result[:8])
-                                    if e != six.int2byte(0)), 8):]
-
-    if len_ is not None:
-        result_len = len(result)
-        if result_len < len_:
-            result = '\x00' * (len_ - result_len) + result
-        elif result_len > len_:
-            raise ValueError(u"integer value exceeds maximum representable value")
-
-    return result
+    return serialize_leint(long_, len_)[::-1]
 
 def deserialize_beint(file_, len_):
     result = 0L
@@ -145,6 +124,9 @@ def deserialize_beint(file_, len_):
         limb = unpack(">B", _force_read(file_, 1))[0]
         result = (result << 8) + limb
     return result
+
+serialize_hash = serialize_leint
+deserialize_hash = deserialize_leint
 
 def serialize_list(list_, serializer):
     result = serialize_varint(len(list_))
