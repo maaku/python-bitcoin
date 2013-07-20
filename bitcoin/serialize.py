@@ -25,6 +25,8 @@ __all__ = [
     'deserialize_hash',
     'serialize_beint',
     'deserialize_beint',
+    'serialize_leint',
+    'deserialize_leint',
     'serialize_list',
     'deserialize_list',
 ]
@@ -103,6 +105,10 @@ def deserialize_hash(file_, len_):
         limb = unpack("<B", _force_read(file_, 1))[0]
         result += limb << ((len_ & ~1) * 8)
     return result
+
+def serialize_leint(long_, len_=None):
+    return serialize_beint(long_, len_)[::-1]
+deserialize_leint = deserialize_hash
 
 def serialize_beint(long_, len_=None):
     if long_ < 0:

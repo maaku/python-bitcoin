@@ -7,6 +7,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
+# Python 2 and 3 compatibility utilities
+import six
+
 # Python standard library, unit-testing
 import unittest2
 
@@ -235,6 +238,23 @@ class TestSerializeBeint(unittest2.TestCase):
         def __test__(self, hash_, len_, result):
             file_ = StringIO(result)
             self.assertEqual(deserialize_beint(file_, len_), hash_)
+
+class TestSerializeLeint(unittest2.TestCase):
+    """Test serialization and deserialization of little integer values under a
+    variety of standard scenarios."""
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = BEINT
+        def __test__(self, hash_, len_, result):
+            result = result[::-1]
+            self.assertEqual(serialize_leint(hash_, len_), result)
+            self.assertEqual(serialize_leint(hash_), result.rstrip(six.int2byte(0)))
+    class test_deserialize(ScenarioTest):
+        scenarios = BEINT
+        def __test__(self, hash_, len_, result):
+            result = result[::-1]
+            file_ = StringIO(result)
+            self.assertEqual(deserialize_leint(file_, len_), hash_)
 
 # ===----------------------------------------------------------------------===
 
