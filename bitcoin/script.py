@@ -730,9 +730,11 @@ class ScriptPickler(object):
     def get_script_class(self):
         return getattr(self, 'script_class', Script)
 
-    def dump(self, script):
+    def dump(self, script, file=None):
         "Write a compressed representation of script to the Pickler's file object."
-        self._dump(script, self._file, self._protocol, self._version)
+        if file is None:
+            file = self._file
+        self._dump(script, file, self._protocol, self._version)
 
     def dumps(self, script):
         "Return a compressed representation of script as a binary string."
@@ -740,10 +742,12 @@ class ScriptPickler(object):
         self._dump(script, string, self._protocol, self._version)
         return string.getvalue()
 
-    def load(self):
+    def load(self, file=None):
         "Read and decompress a compact script from the Pickler's file object."
+        if file is None:
+            file = self._file
         script_class = self.get_script_class()
-        script = self._load(self._file, self._protocol, self._version)
+        script = self._load(file, self._protocol, self._version)
         return script_class.deserialize(StringIO(script))
 
     def loads(self, string):

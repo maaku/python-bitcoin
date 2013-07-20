@@ -69,6 +69,10 @@ class TestCompressScript(unittest2.TestCase):
             pickler = ScriptPickler(file_)
             pickler.dump(script)
             self.assertEqual(file_.getvalue(), string)
+            file_ = StringIO()
+            pickler = ScriptPickler()
+            pickler.dump(script, file=file_)
+            self.assertEqual(file_.getvalue(), string)
             self.assertEqual(pickler.dumps(script), string)
     class test_decompress_script(ScenarioTest):
         scenarios = COMPRESS_SCRIPT
@@ -76,6 +80,9 @@ class TestCompressScript(unittest2.TestCase):
             file_ = StringIO(string)
             pickler = ScriptPickler(file_)
             self.assertEqual(pickler.load(), script)
+            file_ = StringIO(string)
+            pickler = ScriptPickler()
+            self.assertEqual(pickler.load(file=file_), script)
             self.assertEqual(pickler.loads(string), script)
 
 #
