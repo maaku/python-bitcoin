@@ -261,14 +261,24 @@ class Transaction(SerializableMixin, HashableMixin):
 # ===----------------------------------------------------------------------===
 
 class MerkleNode(SerializableMixin, HashableMixin):
-    def __init__(self, children=None, *args, **kwargs):
-        if children is None: children = ()
-        super(MerkleNode, self).__init__(*args, **kwargs)
-        getattr(self, 'children_create', lambda x:setattr(x, 'children', blist()))(self)
-        for child in children:
-            if hasattr(child, 'hash') and not isinstance(child, MerkleNode):
-                child = child.hash
-            self.children.append(child)
+    def __init__(self, *children, **kwargs):
+        """MerkleNode takes either positional arguments or the 'children'
+        iterable keyword specifying the leaf nodes of the Merkle tree."""
+        if not children:
+            children = kwargs.pop('children', ())
+        if 'children' in kwargs:
+            raise TypeError(u"either specify children as positional "
+                u"parameters, or as the 'children' keyword parameter, "
+                u"but not both")
+
+        # 0, 1, of 2 children can be handled by a single MerkleNode. Any more
+        # children requires construction of a tree structure, which the merkle()
+        # utility handily does for us.
+        if len(children) > 2:
+            children = merkle(children, MerkleNode).children
+
+        super(MerkleNode, self).__init__(**kwargs)
+        self.children = children
 
     # TODO: handle explicit merkle trees
     def serialize(self):
