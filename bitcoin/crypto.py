@@ -210,8 +210,14 @@ class _HashAlgorithmInterface(tuple):
             return ':'.join(map(lambda n:n.encode('utf-8'), self))
         return locals()
 
-hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
+# (sha256 . ripemd160) is used for Bitcoin addresses, as the 20-byte ripemd160
+# hash can save significant space.
 hash160 = _HashAlgorithmInterface(('sha256', 'ripemd160'))
+
+# (sha256 . sha256), “double-SHA256” is used as the proof-of-work function,
+# the Merkle-tree compressor, and to generate transaction hash values for
+# identification.
+hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
 
 # ===----------------------------------------------------------------------===
 
