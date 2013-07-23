@@ -11,7 +11,7 @@ import six
 
 from struct import pack, unpack
 
-from .utils import StringIO
+from .tools import StringIO
 
 from python_patterns.utils.decorators import Property
 
@@ -617,7 +617,7 @@ class Script(SerializableMixin, tuple):
 from .crypto import VerifyingKey
 from .defaults import CLIENT_VERSION
 from .serialize import SER_DISK, serialize_varint, deserialize_varchar
-from .utils import StringIO
+from .tools import StringIO
 
 class ScriptPickler(object):
     """Compact serializer for scripts.

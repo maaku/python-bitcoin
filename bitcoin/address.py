@@ -13,7 +13,7 @@ import numbers
 from python_patterns.utils.decorators import Property
 
 from .serialize import serialize_hash, deserialize_hash
-from .utils import StringIO
+from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
 

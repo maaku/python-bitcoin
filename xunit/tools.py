@@ -13,7 +13,7 @@ import unittest2
 # Python patterns, scenario unit-testing
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
-from bitcoin.utils import *
+from bitcoin.tools import *
 
 # ===----------------------------------------------------------------------===
 

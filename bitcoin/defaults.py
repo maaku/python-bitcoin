@@ -8,7 +8,7 @@
 #
 
 from .core import ChainParameters
-from .utils import target_from_compact, Constant, LinearArithmetic, SteppedGeometric
+from .tools import target_from_compact, Constant, LinearArithmetic, SteppedGeometric
 
 CLIENT_VERSION_MAJOR    = 0
 CLIENT_VERSION_MINOR    = 8

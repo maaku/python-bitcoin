@@ -19,7 +19,7 @@ from python_patterns.utils.decorators import Property
 from .base58 import VersionedPayload
 from .errors import InvalidSecretError
 from .serialize import serialize_beint, deserialize_beint
-from .utils import StringIO
+from .tools import StringIO
 
 from .ecdsa__common import *
 

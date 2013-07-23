@@ -17,7 +17,7 @@ from .mixins import SerializableMixin
 from .serialize import (
     serialize_leint, deserialize_leint,
     serialize_varint, deserialize_varint)
-from .utils import compress_amount, decompress_amount
+from .tools import compress_amount, decompress_amount
 
 # ===----------------------------------------------------------------------===
 

@@ -16,7 +16,7 @@ from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 from bitcoin.utxo import *
 from bitcoin.core import Output
 from bitcoin.destination import PubKeyHashId
-from bitcoin.utils import StringIO
+from bitcoin.tools import StringIO
 
 # ===----------------------------------------------------------------------===
 

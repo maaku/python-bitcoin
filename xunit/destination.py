@@ -16,7 +16,7 @@ from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 from bitcoin.destination import *
 from bitcoin.crypto import VerifyingKey
 from bitcoin.script import *
-from bitcoin.utils import StringIO
+from bitcoin.tools import StringIO
 
 # ===----------------------------------------------------------------------===
 

@@ -19,7 +19,7 @@ __all__ = [
 
 from .errors import InvalidBase58Error, HashChecksumError, VersionedPayloadError
 from .serialize import serialize_beint, deserialize_beint
-from .utils import StringIO
+from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
 

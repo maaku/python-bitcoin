@@ -21,7 +21,7 @@ from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
-from .utils import StringIO, target_from_compact
+from .tools import StringIO, target_from_compact
 
 __all__ = [
     'ChainParameters',

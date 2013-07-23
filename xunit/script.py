@@ -14,7 +14,7 @@ import unittest2
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
 from bitcoin.script import *
-from bitcoin.utils import StringIO
+from bitcoin.tools import StringIO
 
 COMPRESS_SCRIPT = [
     dict(script=Script([
