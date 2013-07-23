@@ -13,6 +13,7 @@ __all__ = [
     'StringIO',
     'compress_amount',
     'decompress_amount',
+    'icmp',
     'target_from_compact',
 ]
 
@@ -75,6 +76,22 @@ def decompress_amount(x):
 def target_from_compact(bits):
     len_ = (bits >> 24) & 0xff
     return (bits & 0xffffffL) << (8 * (len_ - 3))
+
+# ===----------------------------------------------------------------------===
+
+def icmp(a, b):
+    for xa in a:
+        try:
+            xb = next(b)
+            d = cmp(xa, xb)
+            if d: return d
+        except StopIteration:
+            return 1
+    try:
+        b.next()
+        return -1
+    except StopIteration:
+        return 0
 
 # ===----------------------------------------------------------------------===
 

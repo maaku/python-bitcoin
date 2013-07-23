@@ -67,6 +67,27 @@ class TestCompactTarget(unittest2.TestCase):
         def __test__(self, bits, target):
             self.assertEqual(target_from_compact(bits), target)
 
+# ===----------------------------------------------------------------------===
+
+POSITIVE = lambda x:x>0
+NEGATIVE = lambda x:x<0
+ZERO = lambda x:not x
+SCENARIOS = [
+    dict(i1=iter([]),        i2=iter([]),        check=ZERO),
+    dict(i1=iter(xrange(1)), i2=iter([]),        check=POSITIVE),
+    dict(i1=iter([]),        i2=iter(xrange(1)), check=NEGATIVE),
+    dict(i1=iter(xrange(1)), i2=iter(xrange(1)), check=ZERO),
+    dict(i1=iter(xrange(1)), i2=iter(xrange(3)), check=NEGATIVE),
+    dict(i1=iter(xrange(3)), i2=iter(xrange(1)), check=POSITIVE),
+]
+
+class Test_icmp(unittest2.TestCase):
+    __metaclass__ = ScenarioMeta
+    class test_scenarios(ScenarioTest):
+        scenarios = SCENARIOS
+        def __test__(self, i1, i2, check):
+            self.assertTrue(check(icmp(i1, i2)))
+
 #
 # End of File
 #
