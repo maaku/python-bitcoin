@@ -19,7 +19,7 @@ from bitcoin.serialize import (
 
 from python_patterns.utils.decorators import Property
 
-from .tools import icmp
+from .tools import icmp, list
 
 SENTINAL = object()
 
@@ -75,8 +75,10 @@ class PatriciaNode(SerializableMixin, HashableMixin):
                     hash_ = hash_.hash
                 list_.append(PatriciaLink(prefix=prefix,hash=hash_))
             children = list_
-        if (flags & self.HAS_VALUE) and value is None:
-            raise ValueError(u"HAS_VALUE must be set if value is specified")
+        if (flags & self.HAS_VALUE) and not isinstance(value, six.binary_type):
+            raise TypeError(u"if HAS_VALUE is set, value must be a binary string")
+        if not (flags & self.HAS_VALUE) and value is not None:
+            raise TypeError(u"HAS_VALUE must be set if value is specified")
         super(PatriciaNode, self).__init__(*args, **kwargs)
         self.flags = flags
         self.value = value
@@ -93,7 +95,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         result  = serialize_varint(self.flags)
         result += serialize_list(self.children, lambda l:l.serialize())
         if self.flags & self.HAS_VALUE:
-            result += serialize_hash(self.value, 32)
+            result += serialize_varchar(self.value)
         return result
     @staticmethod
     def deserialize_link(file_, *args, **kwargs):
@@ -104,18 +106,18 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         initargs['flags'] = deserialize_varint(file_)
         initargs['children'] = deserialize_list(file_, lambda x:cls.deserialize_link(x))
         if initargs['flags'] & cls.HAS_VALUE:
-            initargs['value'] = deserialize_hash(file_, 32)
+            initargs['value'] = deserialize_varchar(file_)
         return cls(**initargs)
 
     def __eq__(self, other):
         result = (     self.flags     ==      other.flags and
                   list(self.children) == list(other.children))
-        if result and (self.flags & self.HAS_VALUE):
+        if self.flags & self.HAS_VALUE:
             result = result and self.value==other.value
         return result
     def __repr__(self):
         if self.flags & self.HAS_VALUE:
-            value_str = ', value=%064x' % self.value
+            value_str = ', value=0x%s' % self.value.encode('hex')
         else:
             value_str = ''
         return ('%s(flags=%s, '
@@ -293,6 +295,11 @@ class PatriciaTrie(object):
         In either case, this is followed by: for k in F: x[k] = F[k]"""
         if other is None: other = []
         def _update(key, value):
+            if not (isinstance(key, six.binary_type) and
+                    isinstance(value, six.binary_type)):
+                raise TypeError(u"%s can only map binary string -> binary "
+                    u"string" % self.__class__.__name__)
+
             path = list()
             prefix, node = self._get_by_key(key, path=path)
             old_hash = node.hash
@@ -488,7 +495,9 @@ class PatriciaTrie(object):
 
     def __repr__(self):
         "x.__repr__() <==> repr(x)"
-        repr_ = ', '.join(map(lambda i:"b'%s': %064x"%i, self.iteritems()))
+        repr_ = ', '.join(map(lambda i:"b'%s': 0x%s" % (
+                                  i[0], i[1].encode('hex')),
+                              self.iteritems()))
         return "%s({%s})" % (self.__class__.__name__, repr_)
 
 #

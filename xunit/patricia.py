@@ -80,43 +80,57 @@ class TestPatriciaNode(unittest2.TestCase):
         self.assertEqual(list(pn.children), [])
         self.assertEqual(pn.hash,
             0x905c0ed9955a5c67b7edc8881fe862fddce009a2294ef8f4ba03834b4aeb7f40)
-        pn2 = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=123)
+        pn2 = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=b'123')
         self.assertEqual(pn2.flags, PatriciaNode.HAS_VALUE)
-        self.assertEqual(pn2.value, 123)
+        self.assertEqual(pn2.value, b'123')
         self.assertEqual(list(pn2.children), [])
         self.assertEqual(pn2.hash,
-            0xca0bc612fa3efc2e6b01e8808549c4a99e133d7f1921fee8ade570f73f8974a5)
-        pl = PatriciaLink(prefix='abc', hash=
-            0xca0bc612fa3efc2e6b01e8808549c4a99e133d7f1921fee8ade570f73f8974a5)
+            0x15c6b6b38c63faf012642cefdf729ff2d49336d1e3f65f75f6233d7819f06a2f)
+        pl = PatriciaLink(prefix=b'abc', hash=
+            0x15c6b6b38c63faf012642cefdf729ff2d49336d1e3f65f75f6233d7819f06a2f)
         pn3 = PatriciaNode(children=[pl])
         self.assertEqual(pn.flags, 0)
         self.assertEqual(pn.value, None)
         self.assertEqual(list(pn3.children), [pl])
         self.assertEqual(pn3.hash,
-            0x22e7316f8e5b6f7cdc6fa87d7b89914bedb43fac39bde19f5874056948a55ead)
+            0x9b6967124fb421102830af64a04ddcf5498b5c9d75f667464d1259c134ad7c3e)
         pn4 = PatriciaNode(children={b'abc': pn2})
         self.assertEqual(pn.flags, 0)
         self.assertEqual(pn.value, None)
         self.assertEqual(list(pn4.children), [pl])
         self.assertEqual(pn4.hash,
-            0x22e7316f8e5b6f7cdc6fa87d7b89914bedb43fac39bde19f5874056948a55ead)
-        pn5 = PatriciaNode(PatriciaNode.HAS_VALUE, {b'abc': pn2}, 456)
+            0x9b6967124fb421102830af64a04ddcf5498b5c9d75f667464d1259c134ad7c3e)
+        pn5 = PatriciaNode(PatriciaNode.HAS_VALUE, {b'abc': pn2}, b'456')
         self.assertEqual(pn5.flags, PatriciaNode.HAS_VALUE)
-        self.assertEqual(pn5.value, 456)
+        self.assertEqual(pn5.value, b'456')
         self.assertEqual(list(pn4.children), [pl])
         self.assertEqual(pn5.hash,
-            0x2f7bc4b0af5e97ad8bf5fd07f526c612a23bcea17dd773a1c73654b6a5ea3a89)
+            0xc4ac39fcd819f370c5b220d56a0ef1ac8f00dccd8cddb7efb1fbe5ca865fd222)
 
     def test_children_clear(self):
-        pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=123)
-        pn2 = PatriciaNode(PatriciaNode.HAS_VALUE, {b'abc': pn}, 123)
+        pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=b'123')
+        pn2 = PatriciaNode(PatriciaNode.HAS_VALUE, {b'abc': pn}, b'123')
         self.assertNotEqual(pn, pn2)
         self.assertEqual(pn2.hash,
-            0x462d170c8f53c13cb0f01cdd09542f498ce28a17dbabc82354cf214bedab2425)
+            0x17022e4901fe592a2a64c3ad15e1a23b39287804b1676d53780e06e0bf24663f)
         pn2.children_clear()
         self.assertEqual(pn, pn2)
         self.assertEqual(pn2.hash,
-            0xca0bc612fa3efc2e6b01e8808549c4a99e133d7f1921fee8ade570f73f8974a5)
+            0x15c6b6b38c63faf012642cefdf729ff2d49336d1e3f65f75f6233d7819f06a2f)
+
+    def test_invalid_init_parameters(self):
+        with self.assertRaises(TypeError):
+            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE)
+        with self.assertRaises(TypeError):
+            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=None)
+        # An older version of PatriciaNode uses hashes for the `value` field.
+        # The new code takes binary strings, and rejects integer values to make
+        # finding bugs from the conversion process easier:
+        with self.assertRaises(TypeError):
+            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=0)
+        with self.assertRaises(TypeError):
+            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE,
+                value = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d)
 
 SCENARIOS = [
     dict(flags = 0, children = [], value = None,
@@ -144,10 +158,10 @@ class TestPatriciaLinkSerialization(unittest2.TestCase):
 # ===----------------------------------------------------------------------===
 
 ADDRESS_TO_VALUE = {
-    b'':       1,
-    b'abc':    2,
-    b'abcdef': 4,
-    b'abcxyz': 8}
+    b'':       six.int2byte(1),
+    b'abc':    six.int2byte(2),
+    b'abcdef': six.int2byte(4),
+    b'abcxyz': six.int2byte(8)}
 VALUE_TO_ADDRESS = dict(
     (v,k) for k,v in six.iteritems(ADDRESS_TO_VALUE))
 
@@ -156,82 +170,82 @@ SCENARIOS = [
         'hash_':   0x905c0ed9955a5c67b7edc8881fe862fddce009a2294ef8f4ba03834b4aeb7f40,
     },
     {
-        b'':       1,
-        'hash_':   0xc30f427122cc07de7a58eaf32d4c776c994466bdcc0d2c8c3e554eed637b4e85,
+        b'':       six.int2byte(1),
+        'hash_':   0x6738296fcff48401c1fd9bb15eec17b71437148ed763633e91f143e4f1f02054,
     },
     {
-        b'abc':    2,
-        'hash_':   0xe1b2f2b9ab90c51f3c4b8c7dd6219b700d5ea1fe9455f1656e9a5f9fd17a6805,
+        b'abc':    six.int2byte(2),
+        'hash_':   0xe8616e6b3ac855f6769633b8dccd1408b5c32ef3a623afaba9c8fc2c4c9fb617,
     },
     {
-        b'':       1,
-        b'abc':    2,
-        'hash_':   0x8e15d89142ae1fe00d6815cd31cbad9b663ace5e95eb48c1f08c160eea60b4fd,
+        b'':       six.int2byte(1),
+        b'abc':    six.int2byte(2),
+        'hash_':   0x8c4222f0f3235fa0e85401b4ec895c08c6e3e8f9ac5385fbe24214190c0300ae,
     },
     {
-        b'abcdef': 4,
-        'hash_':   0x291f6d8c77634293c9f462b9c1864a4377fd1a22ef2b9294f2ea842870310f1d,
+        b'abcdef': six.int2byte(4),
+        'hash_':   0xc15e1aa3ae5aa69ced4fa1edd7e74acd1fab334e955c309875c1817b2eef6733,
     },
     {
-        b'':       1,
-        b'abcdef': 4,
-        'hash_':   0xa01b7adfabb9f125f7d358a876071d0352cb667f26800e37c0f9fdb7c842f445,
+        b'':       six.int2byte(1),
+        b'abcdef': six.int2byte(4),
+        'hash_':   0xeeaa7f935bf52eeabc7c8d4fe155ce1423bd70a468b365d6fffb6006bb65c023,
     },
 
     {
-        b'abc':    2,
-        b'abcdef': 4,
-        'hash_':   0x1650887f156e982f62c7090b771dd5783418e3ed665ccd9675cb14580549ac4d,
+        b'abc':    six.int2byte(2),
+        b'abcdef': six.int2byte(4),
+        'hash_':   0x21286eaeb5bbf3bb3f7d3495e545ecd61c7f45fe44aef7134996feb7daa76e0a,
     },
     {
-        b'':       1,
-        b'abc':    2,
-        b'abcdef': 4,
-        'hash_':   0xc0f7bd54fd6fb5d230d86a71fdb53ebd76659016602efde3d9c6b4089b02bc27,
+        b'':       six.int2byte(1),
+        b'abc':    six.int2byte(2),
+        b'abcdef': six.int2byte(4),
+        'hash_':   0x4dfc92218e29086a192d0ef65935a47a850ac5a5b3790d97c47c905bee55f1d8,
     },
     {
-        b'abcxyz': 8,
-        'hash_':   0xbcd0f62ab44b53ed1b81743e18d9519d86526af2a95de93fe0078865bfb6aca9,
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0xfff045a1793e673d10a62348d4036cdf868c4c5637cffd3edfb13f35f793307d,
     },
     {
-        b'':       1,
-        b'abcxyz': 8,
-        'hash_':   0xa041b1ca0069fc172c2113ddda9368b0b669066471f9322c9c186d4df019257f,
+        b'':       six.int2byte(1),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0x47febbfd9f086b183a606a16b68120f4aa83ee55d939fb0eaaed83841fbfd0db,
     },
     {
-        b'abc':    2,
-        b'abcxyz': 8,
-        'hash_':   0x4c02ecde5f642056a5e32aaf93c2ad51e0ee6c77cbac6e2e0014c0de0f038f16,
+        b'abc':    six.int2byte(2),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0x7c5c06324dfe4a8179c48ecad83c562a2e6fc1cef169b50864aaf694c5faef00,
     },
     {
-        b'':       1,
-        b'abc':    2,
-        b'abcxyz': 8,
-        'hash_':   0x0e17b07f0f1587c9310cd9fccafa8f732a178809bd319f995bc7bbf8caadc052,
+        b'':       six.int2byte(1),
+        b'abc':    six.int2byte(2),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0xd8ddc61b4aae44cce2ce5704872600bdb814de3e1d8146c1f983c44a5bad3481,
     },
     {
-        b'abcdef': 4,
-        b'abcxyz': 8,
-        'hash_':   0x9e13f0340135b60e4cfda1976b484a638fa74b435be2ab69ecf908332329d1a8,
+        b'abcdef': six.int2byte(4),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0xa087ef69c216ab4b6c83fcb5afcec482ff8f8a1712e4c853e969f0c70342e2e2,
     },
     {
-        b'':       1,
-        b'abcdef': 4,
-        b'abcxyz': 8,
-        'hash_':   0x89151732bd6fe0e003fcc395341646530d4ca0c9413b6abe7d9b034212ec6468,
+        b'':       six.int2byte(1),
+        b'abcdef': six.int2byte(4),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0x793cb6b433ae8eb85f0b1b2f44546b7c8b37c17c50d1642130020bf6618484e2,
     },
     {
-        b'abc':    2,
-        b'abcdef': 4,
-        b'abcxyz': 8,
-        'hash_':   0x223d74d441e6db4d307295054a7ed836cd99586cbf131f714128b440b7792e3e,
+        b'abc':    six.int2byte(2),
+        b'abcdef': six.int2byte(4),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0x9f841bcaef04c09bec17e0657744fcc53246c6b1d735f0ff232769eba7aaf47e,
     },
     {
-        b'':       1,
-        b'abc':    2,
-        b'abcdef': 4,
-        b'abcxyz': 8,
-        'hash_':   0x5d12bf723aafaeb306f957a9d0820ee1f167a90ed6c57e5aeaf522dcfc4f938a,
+        b'':       six.int2byte(1),
+        b'abc':    six.int2byte(2),
+        b'abcdef': six.int2byte(4),
+        b'abcxyz': six.int2byte(8),
+        'hash_':   0xf4127860ac4c624216f006ffc7b65b6f0885406fea1aae0c99a8f8841a3a1cab,
     },
 ]
 
@@ -298,7 +312,7 @@ class TestPatriciaTrieScenarios(unittest2.TestCase):
             pt = PatriciaTrie(kwargs)
             pt2 = pt.copy()
             for key in pt2:
-                pt2[key] = pt2[key] + 1
+                pt2[key] = six.int2byte(ord(pt2[key]) + 1)
             self.assertEqual(pt.hash, hash_)
             if kwargs:
                 self.assertNotEqual(pt.hash, pt2.hash)
@@ -313,7 +327,7 @@ class TestPatriciaTrieScenarios(unittest2.TestCase):
             pt = PatriciaTrie(kwargs)
             pt2 = pt.deepcopy()
             for key in pt2:
-                pt2[key] = pt2[key] + 1
+                pt2[key] = six.int2byte(ord(pt2[key]) + 1)
             self.assertEqual(pt.hash, hash_)
             if kwargs:
                 self.assertNotEqual(pt.hash, pt2.hash)
@@ -423,7 +437,13 @@ class TestPatriciaTrie(unittest2.TestCase):
                 pt2 = pt.copy()
                 self.assertEqual(pt2.hash, SCENARIOS[flags]['hash_'])
                 pt2[key] = value
-                self.assertEqual(pt2.hash, SCENARIOS[flags|value]['hash_'])
+                self.assertEqual(pt2.hash, SCENARIOS[flags | ord(value)]['hash_'])
+                with self.assertRaises(TypeError):
+                    pt2[key] = None
+                with self.assertRaises(TypeError):
+                    pt2[key] = 0
+                with self.assertRaises(TypeError):
+                    pt2[key] = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d
 
     def test_delitem(self):
         for flags in xrange(16):
@@ -437,14 +457,14 @@ class TestPatriciaTrie(unittest2.TestCase):
                 else:
                     with self.assertRaises(KeyError):
                         del pt2[key]
-                self.assertEqual(pt2.hash, SCENARIOS[flags & ~value]['hash_'])
+                self.assertEqual(pt2.hash, SCENARIOS[flags & ~ord(value)]['hash_'])
 
     def test_contains(self):
         for flags in xrange(16):
             pt = PatriciaTrie((k,v) for k,v in six.iteritems(SCENARIOS[flags])
                                             if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
-                if flags&value:
+                if flags & ord(value):
                     self.assertIn(key, pt)
                 else:
                     self.assertNotIn(key, pt)
@@ -454,16 +474,16 @@ class TestPatriciaTrie(unittest2.TestCase):
             pt = PatriciaTrie((k,v) for k,v in six.iteritems(SCENARIOS[flags])
                                             if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
-                self.assertTrue(pt.has_key(key) == bool(flags&value))
+                self.assertTrue(pt.has_key(key) == bool(flags & ord(value)))
 
     def test_pop(self):
         for flags in xrange(16):
             pt = PatriciaTrie((k,v) for k,v in six.iteritems(SCENARIOS[flags])
                                             if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
-                if flags&value:
+                if flags & ord(value):
                     self.assertEqual(pt.pop(key), value)
-                    flags = flags & ~value
+                    flags = flags & ~ord(value)
                     self.assertEqual(pt.hash, SCENARIOS[flags]['hash_'])
                 with self.assertRaises(KeyError):
                     pt.pop(key)
@@ -478,7 +498,7 @@ class TestPatriciaTrie(unittest2.TestCase):
                 self.assertNotIn(key, pt)
                 self.assertIn(key, SCENARIOS[flags])
                 self.assertEqual(value, SCENARIOS[flags][key])
-                flags = flags & ~value
+                flags = flags & ~ord(value)
                 self.assertEqual(pt.hash, SCENARIOS[flags]['hash_'])
             with self.assertRaises(KeyError):
                 pt.popitem()
@@ -489,8 +509,8 @@ class TestPatriciaTrie(unittest2.TestCase):
                                             if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
                 pt2 = pt.copy()
-                if flags & value:
-                    pt2.setdefault(key, value+1)
+                if flags & ord(value):
+                    pt2.setdefault(key, six.int2byte(ord(value) + 1))
                     self.assertIn(key, pt2)
                     self.assertEqual(pt2[key], value)
                     self.assertEqual(pt2.hash, SCENARIOS[flags]['hash_'])
@@ -498,7 +518,7 @@ class TestPatriciaTrie(unittest2.TestCase):
                     pt2.setdefault(key, value)
                     self.assertIn(key, pt2)
                     self.assertEqual(pt2[key], value)
-                    self.assertEqual(pt2.hash, SCENARIOS[flags|value]['hash_'])
+                    self.assertEqual(pt2.hash, SCENARIOS[flags | ord(value)]['hash_'])
 
     def test_update(self):
         for flags in xrange(16):
