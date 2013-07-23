@@ -11,10 +11,12 @@
 
 __all__ = [
     'StringIO',
+    'list',
+    'tuple',
     'compress_amount',
     'decompress_amount',
-    'icmp',
     'target_from_compact',
+    'icmp',
 ]
 
 # ===----------------------------------------------------------------------===
@@ -23,6 +25,17 @@ try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
+
+# ===----------------------------------------------------------------------===
+
+try:
+    from blist import blist as list, btuple as tuple
+except:
+    from sys import modules
+    mod_dict = modules[__name__].__dict__
+    mod_dict['list'] = list
+    mod_dict['tuple'] = tuple
+    del modules, mod_dict
 
 # ===----------------------------------------------------------------------===
 

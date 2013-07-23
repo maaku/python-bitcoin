@@ -10,8 +10,6 @@
 import numbers
 from struct import pack, unpack
 
-from blist import blist, btuple
-
 from python_patterns.utils.decorators import Property
 
 from .crypto import merkle
@@ -21,7 +19,7 @@ from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
-from .tools import StringIO, target_from_compact
+from .tools import StringIO, list, target_from_compact, tuple
 
 __all__ = [
     'ChainParameters',
@@ -187,9 +185,9 @@ class Transaction(SerializableMixin, HashableMixin):
         if outputs is None: outputs = ()
         super(Transaction, self).__init__(*args, **kwargs)
         self.version = version
-        getattr(self, 'inputs_create', lambda x:setattr(x, 'inputs', blist()))(self)
+        getattr(self, 'inputs_create', lambda x:setattr(x, 'inputs', list()))(self)
         self.inputs.extend(inputs)
-        getattr(self, 'outputs_create', lambda x:setattr(x, 'outputs', blist()))(self)
+        getattr(self, 'outputs_create', lambda x:setattr(x, 'outputs', list()))(self)
         self.outputs.extend(outputs)
         self.lock_time = lock_time
         self.reference_height = reference_height
@@ -224,8 +222,8 @@ class Transaction(SerializableMixin, HashableMixin):
         initargs['version'] = unpack('<I', file_.read(4))[0]
         if initargs['version'] not in (1,2):
             raise NotImplementedError()
-        initargs['inputs'] = blist(deserialize_list(file_, lambda f:cls.deserialize_input(f)))
-        initargs['outputs'] = blist(deserialize_list(file_, lambda f:cls.deserialize_output(f)))
+        initargs['inputs'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(f)))
+        initargs['outputs'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(f)))
         initargs['lock_time'] = unpack('<I', file_.read(4))[0]
         if initargs['version'] in (2,):
             initargs['reference_height'] = unpack('<I', file_.read(4))[0]
@@ -241,8 +239,8 @@ class Transaction(SerializableMixin, HashableMixin):
         return (self.version          == other.version          and
                 self.lock_time        == other.lock_time        and
                 self.reference_height == other.reference_height and
-                btuple(self.inputs)   == btuple(other.inputs)   and
-                btuple(self.outputs)  == btuple(other.outputs))
+                tuple(self.inputs)    == tuple(other.inputs)    and
+                tuple(self.outputs)   == tuple(other.outputs))
     def __repr__(self):
         reference_height_str = (self.version in (2,)
             and ', reference_height=%d' % self.reference_height

@@ -221,7 +221,7 @@ hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
 
 # ===----------------------------------------------------------------------===
 
-from blist import blist
+from .tools import list
 
 def _merkle_hash256(*args):
     """The default transform provided to merkle(), which calculates the hash
@@ -259,7 +259,7 @@ def merkle(hashes, func=_merkle_hash256):
     # We use append to duplicate the final item in the iterable of hashes, so
     # we need hashes to be a list-like object, regardless of what we were
     # passed.
-    hashes = blist(iter(hashes))
+    hashes = list(iter(hashes))
     # If the passed-in iterable is empty, allow the constructor to choose our
     # return value:
     if not hashes:
@@ -283,7 +283,7 @@ def merkle(hashes, func=_merkle_hash256):
         # The last element is ignored if there is an odd number of elements
         # (meaning there was originally an even number, because of the append
         # operation above).
-        hashes = blist(func(l,r) for l,r in izip(*(iter(hashes),)*2))
+        hashes = list(func(l,r) for l,r in izip(*(iter(hashes),)*2))
     # Return the root node of the Merkle tree to the caller.
     return hashes[0]
 
