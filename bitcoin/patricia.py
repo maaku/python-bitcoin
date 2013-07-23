@@ -108,7 +108,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         return cls(**initargs)
 
     def __eq__(self, other):
-        result = (self.flags == other.flags and
+        result = (     self.flags     ==      other.flags and
                   list(self.children) == list(other.children))
         if result and (self.flags & self.HAS_VALUE):
             result = result and self.value==other.value
