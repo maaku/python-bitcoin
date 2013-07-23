@@ -138,7 +138,7 @@ SCENARIOS = [
          hash_ = 0x905c0ed9955a5c67b7edc8881fe862fddce009a2294ef8f4ba03834b4aeb7f40),
 ]
 
-class TestPatriciaLinkSerialization(unittest2.TestCase):
+class TestPatriciaNodeSerialization(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
         scenarios = SCENARIOS
