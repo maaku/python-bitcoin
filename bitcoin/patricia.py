@@ -204,6 +204,16 @@ class PatriciaTrie(object):
                 node = self._node[link.hash]
                 path.append((node, len(node.children)-1, prefix + link.prefix))
 
+    def __iter__(self):
+        """x.__iter__() <==> iter(x)
+        Return a forward iterator over the trie"""
+        return self.iterkeys()
+
+    def __reversed__(self):
+        """x.__reversed__() <==> reversed(x)
+        Return a reverse iterator over the trie"""
+        return self.reversed_iterkeys()
+
     def __len__(self):
         "x.__len__() <==> len(x)"
         return self._length
@@ -223,16 +233,6 @@ class PatriciaTrie(object):
     def __delitem__(self, key):
         "x.__delitem__(y) <==> del x[y]"
         self.delete([key])
-
-    def __iter__(self):
-        """x.__iter__() <==> iter(x)
-        Return a forward iterator over the trie"""
-        return self.iterkeys()
-
-    def __reversed__(self):
-        """x.__reversed__() <==> reversed(x)
-        Return a reverse iterator over the trie"""
-        return self.reversed_iterkeys()
 
     def __contains__(self, key):
         """x.__contains__(k) <==> k in x
