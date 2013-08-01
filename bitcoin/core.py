@@ -137,9 +137,9 @@ class Input(SerializableMixin):
             result += serialize_varchar(self.endorsement) # <-- coinbase
         result += pack('<I', self.sequence)
         return result
-    @staticmethod
-    def deserialize_outpoint(file_):
-        return self.get_outpoint_class().deserialize(file_)
+    @classmethod
+    def deserialize_outpoint(cls, file_):
+        return cls.get_outpoint_class().deserialize(file_)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
