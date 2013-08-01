@@ -289,9 +289,6 @@ class Block(SerializableMixin, HashableMixin):
         return result
     def __bytes__(self):
         return self.serialize()
-    @staticmethod
-    def deserialize_transaction(file_, *args, **kwargs):
-        return Transaction.deserialize(file_, *args, **kwargs)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
