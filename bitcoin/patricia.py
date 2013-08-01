@@ -248,7 +248,7 @@ class PatriciaTrie(object):
         self._length = 0
 
     def copy(self):
-        ".copy() -> a copy of x"
+        "x.copy() -> a copy of x"
         return self.__class__(self.iteritems())
     deepcopy = copy
 
