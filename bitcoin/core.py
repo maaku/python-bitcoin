@@ -12,7 +12,6 @@ from struct import pack, unpack
 
 from python_patterns.utils.decorators import Property
 
-from .crypto import merkle
 from .mixins import HashableMixin, SerializableMixin
 from .numeric import mpq
 from .serialize import (
@@ -27,7 +26,6 @@ __all__ = [
     'OutPoint',
     'Input',
     'Transaction',
-    'MerkleNode',
     'Block',
 ]
 
@@ -258,48 +256,7 @@ class Transaction(SerializableMixin, HashableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class MerkleNode(SerializableMixin, HashableMixin):
-    def __init__(self, *children, **kwargs):
-        """MerkleNode takes either positional arguments or the 'children'
-        iterable keyword specifying the leaf nodes of the Merkle tree."""
-        if not children:
-            children = kwargs.pop('children', ())
-        if 'children' in kwargs:
-            raise TypeError(u"either specify children as positional "
-                u"parameters, or as the 'children' keyword parameter, "
-                u"but not both")
-
-        # 0, 1, of 2 children can be handled by a single MerkleNode. Any more
-        # children requires construction of a tree structure, which the merkle()
-        # utility handily does for us.
-        if len(children) > 2:
-            children = merkle(children, MerkleNode).children
-
-        super(MerkleNode, self).__init__(**kwargs)
-        self.children = children
-
-    # TODO: handle explicit merkle trees
-    def serialize(self):
-        if not all(map(lambda h:isinstance(h, numbers.Integral), self.children)):
-            raise NotImplementedError()
-        return serialize_list(self.children, lambda x:serialize_hash(x, 32))
-    @classmethod
-    def deserialize(cls, file_):
-        return cls(deserialize_list(file_, lambda x:deserialize_hash(x, 32)))
-
-    def hash__getter(self):
-        return merkle(self.children)
-
-    def __eq__(self, other):
-        return self.hash == other.hash
-    def __repr__(self):
-        return ''.join([
-            self.__class__.__name__,
-            '([',
-            ', '.join(map(repr, self.children)),
-            '])'])
-
-# ===----------------------------------------------------------------------===
+from .merkle import MerkleList
 
 class Block(SerializableMixin, HashableMixin):
     def __init__(self, version=1, prev_block=0, merkle_root=None, time=0,
@@ -311,7 +268,7 @@ class Block(SerializableMixin, HashableMixin):
                     u"sure you know what you're doing?")
         else:
             if vtx         is None: vtx         = ()
-            if merkle_root is None: merkle_root = MerkleNode(children=vtx)
+            if merkle_root is None: merkle_root = MerkleList(vtx)
         super(Block, self).__init__(*args, **kwargs)
         self.version = version
         self.prev_block_hash = getattr(prev_block, 'hash', prev_block)

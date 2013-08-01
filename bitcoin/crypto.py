@@ -8,18 +8,15 @@
 #
 
 import hashlib
-from itertools import count, izip
-import numbers
 
 from python_patterns.utils.decorators import Property
 
-from .serialize import serialize_hash, deserialize_hash
+from .serialize import deserialize_hash
 from .tools import StringIO
 
 __all__ = [
     'hash256',
     'hash160',
-    'merkle',
     'SECP256k1',
     'Secret',
     'InvalidSecretError',
@@ -218,74 +215,6 @@ hash160 = _HashAlgorithmInterface(('sha256', 'ripemd160'))
 # the Merkle-tree compressor, and to generate transaction hash values for
 # identification.
 hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
-
-# ===----------------------------------------------------------------------===
-
-from .tools import list
-
-def _merkle_hash256(*args):
-    """The default transform provided to merkle(), which calculates the hash
-    of its parameters, serializes and joins them together, then performs a
-    has256 of the resulting string. There are two special cases: no arguments,
-    which results in 0, and a single argument, whose hash value is returned
-    unmodified."""
-    # Return zero-hash is no arguments are provided (the hash of an empty
-    # Merkle tree is defined to be zero).
-    if not args:
-        return 0
-    # This helper function extracts and returns the hash value of a parameter.
-    # Note that if the parameter is itself a Merkle tree or iterable, this
-    # results in a recursive call to merkle().
-    def _to_hash(h):
-        if isinstance(h, numbers.Integral):
-            return h
-        if hasattr(h, 'hash'):
-            return h.hash
-        return merkle(h)
-    # As a special case, a tree of length 1 is simply ungrouped - that single
-    # hash value is returned to the user as-is.
-    if len(args) == 1:
-        return _to_hash(args[0])
-    # Otherwise we are given two parameters, the hash values of which we
-    # serialize, concatenate, and return the hash of.
-    return hash256(b''.join(map(lambda h:serialize_hash(h, 32),
-                                map(_to_hash, args)))).intdigest()
-
-def merkle(hashes, func=_merkle_hash256):
-    """Convert an iterable of hashes or hashable objects into a binary tree,
-    construct the interior values using a passed-in constructor or compression
-    function, and return the root value of the tree. The default compressor is
-    the hash256 function, resulting in root-hash for the entire tree."""
-    # We use append to duplicate the final item in the iterable of hashes, so
-    # we need hashes to be a list-like object, regardless of what we were
-    # passed.
-    hashes = list(iter(hashes))
-    # If the passed-in iterable is empty, allow the constructor to choose our
-    # return value:
-    if not hashes:
-        return func()
-    # We must make sure the constructor/compressor is called for the case of
-    # a single item as well, in which case the loop below is not entered.
-    if len(hashes) == 1:
-        return func(*hashes)
-    # Build up successive layers of the binary hash tree, starting from the
-    # bottom. We've reached the root node when the list has been reduced to
-    # one element.
-    while len(hashes) > 1:
-        # For reasons lost to time, Satoshi decided that any traversal though
-        # a bitcoin hash tree will have the same number steps. This is because
-        # the last element is repeated when there is an odd number of elements
-        # in level, resulting in the right portion of the binary tree being
-        # extended into a full tower.
-        hashes.append(hashes[-1])
-        # By creating an iterator and then duplicating it, we cause two items
-        # to be pulled out of the hashes array each time through the generator.
-        # The last element is ignored if there is an odd number of elements
-        # (meaning there was originally an even number, because of the append
-        # operation above).
-        hashes = list(func(l,r) for l,r in izip(*(iter(hashes),)*2))
-    # Return the root node of the Merkle tree to the caller.
-    return hashes[0]
 
 # ===----------------------------------------------------------------------===
 
