@@ -87,6 +87,8 @@ def merkle(hashes, func=_merkle_hash256):
 
 # ===----------------------------------------------------------------------===
 
+from .mixins import HashableMixin, SerializableMixin
+
 SENTINAL = object()
 
 # A Merkle-tree is a strange beast. It is a collection that behaves like a
@@ -107,8 +109,7 @@ SENTINAL = object()
 # called the MerkleNode class, representing alternatively either a single node
 # of the Merkle-tree structure, or the subtree rooted at that node.
 
-from .mixins import HashableMixin, SerializableMixin
-class MerkleNode(SerializableMixin, HashableMixin):
+class MerkleNode(HashableMixin):
     __slots__ = ('left', 'right', 'size', 'length', 'prune', '_hash')
 
     LEFT_NODE = False
@@ -419,7 +420,7 @@ class MerkleNode(SerializableMixin, HashableMixin):
 
         return '%s(%s)' % (self.__class__.__name__, params_str)
 
-class MerkleList(object):
+class MerkleList(SerializableMixin):
     def __init__(self, *args, **kwargs):
         hashes = list(*args, **kwargs)
         super(MerkleList, self).__init__()
