@@ -67,9 +67,9 @@ class PatriciaNode(SerializableMixin, HashableMixin):
 
     def __init__(self, flags=0, children=None, value=None, *args, **kwargs):
         if children is None:
-            children = []
+            children = list()
         if isinstance(children, Mapping):
-            list_ = []
+            list_ = list()
             for prefix,hash_ in six.iteritems(children):
                 if hasattr(hash_, 'hash'):
                     hash_ = hash_.hash
@@ -86,7 +86,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         self.children.extend(sorted(children))
 
     def children_create(self):
-        self.children = []
+        self.children = list()
     def children_clear(self):
         self.children_create()
         del self.hash
@@ -293,7 +293,7 @@ class PatriciaTrie(object):
         If E has a .keys() method, does:     for k in E: x[k] = E[k]
         If E lacks .keys() method, does:     for (k, v) in E: x[k] = v
         In either case, this is followed by: for k in F: x[k] = F[k]"""
-        if other is None: other = []
+        if other is None: other = list()
         def _update(key, value):
             if not (isinstance(key, six.binary_type) and
                     isinstance(value, six.binary_type)):
