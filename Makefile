@@ -8,6 +8,7 @@
 ROOT=$(shell pwd)
 CACHE_ROOT=${ROOT}/.cache
 PYENV=${ROOT}/.pyenv
+CONF=${ROOT}/conf
 APP_NAME=python-bitcoin
 PACKAGE=bitcoin
 
@@ -96,11 +97,11 @@ dist:
 
 # ===--------------------------------------------------------------------===
 
-${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.tar.gz:
+${CACHE_ROOT}/virtualenv/virtualenv-1.10.tar.gz:
 	mkdir -p "${CACHE_ROOT}"/virtualenv
-	sh -c "cd '${CACHE_ROOT}'/virtualenv && curl -O 'http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.9.1.tar.gz'"
+	curl -L 'https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.tar.gz' >'$@'
 
-${PYENV}/.stamp-h: requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.tar.gz
+${PYENV}/.stamp-h: ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${CACHE_ROOT}/virtualenv/virtualenv-1.10.tar.gz
 	# Because build and run-time dependencies are not thoroughly tracked,
 	# it is entirely possible that rebuilding the development environment
 	# on top of an existing one could result in a broken build. For the
@@ -122,14 +123,14 @@ ${PYENV}/.stamp-h: requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.t
 	# this project in `${PYENV}`.
 	tar \
 	    -C "${CACHE_ROOT}"/virtualenv --gzip \
-	    -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1.tar.gz
-	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1/virtualenv.py \
+	    -xf "${CACHE_ROOT}"/virtualenv/virtualenv-1.10.tar.gz
+	python "${CACHE_ROOT}"/virtualenv/virtualenv-1.10/virtualenv.py \
 	    --clear \
 	    --distribute \
 	    --never-download \
 	    --prompt="(${APP_NAME}) " \
 	    "${PYENV}"
-	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.9.1
+	-rm -rf "${CACHE_ROOT}"/virtualenv/virtualenv-1.10
 	
 	# readline is installed here to get around a bug on Mac OS X
 	# which is causing readline to not build properly if installed
@@ -142,11 +143,8 @@ ${PYENV}/.stamp-h: requirements*.pip ${CACHE_ROOT}/virtualenv/virtualenv-1.9.1.t
 	fi
 	
 	# pip is used to install Python dependencies for this project.
-	CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
-	"${PYENV}"/bin/python "${PYENV}"/bin/pip install \
-	    --download-cache="${CACHE_ROOT}"/pypi \
-	    -r "${ROOT}"/requirements.pip; \
-	for reqfile in "${ROOT}"/requirements-*.pip; do \
+	for reqfile in "${ROOT}"/requirements.txt \
+	               "${CONF}"/requirements*.txt; do \
 	    CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
 	    "${PYENV}"/bin/python "${PYENV}"/bin/pip install \
 	        --download-cache="${CACHE_ROOT}"/pypi \
