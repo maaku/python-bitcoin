@@ -13,7 +13,7 @@ import unittest2
 # Python patterns, scenario unit-testing
 from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
 
-from bitcoin.utxo import *
+from bitcoin.ledger import *
 from bitcoin.core import Output
 from bitcoin.destination import PubKeyHashId
 from bitcoin.tools import StringIO
