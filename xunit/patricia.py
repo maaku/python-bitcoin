@@ -107,17 +107,6 @@ class TestPatriciaNode(unittest2.TestCase):
         self.assertEqual(pn5.hash,
             0xc4ac39fcd819f370c5b220d56a0ef1ac8f00dccd8cddb7efb1fbe5ca865fd222)
 
-    def test_children_clear(self):
-        pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=b'123')
-        pn2 = PatriciaNode(PatriciaNode.HAS_VALUE, {b'abc': pn}, b'123')
-        self.assertNotEqual(pn, pn2)
-        self.assertEqual(pn2.hash,
-            0x17022e4901fe592a2a64c3ad15e1a23b39287804b1676d53780e06e0bf24663f)
-        pn2.children_clear()
-        self.assertEqual(pn, pn2)
-        self.assertEqual(pn2.hash,
-            0x15c6b6b38c63faf012642cefdf729ff2d49336d1e3f65f75f6233d7819f06a2f)
-
     def test_invalid_init_parameters(self):
         with self.assertRaises(TypeError):
             pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE)

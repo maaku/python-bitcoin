@@ -82,14 +82,8 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         super(PatriciaNode, self).__init__(*args, **kwargs)
         self.flags = flags
         self.value = value
-        self.children_create()
+        getattr(self, 'children_create', lambda x:setattr(x, 'children', list()))(self)
         self.children.extend(sorted(children))
-
-    def children_create(self):
-        self.children = list()
-    def children_clear(self):
-        self.children_create()
-        del self.hash
 
     def serialize(self):
         result  = serialize_varint(self.flags)
