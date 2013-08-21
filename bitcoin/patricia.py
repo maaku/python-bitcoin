@@ -19,401 +19,218 @@ from bitcoin.serialize import (
 
 from python_patterns.utils.decorators import Property
 
-from .tools import icmp, list
+from .tools import StringIO, icmp, list, tuple
 
 SENTINAL = object()
 
 # ===----------------------------------------------------------------------===
 
-class PatriciaLink(SerializableMixin):
-    __slots__ = 'prefix hash'.split()
-
-    def __init__(self, prefix=b'', hash=0, *args, **kwargs):
-        super(PatriciaLink, self).__init__(*args, **kwargs)
-        self.prefix = prefix
-        self.hash = hash
-
-    def serialize(self):
-        result  = serialize_varchar(self.prefix)
-        result += serialize_hash(self.hash, 32)
-        return result
-    @classmethod
-    def deserialize(cls, file_):
-        initargs = {}
-        initargs['prefix'] = deserialize_varchar(file_)
-        initargs['hash'] = deserialize_hash(file_, 32)
-        return cls(**initargs)
-
-    def __cmp__(self, other):
-        result = cmp(self.prefix, other.prefix)
-        # Lazily evaluate hash, only if we need to:
-        if not result:
-            result = cmp(self.hash, other.hash)
-        return result
-    def __repr__(self):
-        return ('%s(prefix=%s, '
-                   'hash=%064x)' % (
-            self.__class__.__name__,
-            self.prefix.encode('hex'),
-            self.hash))
-
-# ===----------------------------------------------------------------------===
-
-from collections import Mapping
-class PatriciaNode(SerializableMixin, HashableMixin):
-    __slots__ = 'flags children value'.split()
-
-    HAS_VALUE = 0x01
-
-    def __init__(self, flags=0, children=None, value=None, *args, **kwargs):
-        if children is None:
-            children = list()
-        if isinstance(children, Mapping):
-            list_ = list()
-            for prefix,hash_ in six.iteritems(children):
-                if hasattr(hash_, 'hash'):
-                    hash_ = hash_.hash
-                list_.append(PatriciaLink(prefix=prefix,hash=hash_))
-            children = list_
-        if (flags & self.HAS_VALUE) and not isinstance(value, six.binary_type):
-            raise TypeError(u"if HAS_VALUE is set, value must be a binary string")
-        if not (flags & self.HAS_VALUE) and value is not None:
-            raise TypeError(u"HAS_VALUE must be set if value is specified")
-        super(PatriciaNode, self).__init__(*args, **kwargs)
-        self.flags = flags
-        self.value = value
-        getattr(self, 'children_create', lambda x:setattr(x, 'children', list()))(self)
-        self.children.extend(sorted(children))
-
-    def serialize(self):
-        result  = serialize_varint(self.flags)
-        result += serialize_list(self.children, lambda l:l.serialize())
-        if self.flags & self.HAS_VALUE:
-            result += serialize_varchar(self.value)
-        return result
-    @staticmethod
-    def deserialize_link(file_, *args, **kwargs):
-        return PatriciaLink.deserialize(file_, *args, **kwargs)
-    @classmethod
-    def deserialize(cls, file_, *args, **kwargs):
-        initargs = {}
-        initargs['flags'] = deserialize_varint(file_)
-        initargs['children'] = deserialize_list(file_, lambda x:cls.deserialize_link(x))
-        if initargs['flags'] & cls.HAS_VALUE:
-            initargs['value'] = deserialize_varchar(file_)
-        return cls(**initargs)
-
-    def __eq__(self, other):
-        result = (     self.flags     ==      other.flags and
-                  list(self.children) == list(other.children))
-        if self.flags & self.HAS_VALUE:
-            result = result and self.value==other.value
-        return result
-    def __repr__(self):
-        if self.flags & self.HAS_VALUE:
-            value_str = ', value=0x%s' % self.value.encode('hex')
-        else:
-            value_str = ''
-        return ('%s(flags=%s, '
-                   'children=[%s]%s)' % (
-            self.__class__.__name__,
-            bin(self.flags),
-            ', '.join(map(repr, self.children)),
-            value_str))
+from recordtype import recordtype
+PatriciaLink = recordtype('PatriciaLink', 'prefix node'.split())
+PatriciaLink.__lt__ = lambda self, other: (self.prefix, self.node) <  (other.prefix, other.node)
+PatriciaLink.__le__ = lambda self, other: (self.prefix, self.node) <= (other.prefix, other.node)
+PatriciaLink.__eq__ = lambda self, other: (self.prefix, self.node) == (other.prefix, other.node)
+PatriciaLink.__ne__ = lambda self, other: (self.prefix, self.node) != (other.prefix, other.node)
+PatriciaLink.__ge__ = lambda self, other: (self.prefix, self.node) >= (other.prefix, other.node)
+PatriciaLink.__gt__ = lambda self, other: (self.prefix, self.node) >  (other.prefix, other.node)
 
 # ===----------------------------------------------------------------------===
 
 from bisect import bisect_left
 from os.path import commonprefix
-class PatriciaTrie(object):
-    """An ordered dictionary implemented with a hybrid level- and node-
-    compressed prefix tree."""
-    def __init__(self, *args, **kwargs):
-        """Initialize a PATRICIA trie. Signature is the same as for regular
-        dictionaries (see: help(dict))."""
-        elems = dict(*args, **kwargs)
-        for prefix,hash_ in six.iteritems(elems):
-            if hasattr(hash_, 'hash'):
-                elems[prefix] = hash_.hash
-        super(PatriciaTrie, self).__init__()
-        self.clear()
-        self.update(elems)
+class PatriciaNode(SerializableMixin, HashableMixin):
+    __slots__ = 'value extra children _hash size length start end parents'.split()
 
-    def _get_by_key(self, key, path=None):
-        """Returns the 2-tuple (prefix, node) where node either contains the value
-        corresponding to the key, or is the most specific prefix on the path which
-        would contain the key if it were there. The key was found if prefix==key
-        and the HAS_VALUE bit of node.flags is set."""
-        prefix, subkey, node = b'', key, self._root
-        while prefix != key:
-            for idx,link in enumerate(node.children):
-                if subkey.startswith(link.prefix):
-                    subkey = subkey[len(link.prefix):]
-                    prefix += link.prefix
-                    if path is not None:
-                        path.append((node, idx, link.prefix))
-                    node = self._node[link.hash]
-                    break
-            else:
-                break
-        return (prefix, node)
+    HAS_VALUE = 0x1
+    HAS_EXTRA = 0x2
 
-    def _propogate(self, node, path):
-        while path:
-            parent, idx, prefix = path.pop()
-            old_hash = parent.hash
-            parent.children[idx].hash = node.hash
-            del parent.hash
-            new_hash = parent.hash
+    @classmethod
+    def _get_attr_class(cls, attr):
+        return getattr(cls, ''.join(['get_', attr, '_class']),
+            lambda:getattr(cls, ''.join([attr, '_class']), six.binary_type))()
 
-            del self._node[old_hash]
-            self._node[new_hash] = parent
+    @classmethod
+    def _prepare(cls, elem, attr):
+        if not isinstance(elem, six.binary_type):
+            serialize = getattr(elem, 'serialize', None)
+            if six.callable(serialize):
+                return serialize()
+            attr_class = cls._get_attr_class(attr)
+            serialize = getattr(attr_class, 'serialize', None)
+            if six.callable(serialize):
+                return serialize(elem)
+        return elem
+    _prepare_key = lambda cls,elem:cls._prepare(elem, 'key')
+    _prepare_value = lambda cls,elem:cls._prepare(elem, 'value')
 
-            node = parent
+    @classmethod
+    def _unpickle(cls, string, attr):
+        attr_class = cls._get_attr_class(attr)
+        deserialize = getattr(attr_class, 'deserialize', None)
+        if six.callable(deserialize):
+            return deserialize(StringIO(string))
+        else:
+            return attr_class(string)
+    _unpickle_key = lambda cls,string:cls._unpickle(string, 'key')
+    _unpickle_value = lambda cls,string:cls._unpickle(string, 'value')
+
+    def __init__(self, value=None, extra=None, children=None,
+                 start=None, end=None, *args, **kwargs):
+        if value is not None and not isinstance(value, six.binary_type):
+            raise TypeError(u"value must be a binary string, or None")
+        if extra is not None and not isinstance(extra, six.binary_type):
+            raise TypeError(u"extra must be a binary string, or None")
+        if children is None:
+            children = tuple()
+        if hasattr(children, 'keys'):
+            children = tuple(
+                PatriciaLink(prefix=prefix,node=children[prefix])
+                for prefix in sorted(children))
+
+        super(PatriciaNode, self).__init__(*args, **kwargs)
+
+        self.value = value
+        self.extra = extra
+        getattr(self, 'children_create', lambda x:setattr(x, 'children', list()))(self)
+        self.children.extend(children)
+        getattr(self, 'parents_create', lambda x:setattr(x, 'parents', set()))(self)
+        self.size = int(value is not None)
+        self.length = self.size
+        for child in children:
+            child.node.parents.add(self)
+            self.size += child.node.size
+            self.length += child.node.length
+        self.start = start
+        self.end = end
+
+    @property
+    def flags(self):
+        flags = 0
+        if self.value is not None: flags |= self.HAS_VALUE
+        if self.extra is not None: flags |= self.HAS_EXTRA
+        return flags
+
+    def serialize(self, digest=False):
+        flags = self.flags
+        result = serialize_varint(flags)
+        if digest:
+            result += serialize_list(self.children,
+                lambda child:b''.join([serialize_varchar(child.prefix),
+                                       serialize_hash(child.node.hash, 32)]))
+        else:
+            result += serialize_list(self.children,
+                lambda child:b''.join([serialize_varchar(child.prefix),
+                                       serialize_varchar(child.node.serialize(digest=digest))]))
+        if flags & self.HAS_VALUE:
+            result += serialize_varchar(self.value)
+        if flags & self.HAS_EXTRA:
+            result += serialize_varchar(self.extra)
+        return result
+    @staticmethod
+    def deserialize_link(file_, nodes, *args, **kwargs):
+        prefix = deserialize_varchar(file_)
+        hash = deserialize_hash(file_, 32)
+        return getattr(cls, 'get_patricia_link_class',
+            lambda: getattr(cls, 'patricia_link_class', PatriciaLink)
+            )(prefix=prefix, node=nodes[hash], *args, **kwargs)
+    @classmethod
+    def deserialize(cls, file_, start=0, end=None, nodes=None, *args, **kwargs):
+        nodes = nodes or {}
+        initargs = {}
+        flags = deserialize_varint(file_)
+        initargs['children'] = deserialize_list(file_,
+            lambda x:cls.deserialize_link(x, nodes))
+        if flags & cls.HAS_VALUE:
+            initargs['value'] = deserialize_varchar(file_)
+        if flags & cls.HAS_EXTRA:
+            initargs['extra'] = deserialize_varchar(file_)
+        return cls(start=start, end=end, **initargs)
+
+    def hash__getter(self):
+        return super(PatriciaNode, self).hash__getter(digest=True)
+
+    def __hash__(self):
+        "x.__hash__() <==> hash(x)"
+        return self.hash
+
+    def __repr__(self):
+        if self.value is not None:
+            value_str = 'value=\'%s\'.decode(\'hex\'), ' % self.value.encode('hex')
+        else:
+            value_str = ''
+        if self.extra is not None:
+            extra_str = 'extra=\'%s\'.decode(\'hex\'), ' % self.extra.encode('hex')
+        else:
+            extra_str = ''
+        if self.start is not None:
+            start_str = ', start=%d' % self.start
+        else:
+            start_str = ''
+        if self.end is not None:
+            end_str = ', end=%d' % self.end
+        else:
+            end_str = ''
+        return ('%s(%s%schildren=[%s]%s%s)' % (
+            self.__class__.__name__,
+            value_str,
+            extra_str,
+            ', '.join(map(repr, self.children)),
+            start_str,
+            end_str))
+
+    def __nonzero__(self):
+        "x.__nonzero__() <==> bool(x)"
+        return bool(self.length)
+
+    def __lt__(self, other):
+        "x.__lt__(o) <==> x < o"
+        return icmp(self.iteritems(), other.iteritems()) < 0
+    def __le__(self, other):
+        "x.__lt__(o) <==> x < o"
+        return self.hash == other.hash or self < other
+    def __eq__(self, other):
+        "x.__eq__(o) <==> x == o"
+        return self.hash == other.hash
+    def __ne__(self, other):
+        "x.__eq__(o) <==> x != o"
+        return self.hash != other.hash
+    def __ge__(self, other):
+        "x.__lt__(o) <==> x < o"
+        return self.hash == other.hash or self > other
+    def __gt__(self, other):
+        "x.__lt__(o) <==> x < o"
+        return icmp(self.iteritems(), other.iteritems()) > 0
+
+    def __len__(self):
+        "x.__len__() <==> len(x)"
+        return self.length
 
     def _forward_iterator(self):
         "Returns a forward iterator over the trie"
-        path = [(self._root, 0, b'')]
+        path = [(self, 0, b'')]
         while path:
             node, idx, prefix = path.pop()
-            if idx==0 and (node.flags & node.HAS_VALUE):
-                yield (prefix, node.value)
+            if idx==0 and node.value is not None:
+                yield (self._unpickle_key(prefix), self._unpickle_value(node.value))
             if idx<len(node.children):
                 path.append((node, idx+1, prefix))
                 path.append((
-                    self._node[node.children[idx].hash],
+                    node.children[idx].node,
                     0,
                     prefix + node.children[idx].prefix))
 
     def _reverse_iterator(self):
         "Returns a reverse/backwards iterator over the trie"
-        path = [(self._root, len(self._root.children)-1, b'')]
+        path = [(self, len(self.children)-1, b'')]
         while path:
             node, idx, prefix = path.pop()
-            if idx<0 and (node.flags & node.HAS_VALUE):
-                yield (prefix, node.value)
+            if idx<0 and node.value is not None:
+                yield (self._unpickle_key(prefix), self._unpickle_value(node.value))
             if idx>=0:
                 path.append((node, idx-1, prefix))
                 link = node.children[idx]
-                node = self._node[link.hash]
+                node = link.node
                 path.append((node, len(node.children)-1, prefix + link.prefix))
-
-    def __iter__(self):
-        """x.__iter__() <==> iter(x)
-        Return a forward iterator over the trie"""
-        return self.iterkeys()
-
-    def __reversed__(self):
-        """x.__reversed__() <==> reversed(x)
-        Return a reverse iterator over the trie"""
-        return self.reversed_iterkeys()
-
-    def __len__(self):
-        "x.__len__() <==> len(x)"
-        return self._length
-
-    def __getitem__(self, key):
-        "x.__getitem__(y) <==> x[y]"
-        prefix, node = self._get_by_key(key)
-        if prefix==key and node.flags&node.HAS_VALUE:
-            return node.value
-        else:
-            raise KeyError(key)
-
-    def __setitem__(self, key, value):
-        "x.__setitem__(i, y) <==> x[i]=y"
-        self.update({key: value})
-
-    def __delitem__(self, key):
-        "x.__delitem__(y) <==> del x[y]"
-        self.delete([key])
-
-    def __contains__(self, key):
-        """x.__contains__(k) <==> k in x
-        True if x has a key k, else False"""
-        prefix, node = self._get_by_key(key)
-        return prefix==key and node.flags&node.HAS_VALUE
-    has_key = __contains__
-
-    def clear(self):
-        "x.clear() -> None.  Remove all items from x."
-        self._root = PatriciaNode()
-        self._node = {self._root.hash: self._root}
-        self._length = 0
-
-    def copy(self):
-        "x.copy() -> a copy of x"
-        return self.__class__(self.iteritems())
-    deepcopy = copy
-
-    def get(self, key, value=None):
-        "x.get(k[,d]) -> x[k] if k in x, else d. d defaults to None."
-        prefix, node = self._get_by_key(key)
-        if prefix==key and node.flags&node.HAS_VALUE:
-            return node.value
-        else:
-            return value
-
-    def pop(self, key, value=SENTINAL):
-        """x.pop(k[,d]) -> v, remove specified key and return the corresponding value.
-        If d is not specified, KeyError is raised if the key is not found."""
-        prefix, node = self._get_by_key(key)
-        if prefix==key and node.flags&node.HAS_VALUE:
-            value = node.value
-            self.delete([key])
-            return value
-        else:
-            if value is SENTINAL:
-                raise KeyError(key)
-            else:
-                return value
-
-    def popitem(self):
-        """x.popitem() -> (k, v), remove and return some (key, value) pair as a
-        2-tuple; but raise KeyError if x is empty."""
-        if not self._length:
-            raise KeyError(u"popitem(): trie is empty")
-        key,value = next(self.reversed_iteritems())
-        self.delete([key])
-        return (key, value)
-
-    def setdefault(self, key, value):
-        "x.setdefault(k[,d]) -> x.get(k,d), also set x[k]=d if k not in x"
-        if key not in self:
-            self.update({key: value})
-
-    def update(self, other=None, **kwargs):
-        """x.update(E, **F) -> None. update x from trie/dict/iterable E or F.
-        If E has a .keys() method, does:     for k in E: x[k] = E[k]
-        If E lacks .keys() method, does:     for (k, v) in E: x[k] = v
-        In either case, this is followed by: for k in F: x[k] = F[k]"""
-        if other is None: other = list()
-        def _update(key, value):
-            if not (isinstance(key, six.binary_type) and
-                    isinstance(value, six.binary_type)):
-                raise TypeError(u"%s can only map binary string -> binary "
-                    u"string" % self.__class__.__name__)
-
-            path = list()
-            prefix, node = self._get_by_key(key, path=path)
-            old_hash = node.hash
-
-            # The simplist case is if the path already exists in the trie, in
-            # which case no modifications need to be done to the trie structure.
-            if prefix == key:
-                if not (node.flags & node.HAS_VALUE):
-                    node.flags |= node.HAS_VALUE
-                    self._length += 1
-                node.value = value
-
-            else:
-                self._length += 1
-
-                # Otherwise there are three possible code paths depending on
-                # whether the remaining the insertion key is a substring of any
-                # of the child links, if they have a prefix in common, or if
-                # matches any existing child of the node or not.
-                remaining_key = key[len(prefix):]
-                idx = bisect_left(node.children, PatriciaLink(remaining_key[:1], 0))
-
-                if idx in xrange(len(node.children)):
-                    common_prefix = commonprefix([node.children[idx].prefix, remaining_key])
-                else:
-                    common_prefix = ''
-
-                if common_prefix == remaining_key:
-                    new_node = PatriciaNode(
-                        flags    = PatriciaNode.HAS_VALUE,
-                        children = (PatriciaLink(
-                            prefix = node.children[idx].prefix[len(common_prefix):],
-                            hash   = node.children[idx].hash),),
-                        value    = value)
-                    self._node[new_node.hash] = new_node
-                    node.children[idx].prefix = common_prefix
-                    node.children[idx].hash = new_node.hash
-
-                elif common_prefix:
-                    new_node = PatriciaNode(
-                        flags    = PatriciaNode.HAS_VALUE,
-                        children = {},
-                        value    = value)
-                    inner_node = PatriciaNode(children={
-                        remaining_key[len(common_prefix):]:
-                            new_node,
-                        node.children[idx].prefix[len(common_prefix):]:
-                            node.children[idx].hash})
-                    self._node[new_node.hash] = new_node
-                    self._node[inner_node.hash] = inner_node
-                    node.children[idx].prefix = common_prefix
-                    node.children[idx].hash = inner_node.hash
-
-                else:
-                    new_node = PatriciaNode(
-                        flags    = PatriciaNode.HAS_VALUE,
-                        children = {},
-                        value    = value)
-                    self._node[new_node.hash] = new_node
-                    node.children.insert(idx, PatriciaLink(remaining_key, new_node.hash))
-
-            del node.hash
-            del self._node[old_hash]
-            self._node[node.hash] = node
-            self._propogate(node, path=path)
-
-        if isinstance(other, Mapping):
-            for key in other:
-                _update(key, other[key])
-        else:
-            for (key,value) in other:
-                _update(key, value)
-        for key,value in six.iteritems(kwargs):
-            _update(key, kwargs[key])
-
-    def delete(self, keys):
-        """x.delete(E) -> None. Same as `for k in E: del x[k]`"""
-        def _delete(key):
-            path = list()
-            prefix, node = self._get_by_key(key, path=path)
-
-            if prefix != key or not node.flags&node.HAS_VALUE:
-                raise KeyError(key)
-
-            old_hash = node.hash
-            node.flags = node.flags & ~node.HAS_VALUE
-            node.value = None
-            self._length -= 1
-
-            if path and not node.children:
-                # Remove from indices
-                del self._node[old_hash]
-
-                # Remove from parent
-                node, idx, prefix = path.pop()
-                old_hash = node.hash
-                del node.children[idx]
-
-            while (path and
-                   len(node.children)==1 and
-                   not (node.flags&node.HAS_VALUE)):
-                # Remove from indices
-                del self._node[old_hash]
-
-                # Squash with child node
-                parent, idx, prefix = path.pop()
-                old_hash = parent.hash
-                parent.children[idx].prefix += node.children[0].prefix
-                parent.children[idx].hash = node.children[0].hash
-                node = parent
-
-            # Update indices
-            del node.hash
-            new_hash = node.hash
-            del self._node[old_hash]
-            self._node[new_hash] = node
-            self._propogate(node, path=path)
-
-        for key in keys:
-            _delete(key)
 
     def items(self):
         "x.items() -> list of x's (key, value) pairs, as 2-tuples in sorted order"
@@ -436,6 +253,7 @@ class PatriciaTrie(object):
         "x.iterkeys() -> an iterator over the keys of x in sorted order"
         for key,value in self.iteritems():
             yield key
+    __iter__ = iterkeys
 
     def reversed_keys(self):
         "x.reversed_keys() -> list of the keys of x in reversed order"
@@ -444,6 +262,7 @@ class PatriciaTrie(object):
         "x.reversed_iterkeys() -> an iterator over the keys of x in reversed order"
         for key,value in self.reversed_iteritems():
             yield key
+    __reversed__ = reversed_iterkeys
 
     def values(self):
         "x.values() -> list of the values of x sorted by key"
@@ -461,38 +280,207 @@ class PatriciaTrie(object):
         for key,value in self.reversed_iteritems():
             yield value
 
-    def __eq__(self, other):
-        "x.__eq__(o) <==> x == o"
-        return self.hash == other.hash
-    def __ne__(self, other):
-        "x.__eq__(o) <==> x != o"
-        return self.hash != other.hash
-    def __lt__(self, other):
-        "x.__lt__(o) <==> x < o"
-        return icmp(self.iteritems(), other.iteritems()) < 0
-    def __gt__(self, other):
-        "x.__lt__(o) <==> x < o"
-        return icmp(self.iteritems(), other.iteritems()) > 0
-    def __le__(self, other):
-        "x.__lt__(o) <==> x < o"
-        return self.hash == other.hash or self < other
-    def __ge__(self, other):
-        "x.__lt__(o) <==> x < o"
-        return self.hash == other.hash or self > other
+    def _get_by_key(self, key, path=None):
+        """Returns the 2-tuple (prefix, node) where node either contains the value
+        corresponding to the key, or is the most specific prefix on the path which
+        would contain the key if it were there. The key was found if prefix==key
+        and the HAS_VALUE bit of node.flags is set."""
+        prefix, subkey, node = b'', key, self
+        while prefix != key:
+            for idx,link in enumerate(node.children):
+                if subkey.startswith(link.prefix):
+                    subkey = subkey[len(link.prefix):]
+                    prefix += link.prefix
+                    if path is not None:
+                        path.append((node, idx, link.prefix))
+                    node = link.node
+                    break
+            else:
+                break
+        return (prefix, node)
 
-    @Property
-    def hash():
-        "proxy for the hash property of the root node"
-        def fget(self):
-            return self._root.hash
-        return locals()
+    def __contains__(self, key):
+        """x.__contains__(k) <==> k in x
+        True if x has a key k, else False"""
+        _key = self._prepare_key(key)
+        prefix, node = self._get_by_key(_key)
+        return prefix==_key and node.value is not None
+    has_key = __contains__
 
-    def __repr__(self):
-        "x.__repr__() <==> repr(x)"
-        repr_ = ', '.join(map(lambda i:"b'%s': 0x%s" % (
-                                  i[0], i[1].encode('hex')),
-                              self.iteritems()))
-        return "%s({%s})" % (self.__class__.__name__, repr_)
+    def __getitem__(self, key):
+        "x.__getitem__(y) <==> x[y]"
+        _key = self._prepare_key(key)
+        prefix, node = self._get_by_key(_key)
+        if prefix==_key and node.value is not None:
+            return self._unpickle_value(node.value)
+        else:
+            raise KeyError(key)
+
+    def get(self, key, value=None):
+        "x.get(k[,d]) -> x[k] if k in x, else d. d defaults to None."
+        _key = self._prepare_key(key)
+        prefix, node = self._get_by_key(_key)
+        if prefix==_key and node.value is not None:
+            return self._unpickle_value(node.value)
+        else:
+            return value
+
+    def _propogate(self, node, path):
+        while path:
+            parent, idx, prefix = path.pop()
+            parent.children[idx].node = node
+            parent.size, parent.length = (int(parent.value is not None),)*2
+            for link in parent.children:
+                parent.size += link.node.size
+                parent.length += link.node.length
+            del parent.hash
+            node = parent
+
+    def _update(self, key, value):
+        key = self._prepare_key(key)
+        value = self._prepare_value(value)
+
+        if not (isinstance(key, six.binary_type) and
+                isinstance(value, six.binary_type)):
+            raise TypeError(u"%s can only map binary string -> binary "
+                u"string" % self.__class__.__name__)
+
+        path = list()
+        prefix, node = self._get_by_key(key, path=path)
+
+        # The simplist case is if the path already exists in the trie, in
+        # which case no modifications need to be done to the trie structure.
+        if prefix == key:
+            node.value = value
+            if node.value is not None:
+                node.size += 1
+                node.length += 1
+
+        else:
+            # Otherwise there are three possible code paths depending on
+            # whether the remaining the insertion key is a substring of any
+            # of the child links, if they have a prefix in common, or if
+            # matches any existing child of the node or not.
+            remaining_key = key[len(prefix):]
+            idx = bisect_left(node.children, PatriciaLink(remaining_key[:1], None))
+
+            if idx in xrange(len(node.children)):
+                common_prefix = commonprefix([node.children[idx].prefix, remaining_key])
+            else:
+                common_prefix = ''
+
+            if common_prefix == remaining_key:
+                new_node = self.__class__(
+                    #start    = None,
+                    #end      = None,
+                    value    = value,
+                    extra    = None,
+                    children = (PatriciaLink(
+                        prefix = node.children[idx].prefix[len(common_prefix):],
+                        node   = node.children[idx].node),))
+                node.children[idx].prefix = common_prefix
+                node.children[idx].node   = new_node
+
+            elif common_prefix:
+                new_node = PatriciaNode(
+                    #start    = None,
+                    #end      = None,
+                    value    = value,
+                    extra    = None,
+                    children = {})
+                inner_node = PatriciaNode(
+                    #start    = None,
+                    #end      = None,
+                    value    = None,
+                    extra    = None,
+                    children = {
+                        remaining_key[len(common_prefix):]:
+                            new_node,
+                        node.children[idx].prefix[len(common_prefix):]:
+                            node.children[idx].node})
+                node.children[idx].prefix = common_prefix
+                node.children[idx].node   = inner_node
+
+            else:
+                new_node = PatriciaNode(
+                    #start    = None,
+                    #end      = None,
+                    value    = value,
+                    extra    = None,
+                    children = {})
+                node.children.insert(idx, PatriciaLink(prefix=remaining_key, node=new_node))
+
+            node.size += 1
+            node.length += 1
+
+        del node.hash
+        self._propogate(node, path=path)
+
+    def update(self, other=None, **kwargs):
+        """x.update(E, **F) -> None. update x from trie/dict/iterable E or F.
+        If E has a .keys() method, does:     for k in E: x[k] = E[k]
+        If E lacks .keys() method, does:     for (k, v) in E: x[k] = v
+        In either case, this is followed by: for k in F: x[k] = F[k]"""
+        if other is None:
+            other = ()
+
+        if hasattr(other, 'keys'):
+            for key in other:
+                self._update(key, other[key])
+        else:
+            for key,value in other:
+                self._update(key, value)
+
+        for key,value in six.iteritems(kwargs):
+            self._update(key, value)
+
+    def __setitem__(self, key, value):
+        "x.__setitem__(i, y) <==> x[i]=y"
+        self.update(((key, value),))
+
+    def setdefault(self, key, value):
+        "x.setdefault(k[,d]) -> x.get(k,d), also set x[k]=d if k not in x"
+        if key not in self:
+            self.update(((key, value),))
+
+    def _delete(self, key):
+        key, key_ = self._prepare_key(key), key
+
+        path = list()
+        prefix, node = self._get_by_key(key, path=path)
+
+        if prefix != key or node.value is None:
+            raise KeyError(key_)
+
+        node.value = None
+        node.size -= 1
+        node.length -= 1
+        del node.hash
+
+        if path and not node.size:
+            # Remove from parent
+            node, idx, prefix = path.pop()
+            del node.children[idx]
+            del node.hash
+
+        while all([path, len(node.children)==1, node.value is None]):
+            # Squash with child node
+            parent, idx, prefix = path.pop()
+            parent.children[idx].prefix += node.children[0].prefix
+            parent.children[idx].node    = node.children[0].node
+            del parent.hash
+            node = parent
+
+        self._propogate(node, path=path)
+
+    def delete(self, keys):
+        """x.delete(E) -> None. Same as `for k in E: del x[k]`"""
+        for key in keys:
+            self._delete(key)
+
+    def __delitem__(self, key):
+        "x.__delitem__(y) <==> del x[y]"
+        self.delete([key])
 
 #
 # End of File
