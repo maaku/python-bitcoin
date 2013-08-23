@@ -33,6 +33,8 @@ PatriciaLink.__eq__ = lambda self, other: (self.prefix, self.node) == (other.pre
 PatriciaLink.__ne__ = lambda self, other: (self.prefix, self.node) != (other.prefix, other.node)
 PatriciaLink.__ge__ = lambda self, other: (self.prefix, self.node) >= (other.prefix, other.node)
 PatriciaLink.__gt__ = lambda self, other: (self.prefix, self.node) >  (other.prefix, other.node)
+PatriciaLink.__repr__ = lambda self: '%s(prefix=\'%s\'.decode(\'hex\'), node=0x%064x)' % (
+    self.__class__.__name__, self.prefix.encode('hex'), self.node.hash)
 
 # ===----------------------------------------------------------------------===
 
