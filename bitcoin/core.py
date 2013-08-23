@@ -23,7 +23,6 @@ from .tools import StringIO, list, target_from_compact, tuple
 __all__ = [
     'ChainParameters',
     'Output',
-    'OutPoint',
     'Input',
     'Transaction',
     'Block',
@@ -79,58 +78,24 @@ class Output(SerializableMixin):
 
 # ===----------------------------------------------------------------------===
 
-class OutPoint(SerializableMixin):
-    def __init__(self, hash=0, n=0xffffffff, *args, **kwargs):
-        super(OutPoint, self).__init__(*args, **kwargs)
-        self.hash = hash
-        self.n = n
-
-    def serialize(self):
-        result  = serialize_hash(self.hash, 32)
-        result += pack('<I', self.n)
-        return result
-    @classmethod
-    def deserialize(cls, file_):
-        initargs = {}
-        initargs['hash'] = deserialize_hash(file_, 32)
-        initargs['n'] = unpack('<I', file_.read(4))[0]
-        return cls(**initargs)
-
-    def __nonzero__(self):
-        return not (self.hash==0 and self.n==0xffffffff)
-
-    def __eq__(self, other):
-        return self.hash==other.hash and self.n==other.n
-    def __repr__(self):
-        return '%s(hash=%064x, n=%d)' % (
-            self.__class__.__name__,
-            self.hash,
-            self.n==0xffffffff and -1 or self.n)
-
-# ===----------------------------------------------------------------------===
-
 class Input(SerializableMixin):
-    def __init__(self, outpoint=None, endorsement=None, sequence=0xffffffff,
-                 *args, **kwargs):
-        if outpoint is None:
-            outpoint = self.deserialize_outpoint(StringIO('\x00'*32 + '\xff'*4))
+    def __init__(self, output_hash=0, output_index=0xffffffff,
+                 endorsement=None, sequence=0xffffffff, *args, **kwargs):
         if endorsement is None:
             endorsement = kwargs.pop('coinbase', self.get_script_class()())
         super(Input, self).__init__(*args, **kwargs)
-        self.outpoint = outpoint
+        self.output_hash = output_hash
+        self.output_index = output_index
         self.endorsement = endorsement
         self.sequence = sequence
-
-    @classmethod
-    def get_outpoint_class(cls):
-        return getattr(cls, 'outpoint_class', OutPoint)
 
     @classmethod
     def get_script_class(cls):
         return getattr(cls, 'script_class', Script)
 
     def serialize(self):
-        result = self.outpoint.serialize()
+        result  = serialize_hash(self.output_hash, 32)
+        result += pack('<I', self.output_index)
         if hasattr(self.endorsement, 'serialize'):
             result += self.endorsement.serialize()
         else:
@@ -138,39 +103,42 @@ class Input(SerializableMixin):
         result += pack('<I', self.sequence)
         return result
     @classmethod
-    def deserialize_outpoint(cls, file_):
-        return cls.get_outpoint_class().deserialize(file_)
-    @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        initargs['outpoint'] = cls.deserialize_outpoint(file_)
+        initargs['output_hash'] = deserialize_hash(file_, 32)
+        initargs['output_index'] = unpack('<I', file_.read(4))[0]
         str_ = deserialize_varchar(file_) # <-- might be coinbase!
         initargs['sequence'] = unpack('<I', file_.read(4))[0]
-        if not initargs['outpoint'] and initargs['sequence']==0xffffffff:
+        if not all([initargs['output_hash']  == 0,
+                    initargs['output_index'] == 0xffffffff]):
             initargs['coinbase'] = str_
         else:
             initargs['endorsement'] = cls.get_script_class().deserialize(
                 StringIO(serialize_varchar(str_)))
         return cls(**initargs)
 
-    @Property
-    def is_coinbase():
-        def fget(self):
-            return not outpoint and sequence==0xffffffff
-        return locals()
+    @property
+    def is_coinbase(self):
+        return all([self.output_hash  == 0,
+                    self.output_index == 0xffffffff])
 
     def __eq__(self, other):
-        return (self.outpoint    == other.outpoint    and
-                self.endorsement == other.endorsement and
-                self.sequence    == other.sequence)
+        return all([self.output_hash  == other.output_hash,
+                    self.output_index == other.output_index,
+                    self.endorsement  == other.endorsement,
+                    self.sequence     == other.sequence])
+
     def __repr__(self):
         sequence_str = (self.sequence!=0xffffffff
             and ', sequence=%d' % self.sequence
              or '')
-        return '%s(outpoint=%s, %s=%s%s)' % (
+        return ('%s(output_hash=0x%064x, '
+                   'output_index=%d, '
+                   '%s=%s%s)') % (
             self.__class__.__name__,
-            repr(self.outpoint),
-            self.outpoint and 'endorsement' or 'coinbase',
+            self.output_hash,
+            self.output_index==0xffffffff and -1 or self.output_index,
+            self.is_coinbase and 'coinbase' or 'endorsement',
             repr(self.endorsement),
             sequence_str)
 
@@ -227,11 +195,9 @@ class Transaction(SerializableMixin, HashableMixin):
             initargs['reference_height'] = unpack('<I', file_.read(4))[0]
         return cls(**initargs)
 
-    @Property
-    def is_coinbase():
-        def fget(self):
-            return 1==len(self.inputs) and not self.inputs[0].outpoint
-        return locals()
+    @property
+    def is_coinbase(self):
+        return 1==len(self.inputs) and not self.inputs[0].is_coinbase
 
     def __eq__(self, other):
         return (self.version          == other.version          and
