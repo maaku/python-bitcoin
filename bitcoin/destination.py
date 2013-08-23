@@ -7,8 +7,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
-from python_patterns.utils.decorators import Property
-
 from .script import *
 
 __all__ = [
@@ -24,19 +22,19 @@ __all__ = [
 from .serialize import serialize_hash
 
 class BaseId(object):
-    @Property
-    def script():
+    @property
+    def script(self):
         """Returns a Script object representing a contract script portion of a
         payment to the destination."""
-        def fget(self):
-            # The script object is cached, since constructing it may involve
-            # a number of string-manipulation operations.
-            if getattr(self, '_script', None) is None:
-                self._script = self._script__getter()
-            return self._script
-        def fdel(self):
-            self._script = None
-        return locals()
+        # The script object is cached, since constructing it may involve
+        # a number of string-manipulation operations.
+        if getattr(self, '_script', None) is None:
+            self._script = self._script__getter()
+        return self._script
+
+    @script.deleter
+    def script(self):
+        self._script = None
 
     # Scince script generation is deterministic and unique, two destinations
     # are equal if and only if they result in the same generated script.
@@ -51,27 +49,26 @@ class HashId(BaseId):
         super(HashId, self).__init__(*args, **kwargs)
         self._hash = hash
 
-    @Property
-    def hash():
-        def fget(self):
-            return self._hash
-        def fset(self, value):
-            self._hash = value
-            del self.hash_digest
-            del self.script
-        def fdel(self):
-            self.hash = 0
-        return locals()
+    @property
+    def hash(self):
+        return self._hash
+    @hash.setter
+    def hash(self, value):
+        self._hash = value
+        del self.hash_digest
+        del self.script
+    @hash.deleter
+    def hash(self):
+        self.hash = 0
 
-    @Property
-    def hash_digest():
-        def fget(self):
-            if getattr(self, '_hash_digest', None) is None:
-                self._hash_digest = serialize_hash(self._hash, 20)
-            return self._hash_digest
-        def fdel(self):
-            self._hash_digest = None
-        return locals()
+    @property
+    def hash_digest(self):
+        if getattr(self, '_hash_digest', None) is None:
+            self._hash_digest = serialize_hash(self._hash, 20)
+        return self._hash_digest
+    @hash_digest.deleter
+    def hash_digest(self):
+        self._hash_digest = None
 
 # ===----------------------------------------------------------------------===
 
@@ -82,16 +79,15 @@ class PubKeyId(BaseId):
         super(PubKeyId, self).__init__(*args, **kwargs)
         self.verifying_key = verifying_key
 
-    @Property
-    def verifying_key():
-        def fget(self):
-            return self._verifying_key
-        def fset(self, value):
-            if hasattr(value, 'get_verifying_key'):
-                value = verifying_key.get_verifying_key()
-            self._verifying_key = value
-            del self.script
-        return locals()
+    @property
+    def verifying_key(self):
+        return self._verifying_key
+    @verifying_key.setter
+    def verifying_key(self, value):
+        if hasattr(value, 'get_verifying_key'):
+            value = verifying_key.get_verifying_key()
+        self._verifying_key = value
+        del self.script
 
     def _script__getter(self):
         return Script([ScriptOp(data=self._verifying_key.serialize()),

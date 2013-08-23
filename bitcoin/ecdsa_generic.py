@@ -12,10 +12,6 @@ import six
 
 from struct import unpack
 
-from python_patterns.utils.decorators import Property
-
-# ===----------------------------------------------------------------------===
-
 from .base58 import VersionedPayload
 from .errors import InvalidSecretError
 from .serialize import serialize_beint, deserialize_beint
@@ -145,17 +141,8 @@ class Signature(tuple):
             r, s = r.r, r.s
         return super(Signature, cls).__new__(cls, (r, s), *args, **kwargs)
 
-    @Property
-    def r():
-        def fget(self):
-            return self[0]
-        return locals()
-
-    @Property
-    def s():
-        def fget(self):
-            return self[1]
-        return locals()
+    r = property(lambda self:self[0])
+    s = property(lambda self:self[1])
 
     def serialize(self):
         def _serialize_sint(n):
@@ -221,14 +208,12 @@ class SigningKey(object):
             secret.exponent, curve=SECP256k1, hashfunc=hash256)
         self.compressed = secret.compressed
 
-    @Property
-    def secret():
-        def fget(self):
-            cls = getattr(self, 'get_secret_class', lambda:
-                  getattr(self, 'secret_class', Secret))()
-            return cls(self._ecdsa_signing_key.privkey.secret_multiplier,
-                       compressed=self.compressed)
-        return locals()
+    @property
+    def secret(self):
+        cls = getattr(self, 'get_secret_class', lambda:
+              getattr(self, 'secret_class', Secret))()
+        return cls(self._ecdsa_signing_key.privkey.secret_multiplier,
+                   compressed=self.compressed)
 
     # Private / signing keys can be serialized in two ways: using the industry standard DER/ASN.1 notation, or by recording the 
     def serialize(self):
@@ -265,11 +250,9 @@ class VerifyingKey(object):
             point, curve=SECP256k1, hashfunc=hash256)
         self.compressed = compressed
 
-    @Property
-    def point():
-        def fget(self):
-            return self._ecdsa_verifying_key.pubkey.point
-        return locals()
+    @property
+    def point(self):
+        return self._ecdsa_verifying_key.pubkey.point
 
     def serialize(self):
         point = self.point

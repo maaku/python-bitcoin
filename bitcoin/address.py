@@ -10,8 +10,6 @@
 import six
 import numbers
 
-from python_patterns.utils.decorators import Property
-
 from .serialize import serialize_hash, deserialize_hash
 from .tools import StringIO
 
@@ -65,21 +63,20 @@ class BitcoinAddress(VersionedPayload):
         return address
 
     # Re-interpret the hash value from the serialized payload:
-    hash = property(lambda self:deserialize_hash(StringIO(self.payload), 20))
+    @property
+    def hash(self):
+        return deserialize_hash(StringIO(self.payload), 20)
 
-    @Property
-    def destination():
-        "Returns "
-        def fget(self):
-            # The original pay-to-pubkey-hash bitcoin address:
-            if self.version == self.PUBKEY_HASH:
-                return PubKeyHashId(hash=deserialize_hash(StringIO(self.payload), 20))
-            # The new BIP-0016 pay-to-script-hash address:
-            if self.version == self.SCRIPT_HASH:
-                return ScriptHashId(hash=deserialize_hash(StringIO(self.payload), 20))
-            # Any futue defined address format is not understood:
-            raise InvalidAddressError(u"unknown address version: %s" % repr(self.version))
-        return locals()
+    @property
+    def destination(self):
+        # The original pay-to-pubkey-hash bitcoin address:
+        if self.version == self.PUBKEY_HASH:
+            return PubKeyHashId(hash=deserialize_hash(StringIO(self.payload), 20))
+        # The new BIP-0016 pay-to-script-hash address:
+        if self.version == self.SCRIPT_HASH:
+            return ScriptHashId(hash=deserialize_hash(StringIO(self.payload), 20))
+        # Any futue defined address format is not understood:
+        raise InvalidAddressError(u"unknown address version: %s" % repr(self.version))
 
     def __nonzero__(self):
         "Returns true if the hash value is non-zero."

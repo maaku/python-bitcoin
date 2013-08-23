@@ -13,8 +13,6 @@ from struct import pack, unpack
 
 from .tools import StringIO
 
-from python_patterns.utils.decorators import Property
-
 from .mixins import SerializableMixin
 from .serialize import (
     serialize_varchar, deserialize_varchar,
@@ -467,20 +465,16 @@ class ScriptOp(SerializableMixin, six.binary_type):
 
         return super(ScriptOp, cls).__new__(cls, result, *args, **kwargs)
 
-    @Property
-    def opcode():
-        def fget(self):
-            return unpack('>B', self[:1])[0]
-        return locals()
+    @property
+    def opcode(self):
+        return unpack('>B', self[:1])[0]
 
-    @Property
-    def data():
-        def fget(self):
-            if self.opcode <= OP_PUSHDATA4:
-                return self[1:]
-            else:
-                return None
-        return locals()
+    @property
+    def data(self):
+        if self.opcode <= OP_PUSHDATA4:
+            return self[1:]
+        else:
+            return None
 
     def serialize(self):
         return self
@@ -510,71 +504,71 @@ class ScriptOp(SerializableMixin, six.binary_type):
             return cls(opcode, data)
         return cls(opcode)
 
-    @Property
-    def boolean():
-        def fget(self):
-            if self.opcode==OP_0:
-                return False
-            if self.opcode==OP_1NEGATE:
-                return True
-            if self.opcode>=OP_1 and self.opcode<=OP_16:
-                return True
-            if self.opcode in xrange(1,OP_PUSHDATA4+1):
-                return (
-                    any(map(lambda c:c!='\x00', self.data[:-1])) or
-                    self.data[-1] not in ('\x00', '\x80'))
-            else:
-                raise ValueError(u"non-data script-op cannot be interpreted as truth value")
-        def fset(self, value):
-            if value:
-                self.opcode, self.data = OP_TRUE, None
-            else:
-                self.opcode, self.data = OP_FALSE, None
-        return locals()
+    @property
+    def boolean(self):
+        if self.opcode==OP_0:
+            return False
+        if self.opcode==OP_1NEGATE:
+            return True
+        if self.opcode>=OP_1 and self.opcode<=OP_16:
+            return True
+        if self.opcode in xrange(1,OP_PUSHDATA4+1):
+            return (
+                any(map(lambda c:c!='\x00', self.data[:-1])) or
+                self.data[-1] not in ('\x00', '\x80'))
+        else:
+            raise ValueError(u"non-data script-op cannot be interpreted as truth value")
 
-    @Property
-    def integral():
-        def fget(self):
-            if self.opcode==OP_1NEGATE:
-                return -1
-            elif self.opcode==OP_0:
-                return 0
-            elif self.opcode>=OP_1 and self.opcode<=OP_16:
-                return self.opcode - OP_1 + 1
-            elif self.opcode in xrange(1,OP_PUSHDATA4+1):
-                data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
-                bignum = deserialize_hash(StringIO(data), len(data))
-                if ord(self.data[-1]) & 0x80:
-                    return -bignum
-                return bignum
+    @boolean.setter
+    def boolean(self, value):
+        if value:
+            self.opcode, self.data = OP_TRUE, None
+        else:
+            self.opcode, self.data = OP_FALSE, None
+
+    @property
+    def integral(self):
+        if self.opcode==OP_1NEGATE:
+            return -1
+        elif self.opcode==OP_0:
+            return 0
+        elif self.opcode>=OP_1 and self.opcode<=OP_16:
+            return self.opcode - OP_1 + 1
+        elif self.opcode in xrange(1,OP_PUSHDATA4+1):
+            data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
+            bignum = deserialize_hash(StringIO(data), len(data))
+            if ord(self.data[-1]) & 0x80:
+                return -bignum
+            return bignum
+        else:
+            raise ValueError(u"non-data script-op cannot be interpreted as integer")
+
+    @integral.setter
+    def integral(self, value):
+        self.data = None
+        if value == -1:
+            self.opcode = OP_1NEGATE
+        elif value == 0:
+            self.opcode = OP_0
+        elif value >= 1 and value <= 16:
+            self.opcode = OP_1 + value - 1
+        else:
+            neg = value < 1
+            absv = abs(value)
+            data = serialize_hash(absv, 1+len(bin(long(absv)).rstrip('L')[2:])//8)
+            if neg: data = data[:-1] + chr(ord(data[-1])|0x80)
+            datalen = len(data)
+            if datalen < OP_PUSHDATA1:
+                self.opcode = datalen
+            elif datalen <= 0xff:
+                self.opcode = OP_PUSHDATA1
+            elif datalen <= 0xffff:
+                self.opcode = OP_PUSHDATA2
+            elif datalen <= 0xffffffff:
+                self.opcode = OP_PUSHDATA4
             else:
-                raise ValueError(u"non-data script-op cannot be interpreted as integer")
-        def fset(self, value):
-            self.data = None
-            if value == -1:
-                self.opcode = OP_1NEGATE
-            elif value == 0:
-                self.opcode = OP_0
-            elif value >= 1 and value <= 16:
-                self.opcode = OP_1 + value - 1
-            else:
-                neg = value < 1
-                absv = abs(value)
-                data = serialize_hash(absv, 1+len(bin(long(absv)).rstrip('L')[2:])//8)
-                if neg: data = data[:-1] + chr(ord(data[-1])|0x80)
-                datalen = len(data)
-                if datalen < OP_PUSHDATA1:
-                    self.opcode = datalen
-                elif datalen <= 0xff:
-                    self.opcode = OP_PUSHDATA1
-                elif datalen <= 0xffff:
-                    self.opcode = OP_PUSHDATA2
-                elif datalen <= 0xffffffff:
-                    self.opcode = OP_PUSHDATA4
-                else:
-                    raise ValueError(u"integer representation exceeds serialization limits")
-                self.data = data
-        return locals()
+                raise ValueError(u"integer representation exceeds serialization limits")
+            self.data = data
 
     def __repr__(self):
         if self.opcode>0 and self.opcode<=OP_PUSHDATA4:

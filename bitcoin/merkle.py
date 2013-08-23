@@ -9,8 +9,6 @@
 
 import numbers
 
-from python_patterns.utils.decorators import Property
-
 from .serialize import (
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
@@ -448,11 +446,9 @@ class MerkleList(SerializableMixin):
                 hashes = next_hashes
             self._root = hashes and hashes[0] or MerkleNode()
 
-    @Property
-    def hash():
-        def fget(self):
-            return self._root.hash
-        return locals()
+    @property
+    def hash(self):
+        return self._root.hash
 
     def serialize(self):
         raise NotImplementedError()

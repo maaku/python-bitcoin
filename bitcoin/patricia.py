@@ -17,8 +17,6 @@ from bitcoin.serialize import (
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
 
-from python_patterns.utils.decorators import Property
-
 from .tools import StringIO, icmp, list, tuple
 
 SENTINAL = object()

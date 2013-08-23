@@ -9,8 +9,6 @@
 
 import hashlib
 
-from python_patterns.utils.decorators import Property
-
 from .serialize import serialize_hash, deserialize_hash
 from .tools import StringIO
 
@@ -65,32 +63,26 @@ class _NopHashAlgorithm(_HashAlgorithm):
         "Appends any passed in byte arrays to the “digest”."
         self._input = ''.join([self._input]+map(str,list(args)))
 
-    @Property
-    def block_size():
+    @property
+    def block_size(self):
         """`block_size` doesn't really have any meaning for the no-op/pass-
         through hash algorithm. Specifying `1` is effectively saying as
         much."""
-        def fget(self):
-            return 1
-        return locals()
+        return 1
 
-    @Property
-    def digest_size():
+    @property
+    def digest_size(self):
         """In a pass-through hash, the “digest size” is necessarily variable
         and not known until the input is finalized. Returning the current size
         of the input (which will become [a prefix of] the digest) is the best
         that we can do."""
-        def fget(self):
-            return len(self._input)
-        return locals()
+        return len(self._input)
 
-    @Property
-    def name():
+    @property
+    def name(self):
         """The defined canonical name of the the no-op/pass-through hash
         algorithm is the empty string `str('')`."""
-        def fget(self):
-            return ''
-        return locals()
+        return ''
 
 class _ChainedHashAlgorithm(_HashAlgorithm):
     """Implements a series of chained hash algorithms masquerading as single
@@ -143,30 +135,24 @@ class _ChainedHashAlgorithm(_HashAlgorithm):
             self._hobj.update(string)
         self._fobj = None
 
-    @Property
-    def block_size():
+    @property
+    def block_size(self):
         """Returns the block size (in bytes) of the hash algorithm. Computational
         cost and memory requirements are predictable if data is given to the hash
         object in unit increments of the block size."""
-        def fget(self):
-            return self._hobj.block_size
-        return locals()
+        return self._hobj.block_size
 
-    @Property
-    def digest_size():
+    @property
+    def digest_size(self):
         "Returns the size (in bytes) of the resulting digest."
-        def fget(self):
-            if getattr(self, '_fobj', None) is not None:
-                return self._fobj.digest_size
-            else:
-                return hashlib.new(self._algorithms[-1]).digest_size
-        return locals()
+        if getattr(self, '_fobj', None) is not None:
+            return self._fobj.digest_size
+        else:
+            return hashlib.new(self._algorithms[-1]).digest_size
 
-    @Property
-    def name():
-        def fget(self):
-            return self._algorithms
-        return locals()
+    @property
+    def name(self):
+        return self._algorithms
 
 class _HashAlgorithmInterface(tuple):
     """Provides a class API similar to `HASH` objects from `hashlib` (e.g.,
@@ -184,28 +170,22 @@ class _HashAlgorithmInterface(tuple):
         return hobj
     __call__=new
 
-    @Property
-    def digest_size():
+    @property
+    def digest_size(self):
         "Returns the size (in bytes) of the resulting digest."
-        def fget(self):
-            return self.new().digest_size
-        return locals()
+        return self.new().digest_size
 
-    @Property
-    def block_size():
+    @property
+    def block_size(self):
         """Returns the block size (in bytes) of the hash algorithm.
         Computational cost and memory requirements are predictable if data is
         given to the hash object in unit increments of the block size."""
-        def fget(self):
-            return self.new().block_size
-        return locals()
+        return self.new().block_size
 
-    @Property
-    def name():
+    @property
+    def name(self):
         "The defined canonical name of the the hash algorithm."
-        def fget(self):
-            return ':'.join(map(lambda n:n.encode('utf-8'), self))
-        return locals()
+        return ':'.join(map(lambda n:n.encode('utf-8'), self))
 
     def serialize(self, hash_):
         return serialize_hash(hash_, self.digest_size)
