@@ -23,6 +23,9 @@ class SerializableMixin(object):
         super(SerializableMixin, self).__init__(*args, **kwargs)
         self.deserialize = MethodType(self.deserialize, self, self.__class__)
 
+    def __bytes__(self, *args, **kwargs):
+        return self.serialize(*args, **kwargs)
+
 # ===----------------------------------------------------------------------===
 
 class HashableMixin(object):
