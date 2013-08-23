@@ -7,7 +7,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
-VERSION = (0,0,5, 'final', 0)
+VERSION = (0,0,6, 'alpha', 0)
 
 def get_version():
     version = '%s.%s' % (VERSION[0], VERSION[1])
