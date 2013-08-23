@@ -331,6 +331,7 @@ class MerkleNode(HashableMixin):
 
     def __getitem__(self, index):
         "x.__getitem__(y) <==> x[y]"
+        # FIXME: add support for slice objects
         value, node, offset = self._get_by_index(index)
         if value is None:
             raise IndexError(index)
