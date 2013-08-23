@@ -67,8 +67,8 @@ class Output(SerializableMixin):
         return cls(**initargs)
 
     def __eq__(self, other):
-        return all([self.amount   == other.amount,
-                    self.contract == other.contract])
+        return all((self.amount   == other.amount,
+                    self.contract == other.contract))
     def __repr__(self):
         return '%s(amount=%d.%08d, contract=%s)' % (
             self.__class__.__name__,
@@ -109,8 +109,8 @@ class Input(SerializableMixin):
         initargs['output_index'] = unpack('<I', file_.read(4))[0]
         str_ = deserialize_varchar(file_) # <-- might be coinbase!
         initargs['sequence'] = unpack('<I', file_.read(4))[0]
-        if not all([initargs['output_hash']  == 0,
-                    initargs['output_index'] == 0xffffffff]):
+        if not all((initargs['output_hash']  == 0,
+                    initargs['output_index'] == 0xffffffff)):
             initargs['coinbase'] = str_
         else:
             initargs['endorsement'] = cls.get_script_class().deserialize(
@@ -119,14 +119,14 @@ class Input(SerializableMixin):
 
     @property
     def is_coinbase(self):
-        return all([self.output_hash  == 0,
-                    self.output_index == 0xffffffff])
+        return all((self.output_hash  == 0,
+                    self.output_index == 0xffffffff))
 
     def __eq__(self, other):
-        return all([self.output_hash  == other.output_hash,
+        return all((self.output_hash  == other.output_hash,
                     self.output_index == other.output_index,
                     self.endorsement  == other.endorsement,
-                    self.sequence     == other.sequence])
+                    self.sequence     == other.sequence))
 
     def __repr__(self):
         sequence_str = (self.sequence!=0xffffffff
@@ -200,11 +200,11 @@ class Transaction(SerializableMixin, HashableMixin):
         return 1==len(self.inputs) and not self.inputs[0].is_coinbase
 
     def __eq__(self, other):
-        return all([self.version          == other.version,
+        return all((self.version          == other.version,
                     self.lock_time        == other.lock_time,
                     self.reference_height == other.reference_height,
                     icmp(iter(self.inputs),  iter(other.inputs))  == 0,
-                    icmp(iter(self.outputs), iter(other.outputs)) == 0])
+                    icmp(iter(self.outputs), iter(other.outputs)) == 0))
     def __repr__(self):
         reference_height_str = (self.version in (2,)
             and ', reference_height=%d' % self.reference_height
@@ -278,12 +278,12 @@ class Block(SerializableMixin, HashableMixin):
         return cls(**initargs)
 
     def __eq__(self, other):
-        return all([self.version     == other.version,
+        return all((self.version     == other.version,
                     self.parent_hash == other.parent_hash,
                     self.merkle_hash == other.merkle_hash,
                     self.time        == other.time,
                     self.bits        == other.bits,
-                    self.nonce       == other.nonce])
+                    self.nonce       == other.nonce))
     def __repr__(self):
         return ('%s(version=%d, '
                    'parent_hash=0x%064x, '
