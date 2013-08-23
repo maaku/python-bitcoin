@@ -57,6 +57,18 @@ setup(name='python-bitcoin',
         'Topic :: Office/Business :: Financial',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    install_requires=[
+        'bigfloat>=0.3.0a2',
+        'blist>=1.3.4',
+        'cdecimal>=2.3',
+        'ecdsa>=0.8',
+        'gmpy2>=2.0.0',
+        'isodate>=0.4.8',
+        'recordtype>=1.1',
+        'requests>=0.14.0',
+        'simplejson>=2.6.2',
+        'six>=1.3.0',
+    ],
 )
 
 #
