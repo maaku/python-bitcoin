@@ -11,6 +11,7 @@ import time
 from random import randrange
 from hashlib import sha1
 import requests
+import six
 
 try:
     import json
@@ -125,6 +126,10 @@ class Proxy(object):
                  timeout=15, *args, **kwargs):
         if username is None: username = 'rpcuser'
         if password is None: password = ''
+        if isinstance(uri, six.text_type): uri = uri.encode('utf-8')
+        if isinstance(password, six.text_type): password = password.encode('utf-8')
+        if isinstance(username, six.text_type): username = username.encode('utf-8')
+        if isinstance(service, six.text_type): service = service.encode('utf-8')
         super(Proxy, self).__init__(*args, **kwargs)
         self._ctr = 0
         self.uri = uri
