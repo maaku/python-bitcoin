@@ -16,6 +16,7 @@ __all__ = [
     'compress_amount',
     'decompress_amount',
     'target_from_compact',
+    'compact_from_target',
     'icmp',
 ]
 
@@ -87,8 +88,31 @@ def decompress_amount(x):
 # ===----------------------------------------------------------------------===
 
 def target_from_compact(bits):
-    len_ = (bits >> 24) & 0xff
-    return (bits & 0xffffffL) << (8 * (len_ - 3))
+    size = bits >> 24
+    word = bits & 0x007fffff
+    if size < 3:
+        word >>= 8 * (3 - size)
+    else:
+        word <<= 8 * (size - 3)
+    if bits & 0x00800000:
+        word = -word
+    return word
+
+from .serialize import serialize_beint
+def compact_from_target(target):
+    bn = serialize_beint(target)
+    size = len(bn)
+    if size <= 3:
+        word = target << 8 * (3 - size)
+    else:
+        word = target >> 8 * (size - 3)
+    if word & 0x00800000:
+        word >>= 8
+        size += 1
+    word |= size << 24
+    if target < 0:
+        word |= 0x00800000
+    return word
 
 # ===----------------------------------------------------------------------===
 
