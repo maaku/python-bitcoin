@@ -10,8 +10,6 @@
 import numbers
 from struct import pack, unpack
 
-from python_patterns.utils.decorators import Property
-
 from recordtype import recordtype
 
 from .mixins import HashableMixin, SerializableMixin
@@ -300,11 +298,10 @@ class Block(SerializableMixin, HashableMixin):
             self.bits,
             self.nonce))
 
-    @Property
-    def difficulty():
-        def fget(self):
-            return mpq(2**256-1, target_from_compact(self.bits))
-        return locals()
+    @property
+    def difficulty(self):
+        return mpq(target_from_compact(0x1d00ffff),
+                   target_from_compact(self.bits))
 
 #
 # End of File
