@@ -10,6 +10,8 @@
 # Python 2 and 3 compatibility utilities
 import six
 
+import gmpy2
+
 # Python standard library, unit-testing
 import unittest2
 # Python bitcoin, optimized StringIO
@@ -506,20 +508,32 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
                 pn2 = PatriciaNode()
                 pn2.update(pn)
                 self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'])
+                self.assertEqual(pn2.size, gmpy2.popcount(flags))
+                self.assertEqual(pn2.length, gmpy2.popcount(flags))
                 pn2.update(items)
                 self.assertEqual(pn2.hash, SCENARIOS[flags|idx]['hash_'])
+                self.assertEqual(pn2.size, gmpy2.popcount(flags|idx))
+                self.assertEqual(pn2.length, gmpy2.popcount(flags|idx))
 
                 pn3 = PatriciaNode()
                 pn3.update(pn)
                 self.assertEqual(pn3.hash, SCENARIOS[flags]['hash_'])
+                self.assertEqual(pn3.size, gmpy2.popcount(flags))
+                self.assertEqual(pn3.length, gmpy2.popcount(flags))
                 pn3.update(iter(items))
                 self.assertEqual(pn3.hash, SCENARIOS[flags|idx]['hash_'])
+                self.assertEqual(pn3.size, gmpy2.popcount(flags|idx))
+                self.assertEqual(pn3.length, gmpy2.popcount(flags|idx))
 
                 pn4 = PatriciaNode()
                 pn4.update(pn)
                 self.assertEqual(pn4.hash, SCENARIOS[flags]['hash_'])
+                self.assertEqual(pn4.size, gmpy2.popcount(flags))
+                self.assertEqual(pn4.length, gmpy2.popcount(flags))
                 pn4.update(**dict(items))
                 self.assertEqual(pn4.hash, SCENARIOS[flags|idx]['hash_'])
+                self.assertEqual(pn4.size, gmpy2.popcount(flags|idx))
+                self.assertEqual(pn4.length, gmpy2.popcount(flags|idx))
 
     def test_setitem(self):
         for flags in xrange(16):
@@ -565,9 +579,13 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
                 pn2 = PatriciaNode()
                 pn2.update(pn)
                 self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'])
+                self.assertEqual(pn2.size, gmpy2.popcount(flags))
+                self.assertEqual(pn2.length, gmpy2.popcount(flags))
                 pn3 = PatriciaNode()
                 pn3.update(pn)
                 self.assertEqual(pn3.hash, SCENARIOS[flags]['hash_'])
+                self.assertEqual(pn3.size, gmpy2.popcount(flags))
+                self.assertEqual(pn3.length, gmpy2.popcount(flags))
                 for (k,v) in items:
                     if k in SCENARIOS[flags]:
                         pn2.delete([k])
@@ -578,7 +596,11 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
                         with self.assertRaises(KeyError):
                             pn3.delete(iter([k]))
                 self.assertEqual(pn2.hash, SCENARIOS[flags & ~idx]['hash_'])
+                self.assertEqual(pn2.size, gmpy2.popcount(flags & ~idx))
+                self.assertEqual(pn2.length, gmpy2.popcount(flags & ~idx))
                 self.assertEqual(pn3.hash, SCENARIOS[flags & ~idx]['hash_'])
+                self.assertEqual(pn3.size, gmpy2.popcount(flags & ~idx))
+                self.assertEqual(pn3.length, gmpy2.popcount(flags & ~idx))
 
     def test_delitem(self):
         for flags in xrange(16):
