@@ -102,7 +102,7 @@ class UnspentTransaction(SerializableMixin, sorteddict):
             other = None
 
         # You can either specify the transaction, another UnspentTransaction
-        # object, or the metadata direction. Choose one.
+        # object, or the metadata directly. Choose one.
         a = 'transaction' in kwargs
         b = other is not None
         c = any(x in kwargs for x in (
