@@ -326,6 +326,9 @@ class MerkleNode(HashableMixin):
                 path.append((node, index, self.RIGHT_NODE))
             return self.right._get_by_index(index-left_size, path)
 
+    def __contains__(self, index):
+        "x.__contains__(y) <==> y in x"
+
     def __getitem__(self, index):
         "x.__getitem__(y) <==> x[y]"
         value, node, offset = self._get_by_index(index)
@@ -338,9 +341,6 @@ class MerkleNode(HashableMixin):
 
     def __delitem__(self, index):
         "x.__delitem__(y) <==> del x[y]"
-
-    def __contains__(self, index):
-        "x.__contains__(y) <==> y in x"
 
     def copy(self):
         "x.copy() -> a copy of x"
