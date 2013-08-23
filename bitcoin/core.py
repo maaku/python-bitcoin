@@ -303,6 +303,13 @@ class Block(SerializableMixin, HashableMixin):
         return mpq(target_from_compact(0x1d00ffff),
                    target_from_compact(self.bits))
 
+    @property
+    def work(self):
+        target = target_from_compact(self.bits)
+        if target < 0:
+            return 0
+        return (1<<256) // (target+1)
+
 #
 # End of File
 #
