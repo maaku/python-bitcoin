@@ -578,7 +578,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
 
     def __repr__(self):
         if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
-            return ''.join(['0x', self.data.encode('hex')])
+            return ''.join(['\'', self.data.encode('hex'), '\'.decode(\'hex\')'])
         else:
             if self.opcode in OPCODE_NAMES:
                 return OPCODE_NAMES[self.opcode]
