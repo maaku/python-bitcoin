@@ -12,6 +12,8 @@ from struct import pack, unpack
 
 from python_patterns.utils.decorators import Property
 
+from recordtype import recordtype
+
 from .mixins import HashableMixin, SerializableMixin
 from .numeric import mpq
 from .serialize import (
@@ -30,12 +32,11 @@ __all__ = [
 
 # ===----------------------------------------------------------------------===
 
-from collections import namedtuple
 
-ChainParameters = namedtuple('ChainParameters', ['magic', 'port', 'genesis',
-    'testnet', 'max_value', 'transient_reward', 'transient_budget',
-    'perpetual_reward', 'perpetual_budget', 'fee_budget', 'maximum_target',
-    'next_target', 'alert_keys','checkpoints', 'features'])
+ChainParameters = recordtype('ChainParameters',
+    ['magic', 'port', 'genesis', 'testnet', 'max_value', 'transient_reward',
+     'transient_budget', 'perpetual_reward', 'perpetual_budget', 'fee_budget',
+     'maximum_target', 'next_target', 'alert_keys','checkpoints', 'features'])
 
 # ===----------------------------------------------------------------------===
 
