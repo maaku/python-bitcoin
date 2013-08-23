@@ -41,7 +41,9 @@ PatriciaLink.__repr__ = lambda self: '%s(prefix=\'%s\'.decode(\'hex\'), node=0x%
 from bisect import bisect_left
 from os.path import commonprefix
 class PatriciaNode(SerializableMixin, HashableMixin):
-    __slots__ = 'value extra children _hash size length start end parents'.split()
+    """An ordered dictionary implemented with a hybrid level- and node-
+    compressed prefix tree."""
+    __slots__ = 'value extra children _hash size length'.split()
 
     HAS_VALUE = 0x1
     HAS_EXTRA = 0x2
@@ -76,34 +78,31 @@ class PatriciaNode(SerializableMixin, HashableMixin):
     _unpickle_key = lambda cls,string:cls._unpickle(string, 'key')
     _unpickle_value = lambda cls,string:cls._unpickle(string, 'value')
 
-    def __init__(self, value=None, extra=None, children=None,
-                 start=None, end=None, *args, **kwargs):
+    def __init__(self, value=None, extra=None, children=None, *args, **kwargs):
         if value is not None and not isinstance(value, six.binary_type):
             raise TypeError(u"value must be a binary string, or None")
         if extra is not None and not isinstance(extra, six.binary_type):
             raise TypeError(u"extra must be a binary string, or None")
         if children is None:
             children = tuple()
+        link_class = getattr(self, 'get_link_class',
+            lambda: getattr(self, 'link_class', PatriciaLink))()
         if hasattr(children, 'keys'):
             children = tuple(
-                PatriciaLink(prefix=prefix,node=children[prefix])
+                link_class(prefix=prefix, node=children[prefix])
                 for prefix in sorted(children))
 
         super(PatriciaNode, self).__init__(*args, **kwargs)
 
         self.value = value
         self.extra = extra
-        getattr(self, 'children_create', lambda x:setattr(x, 'children', list()))(self)
+        getattr(self, 'children_create', lambda:setattr(self, 'children', list()))()
         self.children.extend(children)
-        getattr(self, 'parents_create', lambda x:setattr(x, 'parents', set()))(self)
         self.size = int(value is not None)
         self.length = self.size
         for child in children:
-            child.node.parents.add(self)
             self.size += child.node.size
             self.length += child.node.length
-        self.start = start
-        self.end = end
 
     @property
     def flags(self):
@@ -128,15 +127,15 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         if flags & self.HAS_EXTRA:
             result += serialize_varchar(self.extra)
         return result
-    @staticmethod
-    def deserialize_link(file_, nodes, *args, **kwargs):
+    @classmethod
+    def deserialize_link(cls, file_, nodes, *args, **kwargs):
         prefix = deserialize_varchar(file_)
         hash = deserialize_hash(file_, 32)
-        return getattr(cls, 'get_patricia_link_class',
-            lambda: getattr(cls, 'patricia_link_class', PatriciaLink)
+        return getattr(cls, 'get_link_class',
+            lambda: getattr(cls, 'link_class', PatriciaLink)
             )(prefix=prefix, node=nodes[hash], *args, **kwargs)
     @classmethod
-    def deserialize(cls, file_, start=0, end=None, nodes=None, *args, **kwargs):
+    def deserialize(cls, file_, nodes=None, *args, **kwargs):
         nodes = nodes or {}
         initargs = {}
         flags = deserialize_varint(file_)
@@ -146,7 +145,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
             initargs['value'] = deserialize_varchar(file_)
         if flags & cls.HAS_EXTRA:
             initargs['extra'] = deserialize_varchar(file_)
-        return cls(start=start, end=end, **initargs)
+        return cls(**initargs)
 
     def hash__getter(self):
         return super(PatriciaNode, self).hash__getter(digest=True)
@@ -164,21 +163,11 @@ class PatriciaNode(SerializableMixin, HashableMixin):
             extra_str = 'extra=\'%s\'.decode(\'hex\'), ' % self.extra.encode('hex')
         else:
             extra_str = ''
-        if self.start is not None:
-            start_str = ', start=%d' % self.start
-        else:
-            start_str = ''
-        if self.end is not None:
-            end_str = ', end=%d' % self.end
-        else:
-            end_str = ''
-        return ('%s(%s%schildren=[%s]%s%s)' % (
+        return ('%s(%s%schildren=[%s])' % (
             self.__class__.__name__,
             value_str,
             extra_str,
-            ', '.join(map(repr, self.children)),
-            start_str,
-            end_str))
+            ', '.join(map(repr, self.children))))
 
     def __nonzero__(self):
         "x.__nonzero__() <==> bool(x)"
@@ -282,7 +271,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         for key,value in self.reversed_iteritems():
             yield value
 
-    def _get_by_key(self, key, path=None):
+    def _get_node_by_key(self, key, path=None):
         """Returns the 2-tuple (prefix, node) where node either contains the value
         corresponding to the key, or is the most specific prefix on the path which
         would contain the key if it were there. The key was found if prefix==key
@@ -305,14 +294,14 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         """x.__contains__(k) <==> k in x
         True if x has a key k, else False"""
         _key = self._prepare_key(key)
-        prefix, node = self._get_by_key(_key)
+        prefix, node = self._get_node_by_key(_key)
         return prefix==_key and node.value is not None
     has_key = __contains__
 
     def __getitem__(self, key):
         "x.__getitem__(y) <==> x[y]"
         _key = self._prepare_key(key)
-        prefix, node = self._get_by_key(_key)
+        prefix, node = self._get_node_by_key(_key)
         if prefix==_key and node.value is not None:
             return self._unpickle_value(node.value)
         else:
@@ -321,42 +310,51 @@ class PatriciaNode(SerializableMixin, HashableMixin):
     def get(self, key, value=None):
         "x.get(k[,d]) -> x[k] if k in x, else d. d defaults to None."
         _key = self._prepare_key(key)
-        prefix, node = self._get_by_key(_key)
+        prefix, node = self._get_node_by_key(_key)
         if prefix==_key and node.value is not None:
             return self._unpickle_value(node.value)
         else:
             return value
 
     def _propogate(self, node, path):
+        link_class = getattr(self, 'get_link_class',
+            lambda: getattr(self, 'link_class', PatriciaLink))()
+        node_class = getattr(self, 'get_node_class',
+            lambda: getattr(self, 'node_class', self.__class__))()
         while path:
             parent, idx, prefix = path.pop()
-            parent.children[idx].node = node
-            parent.size, parent.length = (int(parent.value is not None),)*2
-            for link in parent.children:
-                parent.size += link.node.size
-                parent.length += link.node.length
-            del parent.hash
-            node = parent
+            node = node_class(
+                value    = parent.value,
+                children = (list(x for x in parent.children[:idx]) +
+                            list((link_class(prefix=prefix, node=node),)) +
+                            list(x for x in parent.children[idx+1:])))
+        for attr in self.__slots__:
+            setattr(self, attr, getattr(node, attr, None))
 
     def _update(self, key, value):
         key = self._prepare_key(key)
         value = self._prepare_value(value)
 
+        link_class = getattr(self, 'get_link_class',
+            lambda: getattr(self, 'link_class', PatriciaLink))()
+        node_class = getattr(self, 'get_node_class',
+            lambda: getattr(self, 'node_class', self.__class__))()
+
+        # TODO: Maybe remove this and rely on duck typing?
         if not (isinstance(key, six.binary_type) and
                 isinstance(value, six.binary_type)):
             raise TypeError(u"%s can only map binary string -> binary "
                 u"string" % self.__class__.__name__)
 
         path = list()
-        prefix, node = self._get_by_key(key, path=path)
+        prefix, old_node = self._get_node_by_key(key, path=path)
 
         # The simplist case is if the path already exists in the trie, in
         # which case no modifications need to be done to the trie structure.
         if prefix == key:
-            node.value = value
-            if node.value is not None:
-                node.size += 1
-                node.length += 1
+            if old_node.value == value:
+                return
+            new_node = node_class(value=value, children=old_node.children)
 
         else:
             # Otherwise there are three possible code paths depending on
@@ -364,59 +362,53 @@ class PatriciaNode(SerializableMixin, HashableMixin):
             # of the child links, if they have a prefix in common, or if
             # matches any existing child of the node or not.
             remaining_key = key[len(prefix):]
-            idx = bisect_left(node.children, PatriciaLink(remaining_key[:1], None))
+            idx = bisect_left(old_node.children, link_class(prefix=remaining_key[:1], node=None))
 
-            if idx in xrange(len(node.children)):
-                common_prefix = commonprefix([node.children[idx].prefix, remaining_key])
+            if idx in xrange(len(old_node.children)):
+                common_prefix = commonprefix([old_node.children[idx].prefix, remaining_key])
             else:
                 common_prefix = ''
 
             if common_prefix == remaining_key:
-                new_node = self.__class__(
-                    #start    = None,
-                    #end      = None,
+                inner_node = node_class(
                     value    = value,
-                    extra    = None,
-                    children = (PatriciaLink(
-                        prefix = node.children[idx].prefix[len(common_prefix):],
-                        node   = node.children[idx].node),))
-                node.children[idx].prefix = common_prefix
-                node.children[idx].node   = new_node
+                    children = (link_class(
+                        prefix = old_node.children[idx].prefix[len(common_prefix):],
+                        node   = old_node.children[idx].node),))
+                new_node = node_class(
+                    value    = old_node.value,
+                    children = (list(x for x in old_node.children[:idx]) +
+                                list((link_class(prefix=common_prefix, node=inner_node),)) +
+                                list(x for x in old_node.children[idx+1:])))
 
             elif common_prefix:
-                new_node = PatriciaNode(
-                    #start    = None,
-                    #end      = None,
+                leaf_node = node_class(
                     value    = value,
-                    extra    = None,
                     children = {})
-                inner_node = PatriciaNode(
-                    #start    = None,
-                    #end      = None,
+                inner_node = node_class(
                     value    = None,
-                    extra    = None,
                     children = {
                         remaining_key[len(common_prefix):]:
-                            new_node,
-                        node.children[idx].prefix[len(common_prefix):]:
-                            node.children[idx].node})
-                node.children[idx].prefix = common_prefix
-                node.children[idx].node   = inner_node
+                            leaf_node,
+                        old_node.children[idx].prefix[len(common_prefix):]:
+                            old_node.children[idx].node})
+                new_node = node_class(
+                    value    = old_node.value,
+                    children = (list(x for x in old_node.children[:idx]) +
+                                list((link_class(prefix=common_prefix, node=inner_node),)) +
+                                list(x for x in old_node.children[idx+1:])))
 
             else:
-                new_node = PatriciaNode(
-                    #start    = None,
-                    #end      = None,
+                leaf_node = node_class(
                     value    = value,
-                    extra    = None,
                     children = {})
-                node.children.insert(idx, PatriciaLink(prefix=remaining_key, node=new_node))
+                new_node = node_class(
+                    value    = old_node.value,
+                    children = (list(x for x in old_node.children[:idx]) +
+                                list((link_class(prefix=remaining_key, node=leaf_node),)) +
+                                list(x for x in old_node.children[idx:])))
 
-            node.size += 1
-            node.length += 1
-
-        del node.hash
-        self._propogate(node, path=path)
+        self._propogate(new_node, path=path)
 
     def update(self, other=None, **kwargs):
         """x.update(E, **F) -> None. update x from trie/dict/iterable E or F.
@@ -448,32 +440,39 @@ class PatriciaNode(SerializableMixin, HashableMixin):
     def _delete(self, key):
         key, key_ = self._prepare_key(key), key
 
-        path = list()
-        prefix, node = self._get_by_key(key, path=path)
+        link_class = getattr(self, 'get_link_class',
+            lambda: getattr(self, 'link_class', PatriciaLink))()
+        node_class = getattr(self, 'get_node_class',
+            lambda: getattr(self, 'node_class', self.__class__))()
 
-        if prefix != key or node.value is None:
+        path = list()
+        prefix, old_node = self._get_node_by_key(key, path=path)
+
+        if prefix != key or old_node.value is None:
             raise KeyError(key_)
 
-        node.value = None
-        node.size -= 1
-        node.length -= 1
-        del node.hash
+        new_node = node_class(value=None, children=old_node.children)
 
-        if path and not node.size:
+        if path and not new_node.size:
             # Remove from parent
-            node, idx, prefix = path.pop()
-            del node.children[idx]
-            del node.hash
+            parent, idx, prefix = path.pop()
+            new_node = node_class(
+                value    = parent.value,
+                children = (list(x for x in parent.children[:idx]) +
+                            list(x for x in parent.children[idx+1:])))
 
-        while all([path, len(node.children)==1, node.value is None]):
+        while all([path, len(new_node.children)==1, new_node.value is None]):
             # Squash with child node
             parent, idx, prefix = path.pop()
-            parent.children[idx].prefix += node.children[0].prefix
-            parent.children[idx].node    = node.children[0].node
-            del parent.hash
-            node = parent
+            new_node = node_class(
+                value    = parent.value,
+                children = (list(x for x in parent.children[:idx]) +
+                            list((link_class(
+                                prefix = prefix + new_node.children[0].prefix,
+                                node   = new_node.children[0].node),)) +
+                            list(x for x in parent.children[idx+1:])))
 
-        self._propogate(node, path=path)
+        self._propogate(new_node, path=path)
 
     def delete(self, keys):
         """x.delete(E) -> None. Same as `for k in E: del x[k]`"""
@@ -483,6 +482,11 @@ class PatriciaNode(SerializableMixin, HashableMixin):
     def __delitem__(self, key):
         "x.__delitem__(y) <==> del x[y]"
         self.delete([key])
+
+    def copy(self):
+        node_class = getattr(self, 'get_node_class',
+            lambda: getattr(self, 'node_class', self.__class__))()
+        return node_class(value=self.value, children=self.children)
 
 #
 # End of File
