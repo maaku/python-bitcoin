@@ -360,6 +360,7 @@ class TestMerkleNodeScenarios(unittest2.TestCase):
 
 class TestMerkleNode(unittest2.TestCase):
     def test_init_invalid(self):
+        # Empty list
         with self.assertRaises(TypeError):
             MerkleNode(right=0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091)
         with self.assertRaises(TypeError):
@@ -368,6 +369,45 @@ class TestMerkleNode(unittest2.TestCase):
             MerkleNode(length=1)
         with self.assertRaises(TypeError):
             MerkleNode(size=1, length=1)
+        with self.assertRaises(TypeError):
+            MerkleNode(prune=MerkleNode.LEFT_NODE)
+        with self.assertRaises(TypeError):
+            MerkleNode(prune=MerkleNode.RIGHT_NODE)
+
+        # Single element or fully pruned list
+        with self.assertRaises(TypeError):
+            MerkleNode(MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091))
+        with self.assertRaises(TypeError):
+            MerkleNode(MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091,
+                                  0x9185d9dd0d7d7fd062351fc9f892419c3b84a0ade87ab2a8afd5ce0a1cf495d8))
+        with self.assertRaises(TypeError):
+            MerkleNode(left=MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091))
+        with self.assertRaises(TypeError):
+            MerkleNode(left=MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091,
+                                       0x9185d9dd0d7d7fd062351fc9f892419c3b84a0ade87ab2a8afd5ce0a1cf495d8))
+        with self.assertRaises(TypeError):
+            MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091, length=2)
+        with self.assertRaises(TypeError):
+            MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091, size=2, length=2)
+
+        mn = MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091,
+                        prune=None)
+        self.assertEqual(mn.size, 1)
+        self.assertEqual(mn.length, 1)
+        self.assertIs(mn.prune, None)
+        mn = MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091,
+                        length=0)
+        self.assertEqual(mn.size, 1)
+        self.assertEqual(mn.length, 0)
+        self.assertIs(mn.prune, mn.LEFT_NODE)
+        mn = MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091,
+                        prune=MerkleNode.LEFT_NODE)
+        self.assertEqual(mn.size, 1)
+        self.assertEqual(mn.length, 0)
+        self.assertIs(mn.prune, mn.LEFT_NODE)
+        with self.assertRaises(TypeError):
+            MerkleNode(0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091,
+                       prune=MerkleNode.RIGHT_NODE)
 
 # ===----------------------------------------------------------------------===
 
