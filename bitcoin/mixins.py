@@ -7,8 +7,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
-from python_patterns.utils.decorators import Property
-
 __all__ = [
     'SerializableMixin',
     'HashableMixin',
@@ -63,20 +61,16 @@ class HashableMixin(object):
         # to be recomputed with a simple `del block.hash`:
         self.hash__setter(None)
 
-    @Property
-    def hash():
+    @property
+    def hash(self):
         """The hash value is changed whenever the binary representation of the
         block changes, and is recomputed as necessary. This is accomplished
         efficiently by having `hash` be recomputed on access, if necessary,
         and the result cached."""
-        def fget(self):
-            return self.hash__getter()
-        def fdel(self):
-            self.hash__deleter()
-        return locals()
-
-    def __bytes__(self):
-        return self.serialize()
+        return self.hash__getter()
+    @hash.deleter
+    def hash(self):
+        self.hash__deleter()
 
 #
 # End of File
