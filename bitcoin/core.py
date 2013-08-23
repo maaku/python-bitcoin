@@ -26,6 +26,7 @@ __all__ = [
     'Input',
     'Transaction',
     'Block',
+    'ConnectedBlockInfo',
 ]
 
 # ===----------------------------------------------------------------------===
@@ -309,6 +310,9 @@ class Block(SerializableMixin, HashableMixin):
         if target < 0:
             return 0
         return (1<<256) // (target+1)
+
+ConnectedBlockInfo = recordtype('ConnectedBlockInfo',
+    ['parent', 'height', 'aggregate_work'])
 
 #
 # End of File
