@@ -23,12 +23,6 @@ class SerializableMixin(object):
         super(SerializableMixin, self).__init__(*args, **kwargs)
         self.deserialize = MethodType(self.deserialize, self, self.__class__)
 
-    @Property
-    def size():
-        def fget(self):
-            return len(self.serialize())
-        return locals()
-
 # ===----------------------------------------------------------------------===
 
 class HashableMixin(object):
