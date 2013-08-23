@@ -149,7 +149,7 @@ class Proxy(object):
 
         # Generate a pseudo-random numeric identifier for this request:
         self._ctr = (self._ctr+1) & 0xffffffff
-        hash_ = sha1(''.join([
+        hash_ = sha1(b''.join([
             self.uri, self.service, self.username,
             serialize_hash(self._ctr, 4), time.ctime(),
             serialize_hash(randrange(2**32), 4)])).digest()
