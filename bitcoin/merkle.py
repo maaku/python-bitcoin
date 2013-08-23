@@ -135,7 +135,13 @@ class MerkleNode(HashableMixin):
             # length is 1 for a list of size 1, 0 otherwise.
             size = max((size, 1))
             if length is None:
-                length = size==1 and 1 or 0
+                length = (size==1 and prune is None) and 1 or 0
+            if not (0 <= length <= 1):
+                raise TypeError(u"impossible length for single element node: %d" % length)
+            if prune not in (None,) + (length and () or (self.LEFT_NODE,)):
+                raise TypeError(u"impossible length for single element node: %d" % length)
+            if not length:
+                prune = self.LEFT_NODE
 
         else:
             left_is_hash  = isinstance(left,  numbers.Integral)
