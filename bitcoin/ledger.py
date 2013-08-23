@@ -13,7 +13,9 @@ import six
 from blist import sorteddict
 
 from .core import Output
+from .crypto import hash256
 from .mixins import SerializableMixin
+from .patricia import PatriciaNode
 from .serialize import (
     serialize_leint, deserialize_leint,
     serialize_varint, deserialize_varint)
@@ -225,6 +227,64 @@ class UnspentTransaction(SerializableMixin, sorteddict):
             self.version,
             self.height,
             self.reference_height)
+
+# ===----------------------------------------------------------------------===
+
+class BaseTxIdOutputsIndex(object):
+    key_class = hash256
+    value_class = UnspentTransaction
+
+class TxIdOutputsIndex(BaseTxIdOutputsIndex, PatriciaNode):
+    pass
+
+# ===----------------------------------------------------------------------===
+
+from recordtype import recordtype
+
+ContractOutPoint = recordtype('ContractOutPoint', ['contract', 'output_hash', 'output_index'])
+ContractOutPoint._pickler = ScriptPickler()
+def _serialize_contract_outpoint(self):
+    return b''.join([self._pickler.dumps(self.contract.serialize()),
+                     hash256.serialize(self.output_hash),
+                     serialize_varint(self.output_index)])
+ContractOutPoint.serialize = _serialize_contract_outpoint
+def _deserialize_contract_outpoint(cls, file_):
+    kwargs = {}
+    kwargs['contract'] = cls._pickler.load(file_)
+    kwargs['output_hash'] = hash256.deserialize(file_)
+    kwargs['output_index'] = deserialize_varint(file_)
+    return cls(**kwargs)
+ContractOutPoint.deserialize = classmethod(_deserialize_contract_outpoint)
+
+OutputData = recordtype('OutputData',
+    ['version', 'amount', 'coinbase', 'height', 'reference_height'])
+OutputData.is_coinbase = OutputData.coinbase
+def _serialize_output_data(self):
+    result  = serialize_varint(self.version)
+    result += serialize_varint((self.height<<1)|self.is_coinbase)
+    result += serialize_varint(compress_amount(self.amount))
+    if self.version in (2,):
+        result += serialize_varint((self.height<<1)|self.reference_height)
+    return result
+OutputData.serialize = _serialize_output_data
+def _deserialize_output_data(cls, file_):
+    kwargs = {}
+    kwargs['version'] = deserialize_varint(file_)
+    code = deserialize_varint(file_)
+    kwargs['coinbase'] = code & 1
+    kwargs['height'] = code >> 1
+    kwargs['amount'] = decompress_amount(deserialize_varint(file_))
+    if kwargs['version'] in (2,):
+        kwargs['reference_height'] = deserialize_varint(file_)
+    return cls(**kwargs)
+OutputData.deserialize = classmethod(_deserialize_output_data)
+
+class BaseContractOutputsIndex(object):
+    key_class = ContractOutPoint
+    value_class = OutputData
+
+class ContractOutputsIndex(BaseContractOutputsIndex, PatriciaNode):
+    pass
 
 #
 # End of File
