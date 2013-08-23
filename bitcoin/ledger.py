@@ -218,9 +218,13 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         return super(UnspentTransaction, self).__eq__(other)
     __ne__ = lambda a,b:not a==b
     def __repr__(self):
-        return '%s%s' % (
+        return '%s%s, coinbase=%s, version=%d, height=%d, reference_height=%d)' % (
             self.__class__.__name__,
-            super(UnspentTransaction, self).__repr__()[10:])
+            super(UnspentTransaction, self).__repr__()[10:-1],
+            self.is_coinbase,
+            self.version,
+            self.height,
+            self.reference_height)
 
 #
 # End of File
