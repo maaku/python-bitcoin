@@ -226,30 +226,39 @@ class Transaction(SerializableMixin, HashableMixin):
 from .merkle import MerkleList
 
 class Block(SerializableMixin, HashableMixin):
-    def __init__(self, version=1, prev_block=0, merkle_root=None, time=0,
-                 bits=0x1d00ffff, nonce=0, vtx=None, *args, **kwargs):
-        if None not in (merkle_root, vtx):
-            if getattr(merkle_root, 'hash', merkle_root) != merkle(vtx):
-                raise ValueError(
-                    u"merkle_root does not match merkle(vtx); are you "
-                    u"sure you know what you're doing?")
-        else:
-            if vtx         is None: vtx         = ()
-            if merkle_root is None: merkle_root = MerkleList(vtx)
+    def __init__(self, version=1, parent_hash=0, merkle_hash=0,
+                 time=0, bits=0x1d00ffff, nonce=0, *args, **kwargs):
+        parent = kwargs.pop('parent', None)
+        parent = getattr(parent, 'hash', parent)
+        parent_hash = getattr(parent_hash, 'hash', parent_hash)
+        if None not in (parent, parent_hash) and parent != parent_hash:
+            raise ValueError( u"parent.hash does not match parent_hash; are "
+                u"you sure you know what you're doing?")
+        parent_hash = parent_hash or parent or 0
+
+        merkle = kwargs.pop('merkle', None)
+        merkle = getattr(merkle, 'hash', merkle)
+        merkle_hash = getattr(merkle_hash, 'hash', merkle_hash)
+        if None not in (merkle, merkle_hash) and merkle != merkle_hash:
+            raise ValueError( u"merkle.hash does not match merkle_hash; are "
+                u"you sure you know what you're doing?")
+        merkle_hash = merkle_hash or merkle or 0
+
         super(Block, self).__init__(*args, **kwargs)
-        self.version = version
-        self.prev_block_hash = getattr(prev_block, 'hash', prev_block)
-        self.merkle_root_hash = getattr(merkle_root, 'hash', merkle_root)
-        self.time = time
-        self.bits = bits
-        self.nonce = nonce
+
+        self.version     = version
+        self.parent_hash = parent_hash
+        self.merkle_hash = merkle_hash
+        self.time        = time
+        self.bits        = bits
+        self.nonce       = nonce
 
     def serialize(self):
         if self.version not in (1,2):
             raise NotImplementedError()
         result  = pack('<I', self.version)
-        result += serialize_hash(self.prev_block_hash, 32)
-        result += serialize_hash(self.merkle_root_hash, 32)
+        result += serialize_hash(self.parent_hash, 32)
+        result += serialize_hash(self.merkle_hash, 32)
         result += pack('<I', self.time)
         result += pack('<I', self.bits)
         result += pack('<I', self.nonce)
@@ -262,8 +271,8 @@ class Block(SerializableMixin, HashableMixin):
         initargs['version'] = unpack('<I', file_.read(4))[0]
         if initargs['version'] not in (1,2):
             raise NotImplementedError()
-        initargs['prev_block'] = deserialize_hash(file_, 32)
-        initargs['merkle_root'] = deserialize_hash(file_, 32)
+        initargs['parent_hash'] = deserialize_hash(file_, 32)
+        initargs['merkle_hash'] = deserialize_hash(file_, 32)
         initargs['time'] = unpack('<I', file_.read(4))[0]
         initargs['bits'] = unpack('<I', file_.read(4))[0]
         initargs['nonce'] = unpack('<I', file_.read(4))[0]
@@ -278,15 +287,15 @@ class Block(SerializableMixin, HashableMixin):
                     self.nonce       == other.nonce])
     def __repr__(self):
         return ('%s(version=%d, '
-                   'prev_block=0x%064x, '
-                   'merkle_root=0x%064x, '
+                   'parent_hash=0x%064x, '
+                   'merkle_hash=0x%064x, '
                    'time=%s, '
                    'bits=0x%08x, '
                    'nonce=0x%08x)' % (
             self.__class__.__name__,
             self.version,
-            self.prev_block_hash,
-            self.merkle_root_hash,
+            self.parent_hash,
+            self.merkle_hash,
             self.time,
             self.bits,
             self.nonce))
