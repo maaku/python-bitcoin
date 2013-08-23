@@ -20,7 +20,7 @@ from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
-from .tools import StringIO, list, target_from_compact, tuple
+from .tools import StringIO, icmp, list, target_from_compact, tuple
 
 __all__ = [
     'ChainParameters',
@@ -68,8 +68,8 @@ class Output(SerializableMixin):
         return cls(**initargs)
 
     def __eq__(self, other):
-        return (self.amount   == other.amount and
-                self.contract == other.contract)
+        return all([self.amount   == other.amount,
+                    self.contract == other.contract])
     def __repr__(self):
         return '%s(amount=%d.%08d, contract=%s)' % (
             self.__class__.__name__,
@@ -201,11 +201,11 @@ class Transaction(SerializableMixin, HashableMixin):
         return 1==len(self.inputs) and not self.inputs[0].is_coinbase
 
     def __eq__(self, other):
-        return (self.version          == other.version          and
-                self.lock_time        == other.lock_time        and
-                self.reference_height == other.reference_height and
-                tuple(self.inputs)    == tuple(other.inputs)    and
-                tuple(self.outputs)   == tuple(other.outputs))
+        return all([self.version          == other.version,
+                    self.lock_time        == other.lock_time,
+                    self.reference_height == other.reference_height,
+                    icmp(iter(self.inputs),  iter(other.inputs))  == 0,
+                    icmp(iter(self.outputs), iter(other.outputs)) == 0])
     def __repr__(self):
         reference_height_str = (self.version in (2,)
             and ', reference_height=%d' % self.reference_height
@@ -270,12 +270,12 @@ class Block(SerializableMixin, HashableMixin):
         return cls(**initargs)
 
     def __eq__(self, other):
-        return (self.version          == other.version          and
-                self.prev_block_hash  == other.prev_block_hash  and
-                self.merkle_root_hash == other.merkle_root_hash and
-                self.time             == other.time             and
-                self.bits             == other.bits             and
-                self.nonce            == other.nonce)
+        return all([self.version     == other.version,
+                    self.parent_hash == other.parent_hash,
+                    self.merkle_hash == other.merkle_hash,
+                    self.time        == other.time,
+                    self.bits        == other.bits,
+                    self.nonce       == other.nonce])
     def __repr__(self):
         return ('%s(version=%d, '
                    'prev_block=0x%064x, '
