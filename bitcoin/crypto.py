@@ -11,7 +11,7 @@ import hashlib
 
 from python_patterns.utils.decorators import Property
 
-from .serialize import deserialize_hash
+from .serialize import serialize_hash, deserialize_hash
 from .tools import StringIO
 
 __all__ = [
@@ -206,6 +206,11 @@ class _HashAlgorithmInterface(tuple):
         def fget(self):
             return ':'.join(map(lambda n:n.encode('utf-8'), self))
         return locals()
+
+    def serialize(self, hash_):
+        return serialize_hash(hash_, self.digest_size)
+    def deserialize(self, file_):
+        return deserialize_hash(file_, self.digest_size)
 
 # (sha256 . ripemd160) is used for Bitcoin addresses, as the 20-byte ripemd160
 # hash can save significant space.
