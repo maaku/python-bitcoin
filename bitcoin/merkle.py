@@ -110,7 +110,7 @@ SENTINAL = object()
 # of the Merkle-tree structure, or the subtree rooted at that node.
 
 class MerkleNode(HashableMixin):
-    __slots__ = ('left', 'right', 'size', 'length', 'prune', '_hash')
+    __slots__ = 'left right size length prune _hash'.split()
 
     LEFT_NODE = False
     RIGHT_NODE = True
