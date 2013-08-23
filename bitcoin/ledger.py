@@ -106,7 +106,7 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         a = 'transaction' in kwargs
         b = other is not None
         c = any(x in kwargs for x in (
-            'coinbase', 'version', 'height', 'reference_height'))
+            'coinbase', 'version', 'reference_height'))
         if a + b + c >= 2: # <-- yes, you can do this
             raise TypeError(u"instantiate by either specifying the "
                 u"transaction directly, another %s, or its individual "
