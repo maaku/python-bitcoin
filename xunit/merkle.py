@@ -361,7 +361,7 @@ class TestMerkleNodeScenarios(unittest2.TestCase):
 class TestMerkleNode(unittest2.TestCase):
     def test_init_invalid(self):
         with self.assertRaises(TypeError):
-            MerkleNode(right=0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091L)
+            MerkleNode(right=0x5880db25cc6daec28346dd784d1e632515c5e13997c055b05be6e9aeac918091)
         with self.assertRaises(TypeError):
             MerkleNode(size=1)
         with self.assertRaises(TypeError):
