@@ -209,9 +209,9 @@ class UnspentTransaction(SerializableMixin, sorteddict):
 
     def __eq__(self, other):
         # Compare metadata first, as it's probably less expensive
-        if any((self.version     != other.version,
+        if any((self.height      != other.height,
                 self.is_coinbase != other.is_coinbase,
-                self.height      != other.height)):
+                self.version     != other.version)):
             return False
         if self.version in (2,) and self.reference_height != other.reference_height:
             return False
