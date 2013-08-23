@@ -35,7 +35,7 @@ class HashableMixin(object):
     store cached hash values."""
     from .crypto import hash256 as compressor
 
-    def hash__getter(self):
+    def hash__getter(self, *args, **kwargs):
         # Cryptographic hashes are expensive, so `hash` is only recomputed if
         # the binary representation has changed or if no cached value exists.
         # When such an event occurs that could change the objects hash value
@@ -50,7 +50,7 @@ class HashableMixin(object):
         # Hash doesn't exist or has been set to `None` (indicating a need to
         # recompute). So calculate the new hash value, and cache it for future
         # access:
-        value = compressor.new(self.__bytes__()).intdigest()
+        value = compressor.new(self.__bytes__(*args, **kwargs)).intdigest()
         self.hash__setter(value)
         # Return the newly computed hash to the caller.
         return value
