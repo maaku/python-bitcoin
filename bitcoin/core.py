@@ -7,6 +7,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
+import calendar
 import numbers
 from struct import pack, unpack
 
@@ -258,7 +259,11 @@ class Block(SerializableMixin, HashableMixin):
         result  = pack('<I', self.version)
         result += serialize_hash(self.parent_hash, 32)
         result += serialize_hash(self.merkle_hash, 32)
-        result += pack('<I', self.time)
+        if isinstance(self.time, numbers.Integral):
+            time = self.time
+        else:
+            time = calendar.timegm(self.time.utctimetuple())
+        result += pack('<I', time)
         result += pack('<I', self.bits)
         result += pack('<I', self.nonce)
         return result
