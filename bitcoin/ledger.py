@@ -255,6 +255,10 @@ def _deserialize_contract_outpoint(cls, file_):
     kwargs['index'] = deserialize_varint(file_)
     return cls(**kwargs)
 ContractOutPoint.deserialize = classmethod(_deserialize_contract_outpoint)
+def _repr_contract_outpoint(self):
+    return '%s(contract=%s, hash=%064x, index=%d)' % (
+        self.__class__.__name__, repr(self.contract), self.hash, self.index)
+ContractOutPoint.__repr__ = _repr_contract_outpoint
 
 OutputData = recordtype('OutputData',
     ['version', 'amount', 'coinbase', 'height', 'reference_height'])
