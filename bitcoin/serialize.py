@@ -128,7 +128,7 @@ def deserialize_beint(file_, len_):
 serialize_hash = serialize_leint
 deserialize_hash = deserialize_leint
 
-def serialize_list(list_, serializer):
+def serialize_list(list_, serializer=lambda i:i.serialize()):
     result = serialize_varint(len(list_))
     for item in list_:
         result += serializer(item)
