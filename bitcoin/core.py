@@ -151,9 +151,9 @@ class Transaction(SerializableMixin, HashableMixin):
         if outputs is None: outputs = ()
         super(Transaction, self).__init__(*args, **kwargs)
         self.version = version
-        getattr(self, 'inputs_create', lambda x:setattr(x, 'inputs', list()))(self)
+        getattr(self, 'inputs_create', lambda:setattr(x, 'inputs', list()))
         self.inputs.extend(inputs)
-        getattr(self, 'outputs_create', lambda x:setattr(x, 'outputs', list()))(self)
+        getattr(self, 'outputs_create', lambda:setattr(x, 'outputs', list()))
         self.outputs.extend(outputs)
         self.lock_time = lock_time
         self.reference_height = reference_height
