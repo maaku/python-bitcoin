@@ -87,42 +87,6 @@ CHAIN_PARAMETERS = {
             546: 0x000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70L,
         },
         features = {}),
-    'org.dot-bit.namecoin' : ChainParameters(
-        magic = 'f9beb4fe'.decode('hex'),
-        port = 8334,
-        genesis = (
-            'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADcvT5vBhIVvzszg8jOLsIBvGWs3j'
-            'JZVEmshokL0txkHBM6pN/38AHJKhHqIBAQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-            'AAAAAP////9UBP9/ABwCCgJLLi4uIGNob29zZSB3aGF0IGNvbWVzIG5leHQuICBMaXZlcyBvZiB5'
-            'b3VyIG93biwgb3IgYSByZXR1cm4gdG8gY2hhaW5zLiAtLSBW/////wEA8gUqAQAAAENBBLYgNpBQ'
-            'zYmf+7xOjuUejEU0qFW7RjQ51j0jXUd5aF2Lb0hwojjPNlrJT6E++aKiLNmdDV7obcq8r842x6z0'
-            'POWsAAAAAA=='
-        ).decode('base64'),
-        testnet = False,
-        max_value = 2100000000000000L,
-        transient_reward = SteppedGeometric(50*100000000, 210000),
-        transient_budget = lambda *args, **kwargs:(0, {}),
-        perpetual_reward = Constant(0),
-        perpetual_budget = lambda *args, **kwargs:(0, {}),
-        fee_budget = lambda *args, **kwargs:(0, {}),
-        maximum_target = target_from_compact(0x1d00ffff),
-        next_target = lambda *args, **kwargs:0,
-        alert_keys = [],
-        checkpoints = {
-            0:     0x000000000062b72c5e2ceb45fbc8587e807c155b0da735e6483dfba2f0a9c770L,
-            2016:  0x0000000000660bad0d9fbde55ba7ee14ddf766ed5f527e3fbca523ac11460b92L,
-            4032:  0x0000000000493b5696ad482deb79da835fe2385304b841beef1938655ddbc411L,
-            6048:  0x000000000027939a2e1d8bb63f36c47da858e56d570f143e67e85068943470c9L,
-            8064:  0x000000000003a01f708da7396e54d081701ea406ed163e519589717d8b7c95a5L,
-            10080: 0x00000000000fed3899f818b2228b4f01b9a0a7eeee907abd172852df71c64b06L,
-            12096: 0x0000000000006c06988ff361f124314f9f4bb45b6997d90a7ee4cedf434c670fL,
-            14112: 0x00000000000045d95e0588c47c17d593c7b5cb4fb1e56213d1b3843c1773df2bL,
-            16128: 0x000000000001d9964f9483f9096cf9d6c6c2886ed1e5dec95ad2aeec3ce72fa9L,
-            18940: 0x00000000000087f7fc0c8085217503ba86f796fa4984f7e5a08b6c4c12906c05L,
-            30240: 0xe1c8c862ff342358384d4c22fa6ea5f669f3e1cdcf34111f8017371c3c0be1daL,
-            57000: 0xaa3ec60168a0200799e362e2b572ee01f3c3852030d07d036e0aa884ec61f203L,
-        },
-        features = {}),
     'in.freico' : ChainParameters(
         magic = '2cfe7e6d'.decode('hex'),
         port = 8639,
