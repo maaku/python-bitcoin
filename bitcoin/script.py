@@ -420,6 +420,16 @@ OPCODE_NAMES = {
 
 # ===----------------------------------------------------------------------===
 
+class BaseScriptError(Exception):
+    "Base class for all Script-related encode/decode exceptions"
+
+class BaseScriptDecodeError(BaseScriptError):
+    "Error while parsing bitcoin script"
+class EmptyScriptError(BaseScriptDecodeError):
+    "Attempted to retrieve opcode from empty script"
+class MissingPushDataError(BaseScriptDecodeError):
+    "End-of-script encountered while parsing multi-byte push code"
+
 class ScriptOp(SerializableMixin, six.binary_type):
     def __new__(cls, opcode=None, data=None, *args, **kwargs):
         # If just data is specified, then we automatically fill-in the opcode
@@ -446,7 +456,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
         # this limit.
         if opcode==OP_INVALIDOPCODE:
             raise ValueError(u"invalid opcode")
-        elif opcode>0 and opcode<OP_PUSHDATA1 and opcode!=len(data):
+        elif 0 < opcode < OP_PUSHDATA1 and opcode!=len(data):
             raise ValueError(u"opcode/data-length mismatch")
         elif (opcode==OP_PUSHDATA1 and len(data)>0xff or
               opcode==OP_PUSHDATA2 and len(data)>0xffff or
@@ -454,13 +464,13 @@ class ScriptOp(SerializableMixin, six.binary_type):
             raise ValueError(u"data length exceeds serialization limit")
 
         result = pack('<B', opcode)
-        if opcode==OP_PUSHDATA1:
+        if opcode == OP_PUSHDATA1:
             result += pack('<B', len(data))
-        elif opcode==OP_PUSHDATA2:
+        elif opcode == OP_PUSHDATA2:
             result += pack('<H', len(data))
-        elif opcode==OP_PUSHDATA4:
+        elif opcode == OP_PUSHDATA4:
             result += pack('<I', len(data))
-        if opcode>0 and opcode<=OP_PUSHDATA4:
+        if 0 < opcode <= OP_PUSHDATA4:
             result += data
 
         return super(ScriptOp, cls).__new__(cls, result, *args, **kwargs)
@@ -481,24 +491,25 @@ class ScriptOp(SerializableMixin, six.binary_type):
     @classmethod
     def deserialize(cls, file_):
         opcode = file_.read(1)
-        if not len(opcode): raise StopIteration
+        if not len(opcode):
+            raise EmptyScriptError
         opcode = unpack('<B', opcode)[0]
 
         datalen = 0
-        if opcode<OP_PUSHDATA1:
+        if opcode < OP_PUSHDATA1:
             datalen = opcode
-        elif opcode==OP_PUSHDATA1:
+        elif opcode == OP_PUSHDATA1:
             datalen = unpack('<B', file_.read(1))[0]
-        elif opcode==OP_PUSHDATA2:
+        elif opcode == OP_PUSHDATA2:
             datalen = unpack('<H', file_.read(2))[0]
-        elif opcode==OP_PUSHDATA4:
+        elif opcode == OP_PUSHDATA4:
             datalen = unpack('<I', file_.read(4))[0]
         if datalen:
             data = file_.read(datalen)
         else:
-            data = ''
+            data = b''
         if len(data) != datalen:
-            raise ValueError(u"unexpected end-of-file in data string")
+            raise MissingPushDataError
 
         if opcode<=OP_PUSHDATA4:
             return cls(opcode, data)
@@ -506,11 +517,11 @@ class ScriptOp(SerializableMixin, six.binary_type):
 
     @property
     def boolean(self):
-        if self.opcode==OP_0:
+        if self.opcode == OP_0:
             return False
-        if self.opcode==OP_1NEGATE:
+        if self.opcode == OP_1NEGATE:
             return True
-        if self.opcode>=OP_1 and self.opcode<=OP_16:
+        if OP_1 <= self.opcode <= OP_16:
             return True
         if self.opcode in xrange(1,OP_PUSHDATA4+1):
             return (
@@ -528,11 +539,11 @@ class ScriptOp(SerializableMixin, six.binary_type):
 
     @property
     def integral(self):
-        if self.opcode==OP_1NEGATE:
+        if self.opcode == OP_1NEGATE:
             return -1
-        elif self.opcode==OP_0:
+        elif self.opcode == OP_0:
             return 0
-        elif self.opcode>=OP_1 and self.opcode<=OP_16:
+        elif OP_1 <= self.opcode <= OP_16:
             return self.opcode - OP_1 + 1
         elif self.opcode in xrange(1,OP_PUSHDATA4+1):
             data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
@@ -550,7 +561,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
             self.opcode = OP_1NEGATE
         elif value == 0:
             self.opcode = OP_0
-        elif value >= 1 and value <= 16:
+        elif 1 <= value <= 16:
             self.opcode = OP_1 + value - 1
         else:
             neg = value < 1
