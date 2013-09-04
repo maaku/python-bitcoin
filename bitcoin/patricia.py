@@ -23,16 +23,55 @@ SENTINAL = object()
 
 # ===----------------------------------------------------------------------===
 
-from recordtype import recordtype
-PatriciaLink = recordtype('PatriciaLink', 'prefix node'.split())
-PatriciaLink.__lt__ = lambda self, other: (self.prefix, self.node) <  (other.prefix, other.node)
-PatriciaLink.__le__ = lambda self, other: (self.prefix, self.node) <= (other.prefix, other.node)
-PatriciaLink.__eq__ = lambda self, other: (self.prefix, self.node) == (other.prefix, other.node)
-PatriciaLink.__ne__ = lambda self, other: (self.prefix, self.node) != (other.prefix, other.node)
-PatriciaLink.__ge__ = lambda self, other: (self.prefix, self.node) >= (other.prefix, other.node)
-PatriciaLink.__gt__ = lambda self, other: (self.prefix, self.node) >  (other.prefix, other.node)
-PatriciaLink.__repr__ = lambda self: '%s(prefix=\'%s\'.decode(\'hex\'), node=0x%064x)' % (
-    self.__class__.__name__, self.prefix.encode('hex'), self.node.hash)
+class PatriciaLink(SerializableMixin, HashableMixin):
+    __slots__ = ('prefix', 'node', '_hash')
+
+    def __init__(self, prefix, node, _hash=None, *args, **kwargs):
+        super(PatriciaLink, self).__init__(*args, **kwargs)
+        self.prefix, self.node, self._hash = prefix, node, _hash
+
+    def __lt__(self, other): return (self.prefix, self.node) <  (other.prefix, other.node)
+    def __le__(self, other): return (self.prefix, self.node) <= (other.prefix, other.node)
+    def __eq__(self, other): return (self.prefix, self.node) == (other.prefix, other.node)
+    def __ne__(self, other): return (self.prefix, self.node) != (other.prefix, other.node)
+    def __ge__(self, other): return (self.prefix, self.node) >= (other.prefix, other.node)
+    def __gt__(self, other): return (self.prefix, self.node) >  (other.prefix, other.node)
+
+    def serialize(self, digest=False):
+        result = serialize_varchar(self.prefix)
+        if digest:
+            result += serialize_hash(self.hash, 32)
+        else:
+            result += serialize_varchar(self.node.serialize(digest=digest))
+        return result
+    @classmethod
+    def deserialize_node(cls, file_, *args, **kwargs):
+        node_class = getattr(self, 'get_node_class', lambda:
+                     getattr(self, 'node_class', PatriciaNode))()
+        return node_class.deserialize(file_, *args, **kwargs)
+    @classmethod
+    def deserialize(cls, file_, digest=False, *args, **kwargs):
+        initargs = {}
+        initargs['prefix'] = deserialize_varchar(file_)
+        if digest:
+            initargs['hash'] = deserialize_hash(file_, 32)
+        else:
+            initargs['node'] = cls.deserialize_node(file_, digest=digest, *args, **kwargs)
+        return cls(**initargs)
+
+    def hash__getter(self):
+        if getattr(self, '_hash', None) is not None:
+            return self._hash
+        value = getattr(self.node, 'hash', None)
+        self.hash__setter(value)
+        return value
+
+    def __repr__(self):
+        return ('%s(prefix=\'%s\'.decode(\'hex\'), '
+                   'node=0x%064x)') % (
+            self.__class__.__name__,
+            self.prefix.encode('hex'),
+            self.hash or 0)
 
 # ===----------------------------------------------------------------------===
 
@@ -112,14 +151,8 @@ class PatriciaNode(SerializableMixin, HashableMixin):
     def serialize(self, digest=False):
         flags = self.flags
         result = serialize_varint(flags)
-        if digest:
-            result += serialize_list(self.children,
-                lambda child:b''.join([serialize_varchar(child.prefix),
-                                       serialize_hash(child.node.hash, 32)]))
-        else:
-            result += serialize_list(self.children,
-                lambda child:b''.join([serialize_varchar(child.prefix),
-                                       serialize_varchar(child.node.serialize(digest=digest))]))
+        result += serialize_list(self.children,
+            lambda l:l.serialize(digest=digest))
         if flags & self.HAS_VALUE:
             result += serialize_varchar(self.value)
         if flags & self.HAS_EXTRA:
@@ -131,7 +164,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         hash = deserialize_hash(file_, 32)
         return getattr(cls, 'get_link_class',
             lambda: getattr(cls, 'link_class', PatriciaLink)
-            )(prefix=prefix, node=nodes[hash], *args, **kwargs)
+            )(prefix=prefix, node=nodes[hash], _hash=hash, *args, **kwargs)
     @classmethod
     def deserialize(cls, file_, nodes=None, *args, **kwargs):
         nodes = nodes or {}
@@ -372,7 +405,8 @@ class PatriciaNode(SerializableMixin, HashableMixin):
                     value    = value,
                     children = (link_class(
                         prefix = old_node.children[idx].prefix[len(common_prefix):],
-                        node   = old_node.children[idx].node),))
+                        node   = old_node.children[idx].node,
+                        _hash  = old_node.children[idx]._hash),))
                 new_node = node_class(
                     value    = old_node.value,
                     children = (list(x for x in old_node.children[:idx]) +
@@ -467,7 +501,8 @@ class PatriciaNode(SerializableMixin, HashableMixin):
                 children = (list(x for x in parent.children[:idx]) +
                             list((link_class(
                                 prefix = prefix + new_node.children[0].prefix,
-                                node   = new_node.children[0].node),)) +
+                                node   = new_node.children[0].node,
+                                _hash  = new_node.children[0]._hash),)) +
                             list(x for x in parent.children[idx+1:])))
 
         self._propogate(new_node, path=path)
