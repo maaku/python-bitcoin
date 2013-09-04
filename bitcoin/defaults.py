@@ -33,6 +33,9 @@ CHAIN_PARAMETERS = {
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
         ).decode('base64'),
         testnet = False,
+        pubkey_hash_prefix = 0,
+        script_hash_prefix = 5,
+        secret_prefix = 128,
         max_value = 2100000000000000L,
         transient_reward = SteppedGeometric(50*100000000, 210000),
         transient_budget = lambda *args, **kwargs:(0, {}),
@@ -67,6 +70,9 @@ CHAIN_PARAMETERS = {
             'cTC3EFzWqCjgOQmmeWLg6h9h3rZJ9rw/TO84xPNVBOUewRLeXDhN97oLjVeKTHAra/EdX6wAAAAA'
         ).decode('base64'),
         testnet = True,
+        pubkey_hash_prefix = 111,
+        script_hash_prefix = 196,
+        secret_prefix = 239,
         max_value = 2100000000000000L,
         transient_reward = SteppedGeometric(50*100000000, 210000),
         transient_budget = lambda *args, **kwargs:(0, {}),
@@ -148,6 +154,9 @@ CHAIN_PARAMETERS = {
             'iKwAAAAAAAAAAA=='
         ).decode('base64'),
         testnet = False,
+        pubkey_hash_prefix = 0,
+        script_hash_prefix = 5,
+        secret_prefix = 128,
         max_value = 9999999999999999L,
         transient_reward = LinearArithmetic(50*100000000, 210000),
         transient_budget = lambda *args, **kwargs:(0, {}),
@@ -194,6 +203,9 @@ CHAIN_PARAMETERS = {
             'iKwAAAAAAAAAAA=='
         ).decode('base64'),
         testnet = False,
+        pubkey_hash_prefix = 111,
+        script_hash_prefix = 196,
+        secret_prefix = 239,
         max_value = 9999999999999999L,
         transient_reward = LinearArithmetic(50*100000000, 210000),
         transient_budget = lambda *args, **kwargs:(0, {}),
