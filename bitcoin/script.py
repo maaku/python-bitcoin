@@ -436,7 +436,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
         # as required to push the data on the stack.
         if opcode is None and data:
             len_ = len(data)
-            if 0 < len_ < OP_PUSHDATA1:
+            if 0 <= len_ < OP_PUSHDATA1:
                 opcode = len_
             elif OP_PUSHDATA1 <= len_ <= 0xff:
                 opcode = OP_PUSHDATA1
@@ -445,10 +445,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
             elif 0xffff < len_ < 0xffffffff:
                 opcode = OP_PUSHDATA4
             else:
-                if not len_:
-                    raise TypeError(u"cannot push empty string")
-                else:
-                    raise TypeError(u"string exceeds maximum length")
+                raise TypeError(u"pushed data exceeds maximum length")
 
         # The push opcode encodes the length of the data to be pushed, or
         # the size of the length which directly follows. In either case we
@@ -511,8 +508,8 @@ class ScriptOp(SerializableMixin, six.binary_type):
         if len(data) != datalen:
             raise MissingPushDataError
 
-        if opcode<=OP_PUSHDATA4:
-            return cls(opcode, data)
+        if 0 < opcode <= OP_PUSHDATA4:
+            return cls(opcode, data=data)
         return cls(opcode)
 
     @property
