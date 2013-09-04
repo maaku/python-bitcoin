@@ -25,7 +25,7 @@ BITCOIN_ADDRESS = [
     dict(version  = BitcoinAddress.PUBKEY_HASH,
          hash     = 533613946177287109634438767478602490652520581919L,
          base58   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP",
-         script   = Script([
+         script   = Script().join([
                         ScriptOp(OP_DUP),
                         ScriptOp(OP_HASH160),
                         ScriptOp(data='1f8b1340c286881bcc449c37569ae320b013785d'.decode('hex')),
@@ -35,7 +35,7 @@ BITCOIN_ADDRESS = [
     dict(version  = BitcoinAddress.SCRIPT_HASH,
          hash     = 1439889050650639417403043439503616658465773899358L,
          base58   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G",
-         script   = Script([
+         script   = Script().join([
                         ScriptOp(OP_HASH160),
                         ScriptOp(data='5ece0cadddc415b1980f001785947120acdb36fc'.decode('hex')),
                         ScriptOp(OP_EQUAL),
@@ -44,7 +44,7 @@ BITCOIN_ADDRESS = [
     dict(version  = BitcoinAddress.PUBKEY_HASH,
          hash     = 0,
          base58   = u"1111111111111111111114oLvT2",
-         script   = Script([
+         script   = Script().join([
                         ScriptOp(OP_DUP),
                         ScriptOp(OP_HASH160),
                         ScriptOp(data='\x00'*20),
@@ -54,7 +54,7 @@ BITCOIN_ADDRESS = [
     dict(version  = BitcoinAddress.SCRIPT_HASH,
          hash     = 0,
          base58   = u"31h1vYVSYuKP6AhS86fbRdMw9XHieotbST",
-         script   = Script([
+         script   = Script().join([
                         ScriptOp(OP_HASH160),
                         ScriptOp(data='\x00'*20),
                         ScriptOp(OP_EQUAL),

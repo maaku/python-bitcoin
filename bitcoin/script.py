@@ -579,40 +579,43 @@ class ScriptOp(SerializableMixin, six.binary_type):
             self.data = data
 
     def __repr__(self):
+        data_str = ''.join([
+            '\'',
+            (self.data or '').encode('hex'),
+            '\'.decode(\'hex\')'])
         if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
-            return ''.join(['\'', self.data.encode('hex'), '\'.decode(\'hex\')'])
+            return data_str
         else:
-            if self.opcode in OPCODE_NAMES:
+            if self.opcode in OPCODE_NAMES and self.data is None:
                 return OPCODE_NAMES[self.opcode]
             else:
-                return "OP_UNKNOWN"
+                if self.data is None:
+                    data_str = ''
+                else:
+                    data_str = ', data=' + data_str
+                return 'ScriptOp(%d%s)' % (self.opcode, data_str)
 
 # ===----------------------------------------------------------------------===
 
-class Script(SerializableMixin, tuple):
-    def __new__(cls, *args, **kwargs):
-        if len(args)==1 and isinstance(args[0], str) and not kwargs:
-            return cls.deserialize(StringIO(args[0]))
-        return super(Script, cls).__new__(cls, *args, **kwargs)
+class Script(SerializableMixin, six.binary_type):
+    def __iter__(self):
+        script_op_class = getattr(self, 'get_script_op_class', lambda:
+                          getattr(self, 'script_op_class', ScriptOp))()
+        file_ = StringIO(self)
+        while True:
+            yield script_op_class.deserialize(file_)
 
     def serialize(self):
-        return serialize_varchar(''.join(map(lambda op:op.serialize(), self)))
+        return serialize_varchar(self)
     @classmethod
     def deserialize(cls, file_):
-        l = []
-        input_ = StringIO(deserialize_varchar(file_))
-        try:
-            while True:
-                l.append(ScriptOp.deserialize(input_))
-        except StopIteration: pass
-        return cls(l)
+        return cls(deserialize_varchar(file_))
 
-    def __eq__(self, other, *args, **kwargs):
-        if isinstance(other, str):
-            return self.serialize() == other
-        return super(Script, self).__eq__(other, *args, **kwargs)
     def __repr__(self):
-        return u"Script([%s])" % ', '.join(map(repr, self))
+        try:
+            return u"Script([%s])" % ', '.join(map(repr, self))
+        except:
+            return u"Script(\'%s\'.decode(\'hex\'))" % self.encode('hex')
 
 # ===----------------------------------------------------------------------===
 

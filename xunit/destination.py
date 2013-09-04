@@ -23,20 +23,20 @@ from bitcoin.tools import StringIO
 PUBKEY = [
     dict(verifying_key = VerifyingKey.deserialize(StringIO(
              'muqdFiyLkdVygf59nrWJFwJMHCBhdYdU2tXs8AUz7iWD'.decode('base58'))),
-         script=Script([
+         script = Script().join([
              ScriptOp(data=('029b4b68495bb7cdc737fada24b80adff2b7a08d77424368'
                             'e7ae56f5f14980b282').decode('hex')),
              ScriptOp(OP_CHECKSIG)])),
     dict(verifying_key = VerifyingKey.deserialize(StringIO(
              '28kSUszMTVjiXUNNjN8aFMzj4Ztfp36ktAtoPgqUW1Fy7'.decode('base58'))),
-         script=Script([
+         script = Script().join([
              ScriptOp(data=('03d0e86fa3d42ebcd38019e976dd66d32d4339060f705b8f'
                             '70f407647aa6ff52de').decode('hex')),
              ScriptOp(OP_CHECKSIG)])),
     dict(verifying_key = VerifyingKey.deserialize(StringIO(
              ('QaWyScoeyxXKkPc8C8CBhsGfegd5NxVZGju32yBHEX86'
               'kw3qEoYo9uu2k4ZtAnyZ6dvBaY2egggd2JujSxZgduW5').decode('base58'))),
-         script=Script([
+         script = Script().join([
              ScriptOp(data=('049b4b68495bb7cdc737fada24b80adff2b7a08d77424368'
                             'e7ae56f5f14980b2828013534e6c110c2c596a05eb3453cb'
                             'dd69be14fece788d6a2e855fb9c96bed36').decode('hex')),
@@ -60,7 +60,7 @@ class TestPubKeyDestination(unittest2.TestCase):
 
 PUBKEY_HASH = [
     dict(hash = 0x29769fadffdedd8f594d3b41783bafa427ca46ae,
-         script = Script([
+         script = Script().join([
              ScriptOp(OP_DUP),
              ScriptOp(OP_HASH160),
              ScriptOp(data='ae46ca27a4af3b78413b4d598fdddeffad9f7629'.decode('hex')),
@@ -85,7 +85,7 @@ class TestPubKeyHashDestination(unittest2.TestCase):
 
 SCRIPT_HASH = [
     dict(hash = 0xcb9f3b7c6fb1cf2c13a40637c189bdd066a272b4,
-         script = Script([
+         script = Script().join([
              ScriptOp(OP_HASH160),
              ScriptOp(data='b472a266d0bd89c13706a4132ccfb16f7c3b9fcb'.decode('hex')),
              ScriptOp(OP_EQUAL)])),

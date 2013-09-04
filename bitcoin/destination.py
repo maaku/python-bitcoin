@@ -90,26 +90,29 @@ class PubKeyId(BaseId):
         del self.script
 
     def _script__getter(self):
-        return Script([ScriptOp(data=self._verifying_key.serialize()),
-                       ScriptOp(OP_CHECKSIG)])
+        return Script().join([
+            ScriptOp(data=self._verifying_key.serialize()),
+            ScriptOp(OP_CHECKSIG)])
 
 class PubKeyHashId(HashId):
     """Destination for standard version=0 bitcoin addresses, which contain the
     hash160 of the public-key used to redeem them."""
     def _script__getter(self):
-        return Script([ScriptOp(OP_DUP),
-                       ScriptOp(OP_HASH160),
-                       ScriptOp(data=self.hash_digest),
-                       ScriptOp(OP_EQUALVERIFY),
-                       ScriptOp(OP_CHECKSIG)])
+        return Script().join([
+            ScriptOp(OP_DUP),
+            ScriptOp(OP_HASH160),
+            ScriptOp(data=self.hash_digest),
+            ScriptOp(OP_EQUALVERIFY),
+            ScriptOp(OP_CHECKSIG)])
 
 class ScriptHashId(HashId):
     """Destination for version=5 BIP-0013 bitcoin addresses, which contain a
     hash of the contract script actually used to redeem it."""
     def _script__getter(self):
-        return Script([ScriptOp(OP_HASH160),
-                       ScriptOp(data=self.hash_digest),
-                       ScriptOp(OP_EQUAL)])
+        return Script().join([
+            ScriptOp(OP_HASH160),
+            ScriptOp(data=self.hash_digest),
+            ScriptOp(OP_EQUAL)])
 #
 # End of File
 #
