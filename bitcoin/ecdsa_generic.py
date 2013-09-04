@@ -14,6 +14,7 @@ from struct import unpack
 
 from .base58 import VersionedPayload
 from .errors import InvalidSecretError
+from .mixins import SerializableMixin
 from .serialize import serialize_beint, deserialize_beint
 from .tools import StringIO
 
@@ -135,15 +136,10 @@ class Secret(VersionedPayload):
     # bytes in length and the final byte is '\x01'.
     compressed = property(lambda self:self.payload[32:] == six.int2byte(1))
 
-class Signature(tuple):
-    def __new__(cls, r, s=None, *args, **kwargs):
-        if s is None:
-            r, s = r.r, r.s
-        return super(Signature, cls).__new__(cls, (r, s), *args, **kwargs)
+from recordtype import recordtype
+BaseSignature = recordtype('BaseSignature', 'r s'.split())
 
-    r = property(lambda self:self[0])
-    s = property(lambda self:self[1])
-
+class Signature(SerializableMixin, BaseSignature):
     def serialize(self):
         def _serialize_sint(n):
             n_str = serialize_beint(n)
