@@ -230,11 +230,11 @@ class UnspentTransaction(SerializableMixin, sorteddict):
 
 # ===----------------------------------------------------------------------===
 
-class BaseTxIdOutputsIndex(object):
+class BaseTxIdIndex(object):
     key_class = hash256
     value_class = UnspentTransaction
 
-class TxIdOutputsIndex(BaseTxIdOutputsIndex, PatriciaNode):
+class TxIdIndex(BaseTxIdIndex, PatriciaNode):
     pass
 
 # ===----------------------------------------------------------------------===
@@ -279,11 +279,11 @@ def _deserialize_output_data(cls, file_):
     return cls(**kwargs)
 OutputData.deserialize = classmethod(_deserialize_output_data)
 
-class BaseContractOutputsIndex(object):
+class BaseContractIndex(object):
     key_class = ContractOutPoint
     value_class = OutputData
 
-class ContractOutputsIndex(BaseContractOutputsIndex, PatriciaNode):
+class ContractIndex(BaseContractIndex, PatriciaNode):
     pass
 
 #
