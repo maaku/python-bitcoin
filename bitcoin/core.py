@@ -79,13 +79,13 @@ class Output(SerializableMixin):
 # ===----------------------------------------------------------------------===
 
 class Input(SerializableMixin):
-    def __init__(self, output_hash=0, output_index=0xffffffff,
-                 endorsement=None, sequence=0xffffffff, *args, **kwargs):
+    def __init__(self, hash=0, index=0xffffffff, endorsement=None,
+                 sequence=0xffffffff, *args, **kwargs):
         if endorsement is None:
             endorsement = kwargs.pop('coinbase', self.get_script_class()())
         super(Input, self).__init__(*args, **kwargs)
-        self.output_hash = output_hash
-        self.output_index = output_index
+        self.hash = hash
+        self.index = index
         self.endorsement = endorsement
         self.sequence = sequence
 
@@ -94,8 +94,8 @@ class Input(SerializableMixin):
         return getattr(cls, 'script_class', Script)
 
     def serialize(self):
-        result  = serialize_hash(self.output_hash, 32)
-        result += pack('<I', self.output_index)
+        result  = serialize_hash(self.hash, 32)
+        result += pack('<I', self.index)
         if hasattr(self.endorsement, 'serialize'):
             result += self.endorsement.serialize()
         else:
@@ -105,12 +105,12 @@ class Input(SerializableMixin):
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        initargs['output_hash'] = deserialize_hash(file_, 32)
-        initargs['output_index'] = unpack('<I', file_.read(4))[0]
+        initargs['hash'] = deserialize_hash(file_, 32)
+        initargs['index'] = unpack('<I', file_.read(4))[0]
         str_ = deserialize_varchar(file_) # <-- might be coinbase!
         initargs['sequence'] = unpack('<I', file_.read(4))[0]
-        if not all((initargs['output_hash']  == 0,
-                    initargs['output_index'] == 0xffffffff)):
+        if not all((initargs['hash']  == 0,
+                    initargs['index'] == 0xffffffff)):
             initargs['coinbase'] = str_
         else:
             initargs['endorsement'] = cls.get_script_class().deserialize(
@@ -119,25 +119,25 @@ class Input(SerializableMixin):
 
     @property
     def is_coinbase(self):
-        return all((self.output_hash  == 0,
-                    self.output_index == 0xffffffff))
+        return all((self.hash  == 0,
+                    self.index == 0xffffffff))
 
     def __eq__(self, other):
-        return all((self.output_hash  == other.output_hash,
-                    self.output_index == other.output_index,
-                    self.endorsement  == other.endorsement,
-                    self.sequence     == other.sequence))
+        return all((self.hash        == other.hash,
+                    self.index       == other.index,
+                    self.endorsement == other.endorsement,
+                    self.sequence    == other.sequence))
 
     def __repr__(self):
         sequence_str = (self.sequence!=0xffffffff
             and ', sequence=%d' % self.sequence
              or '')
-        return ('%s(output_hash=0x%064x, '
-                   'output_index=%d, '
+        return ('%s(hash=0x%064x, '
+                   'index=%d, '
                    '%s=%s%s)') % (
             self.__class__.__name__,
-            self.output_hash,
-            self.output_index==0xffffffff and -1 or self.output_index,
+            self.hash,
+            self.index==0xffffffff and -1 or self.index,
             self.is_coinbase and 'coinbase' or 'endorsement',
             repr(self.endorsement),
             sequence_str)

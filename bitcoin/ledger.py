@@ -241,18 +241,18 @@ class TxIdOutputsIndex(BaseTxIdOutputsIndex, PatriciaNode):
 
 from recordtype import recordtype
 
-ContractOutPoint = recordtype('ContractOutPoint', ['contract', 'output_hash', 'output_index'])
+ContractOutPoint = recordtype('ContractOutPoint', ['contract', 'hash', 'index'])
 ContractOutPoint._pickler = ScriptPickler()
 def _serialize_contract_outpoint(self):
     return b''.join([self._pickler.dumps(self.contract.serialize()),
-                     hash256.serialize(self.output_hash),
-                     serialize_varint(self.output_index)])
+                     hash256.serialize(self.hash),
+                     serialize_varint(self.index)])
 ContractOutPoint.serialize = _serialize_contract_outpoint
 def _deserialize_contract_outpoint(cls, file_):
     kwargs = {}
     kwargs['contract'] = cls._pickler.load(file_)
-    kwargs['output_hash'] = hash256.deserialize(file_)
-    kwargs['output_index'] = deserialize_varint(file_)
+    kwargs['hash'] = hash256.deserialize(file_)
+    kwargs['index'] = deserialize_varint(file_)
     return cls(**kwargs)
 ContractOutPoint.deserialize = classmethod(_deserialize_contract_outpoint)
 
