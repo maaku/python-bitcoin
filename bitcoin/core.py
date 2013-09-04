@@ -31,7 +31,6 @@ __all__ = [
 
 # ===----------------------------------------------------------------------===
 
-
 ChainParameters = recordtype('ChainParameters',
     ['magic', 'port', 'genesis', 'testnet', 'max_value', 'transient_reward',
      'transient_budget', 'perpetual_reward', 'perpetual_budget', 'fee_budget',
