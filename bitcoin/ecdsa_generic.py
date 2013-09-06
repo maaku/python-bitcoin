@@ -15,7 +15,7 @@ from struct import unpack
 from .base58 import VersionedPayload
 from .errors import InvalidSecretError
 from .mixins import SerializableMixin
-from .serialize import serialize_beint, deserialize_beint
+from .serialize import serialize_beint, deserialize_beint, serialize_bignum
 from .tools import StringIO
 
 from .ecdsa__common import *
@@ -141,13 +141,8 @@ BaseSignature = recordtype('BaseSignature', 'r s'.split())
 
 class Signature(SerializableMixin, BaseSignature):
     def serialize(self):
-        def _serialize_sint(n):
-            n_str = serialize_beint(n)
-            if not n_str or n_str[:1] > six.int2byte(0x7f):
-                n_str = six.int2byte(0) + n_str
-            return n_str
         def _serialize_derint(n):
-            n_str = _serialize_sint(n)
+            n_str = serialize_bignum(n)
             return b''.join([
                 six.int2byte(0x02),
                 six.int2byte(len(n_str)),

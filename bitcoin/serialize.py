@@ -25,6 +25,8 @@ __all__ = [
     'deserialize_beint',
     'serialize_leint',
     'deserialize_leint',
+    'serialize_bignum',
+    'deserialize_bignum',
     'serialize_hash',
     'deserialize_hash',
     'serialize_list',
@@ -124,6 +126,22 @@ def deserialize_beint(file_, len_):
         limb = unpack(">B", _force_read(file_, 1))[0]
         result = (result << 8) + limb
     return result
+
+def serialize_bignum(n, *args, **kwargs):
+    neg = n < 0
+    n_str = serialize_beint(n, *args, **kwargs)
+    if not n_str or n_str[:1] > six.int2byte(0x7f):
+        n_str = six.int2byte(0) + n_str
+    if neg:
+        n_str = b''.join([six.int2byte(ord(n_str[:1])|0x80), n_str[1:]])
+    return n_str
+
+def deserialize_bignum(file_, len_, *args, **kwargs):
+    n = deserialize_beint(file_, len_, *args, **kwargs)
+    e = 2**(len_*8 - 1)
+    if n >= e:
+        n = e - n
+    return n
 
 serialize_hash = serialize_leint
 deserialize_hash = deserialize_leint
