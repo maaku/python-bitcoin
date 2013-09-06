@@ -28,12 +28,18 @@ from bitcoin.patricia import *
 class TestPatriciaLink(unittest2.TestCase):
     def test_init(self):
         pn = PatriciaNode()
-        pl = PatriciaLink(b'', pn)
-        self.assertEqual(pl.prefix, b'')
+        pl = PatriciaLink(Bits(), pn)
+        self.assertEqual(pl.prefix, Bits())
         self.assertEqual(pl.node, pn)
-        pl2 = PatriciaLink(b'\x01', PatriciaNode())
-        self.assertEqual(pl2.prefix, b'\x01')
+        pl2 = PatriciaLink(Bits(bytes=b'\x80', length=1), PatriciaNode())
+        self.assertEqual(pl2.prefix.uint, 0x01)
         self.assertEqual(pl2.node, pn)
+        pl3 = PatriciaLink(Bits(bytes=b'\x80'), PatriciaNode())
+        self.assertEqual(pl3.prefix.uint, 0x80)
+        self.assertEqual(pl3.node, pn)
+        pl3 = PatriciaLink(b'\x80', PatriciaNode())
+        self.assertEqual(pl3.prefix.uint, 0x80)
+        self.assertEqual(pl3.node, pn)
 
     def test_eq(self):
         pn = PatriciaNode()
@@ -58,76 +64,61 @@ class TestPatriciaLink(unittest2.TestCase):
 class TestPatriciaNode(unittest2.TestCase):
     def test_init(self):
         pn = PatriciaNode()
-        self.assertEqual(pn.flags, 0)
-        self.assertEqual(pn.value, None)
-        self.assertEqual(pn.extra, None)
-        self.assertEqual(list(pn.children), [])
+        self.assertIs(pn.value, None)
+        self.assertEqual(icmp(pn.children, iter([])), 0)
         self.assertEqual(pn.hash,
-            0x905c0ed9955a5c67b7edc8881fe862fddce009a2294ef8f4ba03834b4aeb7f40)
+            0x9a538906e6466ebd2617d321f71bc94e56056ce213d366773699e28158e00614)
         pn2 = PatriciaNode(value=b'123')
-        self.assertEqual(pn2.flags, PatriciaNode.HAS_VALUE)
         self.assertEqual(pn2.value, b'123')
-        self.assertEqual(pn2.extra, None)
-        self.assertEqual(list(pn2.children), [])
+        self.assertEqual(icmp(pn2.children, iter([])), 0)
         self.assertEqual(pn2.hash,
-            0x15c6b6b38c63faf012642cefdf729ff2d49336d1e3f65f75f6233d7819f06a2f)
+            0x31d9ef51c7169e064ced0bf759d5b60f1067c12171414b30aae8359f8634a505)
         pl = PatriciaLink(b'abc', pn2)
         pn3 = PatriciaNode(children=[pl])
-        self.assertEqual(pn3.flags, 0)
-        self.assertEqual(pn3.value, None)
-        self.assertEqual(pn3.extra, None)
-        self.assertEqual(list(pn3.children), [pl])
+        self.assertIs(pn3.value, None)
+        self.assertEqual(icmp(pn3.children, iter([pl])), 0)
         self.assertEqual(pn3.hash,
-            0x9b6967124fb421102830af64a04ddcf5498b5c9d75f667464d1259c134ad7c3e)
+            0x54e70d605c1e8c043ecc062b5c2113958d5be9156bfb7ccdd78d152a716ea8f0)
         pn4 = PatriciaNode(children={b'abc': pn2})
-        self.assertEqual(pn4.flags, 0)
-        self.assertEqual(pn4.value, None)
-        self.assertEqual(pn4.extra, None)
-        self.assertEqual(list(pn4.children), [pl])
+        self.assertIs(pn4.value, None)
+        self.assertEqual(icmp(pn4.children, iter([pl])), 0)
         self.assertEqual(pn4.hash,
-            0x9b6967124fb421102830af64a04ddcf5498b5c9d75f667464d1259c134ad7c3e)
-        pn5 = PatriciaNode(b'456', b'', {b'abc': pn2})
-        self.assertEqual(pn5.flags, PatriciaNode.HAS_VALUE|PatriciaNode.HAS_EXTRA)
+            0x54e70d605c1e8c043ecc062b5c2113958d5be9156bfb7ccdd78d152a716ea8f0)
+        pn5 = PatriciaNode(b'456', {b'abc': pn2})
         self.assertEqual(pn5.value, b'456')
-        self.assertEqual(pn5.extra, b'')
-        self.assertEqual(list(pn4.children), [pl])
+        self.assertEqual(icmp(pn4.children, iter([pl])), 0)
         self.assertEqual(pn5.hash,
-            0x77c13dd7bb80e7b9a4574e42d23dd6b32f250e376f7a424dfe427fedbf3d393d)
+            0x2d9012770715c0d1b568d9a2a15a2e180fc654906b1a7570632cdc1eb60d6ad4)
 
     def test_invalid_init_parameters(self):
-        with self.assertRaises(TypeError):
-            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE)
-        with self.assertRaises(TypeError):
-            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=None)
         # An older version of PatriciaNode uses hashes for the `value` field.
         # The new code takes binary strings, and rejects integer values to make
         # finding bugs from the conversion process easier:
         with self.assertRaises(TypeError):
-            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE, value=0)
+            pn = PatriciaNode(0)
         with self.assertRaises(TypeError):
-            pn = PatriciaNode(flags=PatriciaNode.HAS_VALUE,
+            pn = PatriciaNode(
                 value = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d)
 
 SCENARIOS = [
-    dict(value = None, extra = None, children = [],
-         str_  = '\x00\x00',
-         hash_ = 0x905c0ed9955a5c67b7edc8881fe862fddce009a2294ef8f4ba03834b4aeb7f40),
+    dict(value = None, children = [],
+         str_  = '\x00',
+         hash_ = 0x9a538906e6466ebd2617d321f71bc94e56056ce213d366773699e28158e00614),
 ]
 
 class TestPatriciaNodeSerialization(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
         scenarios = SCENARIOS
-        def __test__(self, value, extra, children, str_, hash_):
-            pn = PatriciaNode(value, extra, children)
+        def __test__(self, value, children, str_, hash_):
+            pn = PatriciaNode(value, children)
             self.assertEqual(pn.serialize(), str_)
             self.assertEqual(pn.hash, hash_)
     class test_deserialize(ScenarioTest):
         scenarios = SCENARIOS
-        def __test__(self, value, extra, children, str_, hash_):
+        def __test__(self, value, children, str_, hash_):
             pn = PatriciaNode.deserialize(StringIO(str_))
             self.assertEqual(pn.value, value)
-            self.assertEqual(pn.extra, extra)
             self.assertEqual(list(pn.children), children)
             self.assertEqual(pn.hash, hash_)
 
@@ -145,85 +136,85 @@ VALUE_TO_ADDRESS = dict(
 
 SCENARIOS = [
     {
-        'hash_':   0x905c0ed9955a5c67b7edc8881fe862fddce009a2294ef8f4ba03834b4aeb7f40,
+        'hash_':   0x9a538906e6466ebd2617d321f71bc94e56056ce213d366773699e28158e00614,
     },
     {
         b'':       six.int2byte(1),
-        'hash_':   0x6738296fcff48401c1fd9bb15eec17b71437148ed763633e91f143e4f1f02054,
+        'hash_':   0x6a609a8df822a0f386ae1fb8c2ddf21d5d89ee2d8c33ecb26b93e20f25395b4e,
     },
     {
         b'abc':    six.int2byte(2),
-        'hash_':   0xe8616e6b3ac855f6769633b8dccd1408b5c32ef3a623afaba9c8fc2c4c9fb617,
+        'hash_':   0xa5b7211b16b848bc9a7fd6b31942ac193203b8f04ad2e843e432d55d5a99826f,
     },
     {
         b'':       six.int2byte(1),
         b'abc':    six.int2byte(2),
-        'hash_':   0x8c4222f0f3235fa0e85401b4ec895c08c6e3e8f9ac5385fbe24214190c0300ae,
+        'hash_':   0x414ce0b39054c83c974c2cbfe9b41d9a1a66b131df4b4aaba293af0dd7f0d021,
     },
     {
         b'abcdef': six.int2byte(4),
-        'hash_':   0xc15e1aa3ae5aa69ced4fa1edd7e74acd1fab334e955c309875c1817b2eef6733,
+        'hash_':   0x80650b95a10eda2685ff704a9f4223cf63984f69d299820674a9c681b80cad9c,
     },
     {
         b'':       six.int2byte(1),
         b'abcdef': six.int2byte(4),
-        'hash_':   0xeeaa7f935bf52eeabc7c8d4fe155ce1423bd70a468b365d6fffb6006bb65c023,
+        'hash_':   0xbd46cd17793d0665770531a900287824c7e5121ddb8a06af1bc0acdcae0ef80e,
     },
 
     {
         b'abc':    six.int2byte(2),
         b'abcdef': six.int2byte(4),
-        'hash_':   0x21286eaeb5bbf3bb3f7d3495e545ecd61c7f45fe44aef7134996feb7daa76e0a,
+        'hash_':   0xf4826935a0dfe20a424337e5b8bbb819b46c90611bd151ad0fcd678256642a05,
     },
     {
         b'':       six.int2byte(1),
         b'abc':    six.int2byte(2),
         b'abcdef': six.int2byte(4),
-        'hash_':   0x4dfc92218e29086a192d0ef65935a47a850ac5a5b3790d97c47c905bee55f1d8,
+        'hash_':   0x8c5fcd09790166f8ee1eb9006f8bd0a52d1bcf7c67a080bba97b9462ebe9f896,
     },
     {
         b'abcxyz': six.int2byte(8),
-        'hash_':   0xfff045a1793e673d10a62348d4036cdf868c4c5637cffd3edfb13f35f793307d,
+        'hash_':   0x93dedf0cb45949caeb5d51ccc7546230fa95cdd2c151b8fa56be25dba208ab3a,
     },
     {
         b'':       six.int2byte(1),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0x47febbfd9f086b183a606a16b68120f4aa83ee55d939fb0eaaed83841fbfd0db,
+        'hash_':   0xd3a22d638ced5fa69af7e0f95037648d314a35fbbbf931053ad0b047217d8ede,
     },
     {
         b'abc':    six.int2byte(2),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0x7c5c06324dfe4a8179c48ecad83c562a2e6fc1cef169b50864aaf694c5faef00,
+        'hash_':   0xe535258f1a8ef031b6efb28b2240af5599729da915bf67ad9f316cd14dc04bb7,
     },
     {
         b'':       six.int2byte(1),
         b'abc':    six.int2byte(2),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0xd8ddc61b4aae44cce2ce5704872600bdb814de3e1d8146c1f983c44a5bad3481,
+        'hash_':   0xc63f716e0a0a0dc1eeedb18974dfec42cb3c4c3defe0592d99abee18843070f7,
     },
     {
         b'abcdef': six.int2byte(4),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0xa087ef69c216ab4b6c83fcb5afcec482ff8f8a1712e4c853e969f0c70342e2e2,
+        'hash_':   0x8f4ea8888cd8cd396a0a2087ff73fed868bf68227fb7fac681e420c9816bcd36,
     },
     {
         b'':       six.int2byte(1),
         b'abcdef': six.int2byte(4),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0x793cb6b433ae8eb85f0b1b2f44546b7c8b37c17c50d1642130020bf6618484e2,
+        'hash_':   0x98aa1556d463e0df4f393a04beafacd9029dc59875ec73830433b8f630d79a13,
     },
     {
         b'abc':    six.int2byte(2),
         b'abcdef': six.int2byte(4),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0x9f841bcaef04c09bec17e0657744fcc53246c6b1d735f0ff232769eba7aaf47e,
+        'hash_':   0xf23395a33591a3552aee22131cb7356ce3a30d3e59d76650720e12f00ed7b6a9,
     },
     {
         b'':       six.int2byte(1),
         b'abc':    six.int2byte(2),
         b'abcdef': six.int2byte(4),
         b'abcxyz': six.int2byte(8),
-        'hash_':   0xf4127860ac4c624216f006ffc7b65b6f0885406fea1aae0c99a8f8841a3a1cab,
+        'hash_':   0x7077c51e84687c14128fa0b83c49f7a53cd490318623e5652eee9a289183b13b,
     },
 ]
 
