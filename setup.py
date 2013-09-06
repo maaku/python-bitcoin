@@ -59,6 +59,7 @@ setup(name='python-bitcoin',
     ],
     install_requires=[
         'bigfloat>=0.3.0a2',
+        'bitstring>=3.1.2',
         'blist>=1.3.4',
         'cdecimal>=2.3',
         'ecdsa>=0.8',

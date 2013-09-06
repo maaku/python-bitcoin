@@ -10,6 +10,7 @@
 "Miscellaneous types and utility codes used in other parts of python-bitcoin."
 
 __all__ = [
+    'Bits',
     'StringIO',
     'list',
     'tuple',
@@ -129,6 +130,15 @@ def icmp(a, b):
         return -1
     except StopIteration:
         return 0
+
+# ===----------------------------------------------------------------------===
+
+import bitstring
+bitstring.Bits.__lt__ = lambda self, other: icmp(iter(self), iter(other)) <  0
+bitstring.Bits.__le__ = lambda self, other: icmp(iter(self), iter(other)) <= 0
+bitstring.Bits.__ge__ = lambda self, other: icmp(iter(self), iter(other)) >= 0
+bitstring.Bits.__gt__ = lambda self, other: icmp(iter(self), iter(other)) >  0
+from bitstring import Bits
 
 # ===----------------------------------------------------------------------===
 
