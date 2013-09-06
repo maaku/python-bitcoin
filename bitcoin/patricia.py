@@ -203,6 +203,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
     def __nonzero__(self):
         "x.__nonzero__() <==> bool(x)"
         return bool(self.length)
+    __bool__ = __nonzero__
 
     def __lt__(self, other):
         "x.__lt__(o) <==> x < o"
