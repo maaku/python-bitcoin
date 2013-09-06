@@ -22,7 +22,7 @@ from .core import ChainParameters
 from .tools import target_from_compact, Constant, LinearArithmetic, SteppedGeometric
 
 CHAIN_PARAMETERS = {
-    'org.bitcoin' : ChainParameters(
+    'bitcoin.org' : ChainParameters(
         magic = 'f9beb4d9'.decode('hex'),
         port = 8333,
         genesis = (
@@ -59,7 +59,7 @@ CHAIN_PARAMETERS = {
             225430: 0x00000000000001c108384350f74090433e7fcf79a606b8e797f065b130575932L,
         },
         features = {}),
-    'org.bitcoin.testnet3' : ChainParameters(
+    'testnet3.bitcoin.org' : ChainParameters(
         magic = '0b110907'.decode('hex'),
         port = 18333,
         genesis = (
@@ -87,7 +87,7 @@ CHAIN_PARAMETERS = {
             546: 0x000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70L,
         },
         features = {}),
-    'in.freico' : ChainParameters(
+    'freico.in' : ChainParameters(
         magic = '2cfe7e6d'.decode('hex'),
         port = 8639,
         genesis = (
@@ -136,7 +136,7 @@ CHAIN_PARAMETERS = {
             15779: 0x000000000003eb31742b35f5efd8ffb5cdd19dcd8e82cdaad90e592c450363b6L,
         },
         features = {}),
-    'in.freico.testnet' : ChainParameters(
+    'testnet.freico.in' : ChainParameters(
         magic = '5ed67cf3'.decode('hex'),
         port = 18639,
         genesis = (
