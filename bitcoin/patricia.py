@@ -539,7 +539,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
                                 list((link_class(prefix=common_prefix, node=inner_node),)) +
                                 list(x for x in old_node.children[idx+1:])))
 
-            elif common_prefix:
+            elif len(common_prefix):
                 leaf_node = node_class(
                     value    = value,
                     children = {})
