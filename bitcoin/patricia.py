@@ -24,7 +24,7 @@ SENTINAL = object()
 # ===----------------------------------------------------------------------===
 
 class PatriciaLink(SerializableMixin, HashableMixin):
-    __slots__ = ('prefix', 'node', '_hash')
+    __slots__ = 'prefix node _hash'.split()
 
     def __init__(self, prefix, node, _hash=None, *args, **kwargs):
         super(PatriciaLink, self).__init__(*args, **kwargs)
