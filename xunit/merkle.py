@@ -12,8 +12,8 @@ from six.moves import xrange
 # Python standard library, unit-testing
 import unittest2
 
-# Python patterns, scenario unit-testing
-from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
+# Scenario unit-testing
+from scenariotest import ScenarioMeta, ScenarioTest
 
 # Python bitcoin, iterator compare
 from bitcoin.tools import icmp

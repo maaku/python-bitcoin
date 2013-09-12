@@ -18,8 +18,8 @@ import unittest2
 from bitcoin.tools import StringIO
 # Python bitcoin, iterator compare
 from bitcoin.tools import icmp
-# Python patterns, scenario unit-testing
-from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
+# Scenario unit-testing
+from scenariotest import ScenarioMeta, ScenarioTest
 
 from bitcoin.patricia import *
 

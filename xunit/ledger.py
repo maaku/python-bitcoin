@@ -10,8 +10,8 @@
 # Python standard library, unit-testing
 import unittest2
 
-# Python patterns, scenario unit-testing
-from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
+# Scenario unit-testing
+from scenariotest import ScenarioMeta, ScenarioTest
 
 from bitcoin.ledger import *
 from bitcoin.core import Output

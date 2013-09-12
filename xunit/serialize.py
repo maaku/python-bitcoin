@@ -13,8 +13,8 @@ import six
 # Python standard library, unit-testing
 import unittest2
 
-# Python patterns, scenario unit-testing
-from python_patterns.unittest.scenario import ScenarioMeta, ScenarioTest
+# Scenario unit-testing
+from scenariotest import ScenarioMeta, ScenarioTest
 
 # Python patterns, base encoding
 from bitcoin.serialize import *
