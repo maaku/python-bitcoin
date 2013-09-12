@@ -31,7 +31,7 @@ SENTINAL = object()
 
 import numbers
 
-class PatriciaLink(SerializableMixin, HashableMixin):
+class PatriciaLink(HashableMixin):
     __slots__ = 'prefix node _hash'.split()
 
     def __init__(self, prefix, node=None, hash=None, *args, **kwargs):
@@ -48,28 +48,6 @@ class PatriciaLink(SerializableMixin, HashableMixin):
     @property
     def pruned(self):
         return self.node is None
-
-    def serialize(self, digest=False):
-        result = serialize_varchar(self.prefix)
-        if digest:
-            result += serialize_hash(self.hash, 32)
-        else:
-            result += serialize_varchar(self.node.serialize(digest=digest))
-        return result
-    @classmethod
-    def deserialize_node(cls, file_, *args, **kwargs):
-        node_class = getattr(self, 'get_node_class', lambda:
-                     getattr(self, 'node_class', PatriciaNode))()
-        return node_class.deserialize(file_, *args, **kwargs)
-    @classmethod
-    def deserialize(cls, file_, digest=False, *args, **kwargs):
-        initargs = {}
-        initargs['prefix'] = deserialize_varchar(file_)
-        if digest:
-            initargs['hash'] = deserialize_hash(file_, 32)
-        else:
-            initargs['node'] = cls.deserialize_node(file_, digest=digest, *args, **kwargs)
-        return cls(**initargs)
 
     def hash__getter(self):
         if getattr(self, '_hash', None) is not None:
@@ -241,7 +219,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         return flags
 
     def serialize(self, digest=False):
-        def _serialize_link(link):
+        def _serialize_branch(link):
             len_ = len(link.prefix)
             if len_ >= 3:
                 parts.append(serialize_varint(len_-3))
@@ -256,9 +234,9 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             flags &= self.HASH_MASK
         parts.append(pack('B', flags))
         if self.left is not None:
-            _serialize_link(self.left)
+            _serialize_branch(self.left)
         if self.right is not None:
-            _serialize_link(self.right)
+            _serialize_branch(self.right)
         if self.value is not None:
             parts.append(serialize_varchar(self.value))
         return b''.join(parts)
