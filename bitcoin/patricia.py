@@ -626,10 +626,14 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         "x.__delitem__(y) <==> del x[y]"
         self.delete([key])
 
-    def copy(self):
-        node_class = getattr(self, 'get_node_class',
-            lambda: getattr(self, 'node_class', self.__class__))()
-        return node_class(value=self.value, children=self.children)
+    def copy(self, node_class=None):
+        if node_class is None:
+            node_class = getattr(self, 'get_node_class',
+                lambda: getattr(self, 'node_class', self.__class__))()
+        return node_class(
+            value       = self.value,
+            children    = self.children,
+            prune_value = self.prune_value)
 
 class MemoryPatriciaDict(BasePatriciaDict):
     pass
