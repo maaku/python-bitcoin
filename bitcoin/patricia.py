@@ -663,6 +663,28 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             length += self._trim(prefix)
         return length
 
+    def _prune(self, key):
+        link_class = getattr(self, 'get_link_class',
+            lambda: getattr(self, 'link_class', PatriciaLink))()
+        node_class = getattr(self, 'get_node_class',
+            lambda: getattr(self, 'node_class', self.__class__))()
+
+        key, _key, path = self._prepare_key(key), key, list()
+        prefix, old_node = self._get_node_by_key(key, path=path)
+        if key != prefix or old_node.value is None or old_node.prune_value:
+            raise KeyError(_key)
+
+        new_node = node_class(
+            value       = old_node.value,
+            children    = old_node.children,
+            prune_value = True)
+        self._propogate(new_node, path=path)
+
+    def prune(self, keys):
+        "Removes the specified keys without changing any hash values."
+        for key in keys:
+            self._prune(key)
+
     def _delete(self, key):
         key, key_ = self._prepare_key(key), key
 

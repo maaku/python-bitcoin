@@ -601,6 +601,47 @@ class TestPatriciaDictScenarios6(unittest2.TestCase):
             self.assertEqual(pn3.size, gmpy2.popcount(flags))
             self.assertEqual(pn3.length, gmpy2.popcount(flags&3))
 
+    def test_prune(self):
+        for flags in xrange(16):
+            pn = MemoryPatriciaDict()
+            old_items = set((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
+            pn.update(old_items)
+            for idx,scenario in enumerate(SCENARIOS):
+                if idx|flags != flags or idx&flags != idx:
+                    continue
+                new_items = set((k,v) for k,v in six.iteritems(scenario) if k != 'hash_')
+                pn2 = MemoryPatriciaDict()
+                pn2.update(pn)
+                pn3 = MemoryPatriciaDict()
+                pn3.update(pn)
+                pn4 = MemoryPatriciaDict()
+                pn4.update(pn)
+                for d in (pn, pn2, pn3, pn4):
+                    self.assertEqual(d.hash, SCENARIOS[flags]['hash_'])
+                    self.assertEqual(d.size, gmpy2.popcount(flags))
+                    self.assertEqual(d.length, gmpy2.popcount(flags))
+                keys = set()
+                for (k,v) in new_items:
+                    pn2.prune([k])
+                    pn3.prune(iter([k]))
+                    keys.add(k)
+                pn4.prune(keys)
+                self.assertEqual(pn.hash, SCENARIOS[flags]['hash_'])
+                self.assertEqual(pn.size, gmpy2.popcount(flags))
+                self.assertEqual(pn.length, gmpy2.popcount(flags))
+                for d in (pn2, pn3, pn4):
+                    del d.hash
+                    self.assertEqual(d.hash, SCENARIOS[flags]['hash_'])
+                    self.assertEqual(d.size, gmpy2.popcount(flags))
+                    self.assertEqual(d.length, gmpy2.popcount(flags) - len(new_items))
+                    self.assertEqual(set(d.items()), old_items - new_items)
+                    for key,value in old_items:
+                        if key in keys:
+                            with self.assertRaises(KeyError):
+                                d.prune([key])
+                        else:
+                            self.assertEqual(d[key], value)
+
                 for item in old_items:
                     if item in new_items:
                         self.assertEqual(d[item[0]], item[1])
