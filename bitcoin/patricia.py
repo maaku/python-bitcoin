@@ -94,7 +94,7 @@ class PatriciaLink(HashableMixin):
     def __repr__(self):
         parts = []
         parts.append('prefix=%s' % repr(self.prefix))
-        parts.append('hash=0x%064x' % (self.hash or 0))
+        parts.append((self.pruned and 'hash' or 'node') + '=0x%064x' % (self.hash or 0))
         return '%s(%s)' % (self.__class__.__name__, ', '.join(parts))
 
 # ===----------------------------------------------------------------------===
@@ -106,7 +106,7 @@ from struct import pack, unpack
 class BasePatriciaDict(SerializableMixin, HashableMixin):
     """An ordered dictionary implemented with a hybrid
     level- and node-compressed prefix tree."""
-    __slots__ = 'value children _hash size length'.split()
+    __slots__ = 'value prune_value children _hash size length'.split()
 
     OFFSET_LEFT  = 0
     OFFSET_RIGHT = 2
@@ -355,27 +355,27 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         path = [(self, 0, Bits())]
         while path:
             node, idx, prefix = path.pop()
-            if idx==0 and node.value is not None:
+            if idx==0 and node.value is not None and not node.prune_value:
                 yield (self._unpickle_key(prefix), self._unpickle_value(node.value))
             if idx<len(node.children):
                 path.append((node, idx+1, prefix))
-                path.append((
-                    node.children[idx].node,
-                    0,
-                    prefix + node.children[idx].prefix))
+                link = node.children[idx]
+                if not link.pruned:
+                    path.append((link.node, 0, prefix + link.prefix))
 
     def _reverse_iterator(self):
         "Returns a reverse/backwards iterator over the trie"
         path = [(self, len(self.children)-1, Bits())]
         while path:
             node, idx, prefix = path.pop()
-            if idx<0 and node.value is not None:
+            if idx<0 and node.value is not None and not node.prune_value:
                 yield (self._unpickle_key(prefix), self._unpickle_value(node.value))
             if idx>=0:
                 path.append((node, idx-1, prefix))
                 link = node.children[idx]
-                node = link.node
-                path.append((node, len(node.children)-1, prefix + link.prefix))
+                if not link.pruned:
+                    node = link.node
+                    path.append((node, len(node.children)-1, prefix + link.prefix))
 
     def items(self):
         "x.items() -> list of x's (key, value) pairs, as 2-tuples in sorted order"
@@ -434,6 +434,8 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         while prefix != key:
             for idx,link in enumerate(node.children):
                 if subkey.startswith(link.prefix):
+                    if link.pruned:
+                        return (prefix, node)
                     subkey = subkey[len(link.prefix):]
                     prefix += link.prefix
                     if path is not None:
@@ -535,10 +537,11 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
                         node   = old_node.children[idx].node,
                         hash   = old_node.children[idx]._hash),))
                 new_node = node_class(
-                    value    = old_node.value,
-                    children = (list(x for x in old_node.children[:idx]) +
-                                list((link_class(prefix=common_prefix, node=inner_node),)) +
-                                list(x for x in old_node.children[idx+1:])))
+                    value       = old_node.value,
+                    children    = (list(x for x in old_node.children[:idx]) +
+                                   list((link_class(prefix=common_prefix, node=inner_node),)) +
+                                   list(x for x in old_node.children[idx+1:])),
+                    prune_value = old_node.prune_value)
 
             elif len(common_prefix):
                 leaf_node = node_class(
@@ -552,20 +555,22 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
                         old_node.children[idx].prefix[len(common_prefix):]:
                             old_node.children[idx].node})
                 new_node = node_class(
-                    value    = old_node.value,
-                    children = (list(x for x in old_node.children[:idx]) +
-                                list((link_class(prefix=common_prefix, node=inner_node),)) +
-                                list(x for x in old_node.children[idx+1:])))
+                    value       = old_node.value,
+                    children    = (list(x for x in old_node.children[:idx]) +
+                                   list((link_class(prefix=common_prefix, node=inner_node),)) +
+                                   list(x for x in old_node.children[idx+1:])),
+                    prune_value = old_node.prune_value)
 
             else:
                 leaf_node = node_class(
                     value    = value,
                     children = {})
                 new_node = node_class(
-                    value    = old_node.value,
-                    children = (list(x for x in old_node.children[:idx]) +
-                                list((link_class(prefix=remaining_key, node=leaf_node),)) +
-                                list(x for x in old_node.children[idx:])))
+                    value       = old_node.value,
+                    children    = (list(x for x in old_node.children[:idx]) +
+                                   list((link_class(prefix=remaining_key, node=leaf_node),)) +
+                                   list(x for x in old_node.children[idx:])),
+                    prune_value = old_node.prune_value)
 
         self._propogate(new_node, path=path)
 
@@ -616,21 +621,23 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             # Remove from parent
             parent, idx, prefix = path.pop()
             new_node = node_class(
-                value    = parent.value,
-                children = (list(x for x in parent.children[:idx]) +
-                            list(x for x in parent.children[idx+1:])))
+                value       = parent.value,
+                children    = (list(x for x in parent.children[:idx]) +
+                               list(x for x in parent.children[idx+1:])),
+                prune_value = parent.prune_value)
 
         while all([path, len(new_node.children)==1, new_node.value is None]):
             # Squash with child node
             parent, idx, prefix = path.pop()
             new_node = node_class(
-                value    = parent.value,
-                children = (list(x for x in parent.children[:idx]) +
-                            list((link_class(
-                                prefix = prefix + new_node.children[0].prefix,
-                                node   = new_node.children[0].node,
-                                hash   = new_node.children[0]._hash),)) +
-                            list(x for x in parent.children[idx+1:])))
+                value       = parent.value,
+                children    = (list(x for x in parent.children[:idx]) +
+                               list((link_class(
+                                   prefix = prefix + new_node.children[0].prefix,
+                                   node   = new_node.children[0].node,
+                                   hash   = new_node.children[0]._hash),)) +
+                               list(x for x in parent.children[idx+1:])),
+                prune_value = parent.prune_value)
 
         self._propogate(new_node, path=path)
 
