@@ -133,6 +133,10 @@ def icmp(a, b):
 
 # ===----------------------------------------------------------------------===
 
+from lookahead import lookahead
+
+# ===----------------------------------------------------------------------===
+
 import bitstring
 bitstring.Bits.__lt__ = lambda self, other: icmp(iter(self), iter(other)) <  0
 bitstring.Bits.__le__ = lambda self, other: icmp(iter(self), iter(other)) <= 0

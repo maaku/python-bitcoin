@@ -576,6 +576,38 @@ class TestPatriciaDictScenarios6(unittest2.TestCase):
                     self.assertEqual(pn2[key], value)
                     self.assertEqual(pn2.hash, SCENARIOS[flags | ord(value)]['hash_'])
 
+    def test_trim(self):
+        for flags in xrange(16):
+            pn = MemoryPatriciaDict()
+            pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
+            pn2 = MemoryPatriciaDict()
+            pn2.update(pn)
+            res = pn2.trim(['abc'])
+            self.assertEqual(res, gmpy2.popcount(flags>>1))
+            del pn2.hash
+            self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'], flags)
+            self.assertEqual(pn2.size, gmpy2.popcount(flags))
+            self.assertEqual(pn2.length, gmpy2.popcount(flags&1))
+            if pn2.children:
+                self.assertEqual(pn2.children[0].size, gmpy2.popcount(flags) - (flags&1))
+                self.assertEqual(pn2.children[0].length, 0)
+                self.assertTrue(pn2.children[0].pruned)
+            pn3 = MemoryPatriciaDict()
+            pn3.update(pn)
+            res = pn3.trim([Bits(bytes='abc\x00', length=25)])
+            self.assertEqual(res, gmpy2.popcount(flags>>2))
+            del pn3.hash
+            self.assertEqual(pn3.hash, SCENARIOS[flags]['hash_'])
+            self.assertEqual(pn3.size, gmpy2.popcount(flags))
+            self.assertEqual(pn3.length, gmpy2.popcount(flags&3))
+
+                for item in old_items:
+                    if item in new_items:
+                        self.assertEqual(d[item[0]], item[1])
+                    else:
+                        with self.assertRaises(KeyError):
+                            d.prune([item[0]])
+
     def test_delete(self):
         for flags in xrange(16):
             pn = MemoryPatriciaDict()

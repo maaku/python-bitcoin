@@ -5,6 +5,7 @@ cdecimal>=2.3
 ecdsa>=0.8
 gmpy2>=2.0.0
 isodate>=0.4.8
+lookahead>=1.0
 recordtype>=1.1
 requests>=0.14.0
 simplejson>=2.6.2

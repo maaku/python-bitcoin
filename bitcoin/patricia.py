@@ -17,7 +17,7 @@ from bitcoin.serialize import (
     serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
 
-from .tools import Bits, StringIO, icmp, list, tuple
+from .tools import Bits, StringIO, icmp, lookahead, list, tuple
 
 __all__ = (
     'PatriciaLink',
@@ -600,6 +600,68 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         "x.setdefault(k[,d]) -> x.get(k,d), also set x[k]=d if k not in x"
         if key not in self:
             self.update(((key, value),))
+
+    def _trim(self, key):
+        key, key_ = self._prepare_key(key), key
+
+        link_class = getattr(self, 'get_link_class',
+            lambda: getattr(self, 'link_class', PatriciaLink))()
+        node_class = getattr(self, 'get_node_class',
+            lambda: getattr(self, 'node_class', self.__class__))()
+
+        path = list()
+        prefix, old_node = self._get_node_by_key(key, path=path)
+
+        if key == prefix:
+            new_node = node_class(
+                value       = old_node.value,
+                children    = (link_class(prefix=link.prefix, hash=link.hash, size=link.size)
+                               for link in old_node.children),
+                prune_value = old_node.value is not None and True or None)
+
+            length = old_node.length
+
+        else:
+            remaining_key = key[len(prefix):]
+            idx = bisect_left(old_node.children, link_class(
+                prefix=remaining_key[:1], hash=0, size=0))
+            if idx not in xrange(len(old_node.children)):
+                return 0
+
+            link = old_node.children[idx]
+            if link.pruned:
+                return 0
+
+            common_prefix = commonprefix([link.prefix, remaining_key])
+            if common_prefix != remaining_key:
+                return 0
+
+            new_node = node_class(
+                value       = old_node.value,
+                children    = (list(x for x in old_node.children[:idx]) +
+                               list((link_class(prefix = link.prefix,
+                                                hash   = link.hash,
+                                                size   = link.size),)) +
+                               list(x for x in old_node.children[idx+1:])),
+                prune_value = old_node.prune_value)
+
+            length = link.length
+
+        self._propogate(new_node, path=path)
+        return length
+
+    def trim(self, prefixes):
+        "Prunes any keys beginning with the specified the specified prefixes."
+        _prefixes, prefixes = set(map(lambda k:self._prepare_key(k), prefixes)), list()
+        for t in lookahead(sorted(_prefixes)):
+            if t[1] is not None:
+                if t[0] == commonprefix(t):
+                    continue
+            prefixes.append(t[0])
+        length = 0
+        for prefix in prefixes:
+            length += self._trim(prefix)
+        return length
 
     def _delete(self, key):
         key, key_ = self._prepare_key(key), key
