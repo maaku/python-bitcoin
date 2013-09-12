@@ -108,7 +108,7 @@ ${PYENV}/.stamp-h: ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${CACHE_RO
 	# sake of consistency and preventing unnecessary, difficult-to-debug
 	# problems, the entire development environment is rebuilt from scratch
 	# everytime this make target is selected.
-	${MAKE} clean
+	rm -rf ${PYENV}
 	
 	# The ${PYENV} directory, if it exists, was removed above. The
 	# PyPI cache is nonexistant if this is a freshly checked-out
