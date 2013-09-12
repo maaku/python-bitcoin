@@ -14,14 +14,11 @@ import gmpy2
 
 # Python standard library, unit-testing
 import unittest2
-# Python bitcoin, optimized StringIO
-from bitcoin.tools import StringIO
-# Python bitcoin, iterator compare
-from bitcoin.tools import icmp
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
 
 from bitcoin.patricia import *
+from bitcoin.tools import Bits, StringIO, icmp
 
 # ===----------------------------------------------------------------------===
 

@@ -105,9 +105,9 @@ import operator
 from bisect import bisect_left
 from os.path import commonprefix
 from struct import pack, unpack
-class PatriciaNode(SerializableMixin, HashableMixin):
-    """An ordered dictionary implemented with a hybrid level- and node-
-    compressed prefix tree."""
+class BasePatriciaDict(SerializableMixin, HashableMixin):
+    """An ordered dictionary implemented with a hybrid
+    level- and node-compressed prefix tree."""
     __slots__ = 'value children _hash size length'.split()
 
     OFFSET_LEFT  = 0
@@ -355,7 +355,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
 
     def _forward_iterator(self):
         "Returns a forward iterator over the trie"
-        path = [(self, 0, b'')]
+        path = [(self, 0, Bits())]
         while path:
             node, idx, prefix = path.pop()
             if idx==0 and node.value is not None:
@@ -369,7 +369,7 @@ class PatriciaNode(SerializableMixin, HashableMixin):
 
     def _reverse_iterator(self):
         "Returns a reverse/backwards iterator over the trie"
-        path = [(self, len(self.children)-1, b'')]
+        path = [(self, len(self.children)-1, Bits())]
         while path:
             node, idx, prefix = path.pop()
             if idx<0 and node.value is not None:
@@ -432,8 +432,8 @@ class PatriciaNode(SerializableMixin, HashableMixin):
         """Returns the 2-tuple (prefix, node) where node either contains the value
         corresponding to the key, or is the most specific prefix on the path which
         would contain the key if it were there. The key was found if prefix==key
-        and the HAS_VALUE bit of node.flags is set."""
-        prefix, subkey, node = b'', key, self
+        and the node.value is not None."""
+        prefix, subkey, node = Bits(), key, self
         while prefix != key:
             for idx,link in enumerate(node.children):
                 if subkey.startswith(link.prefix):
@@ -519,12 +519,12 @@ class PatriciaNode(SerializableMixin, HashableMixin):
             # of the child links, if they have a prefix in common, or if
             # matches any existing child of the node or not.
             remaining_key = key[len(prefix):]
-            idx = bisect_left(old_node.children, link_class(prefix=remaining_key[:1], node=None))
+            idx = bisect_left(old_node.children, link_class(prefix=remaining_key[:1]))
 
             if idx in xrange(len(old_node.children)):
                 common_prefix = commonprefix([old_node.children[idx].prefix, remaining_key])
             else:
-                common_prefix = ''
+                common_prefix = Bits()
 
             if common_prefix == remaining_key:
                 inner_node = node_class(

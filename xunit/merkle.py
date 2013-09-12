@@ -350,13 +350,13 @@ class TestMerkleNodeScenarios(unittest2.TestCase):
         scenarios = MERKLE_NODE
         def __test__(self, args, kwargs, size, length, root, items):
             mn = MerkleNode(*args, **kwargs)
-            self.assertEqual(icmp(iter(mn), (hash_ for idx,hash_ in items)), 0, (args, kwargs, items, [x for x in iter(items)], [x for x in reversed(items)]))
+            self.assertEqual(icmp(iter(mn), (hash_ for idx,hash_ in items)), 0)
 
     class test_merkle_node_reversed(ScenarioTest):
         scenarios = MERKLE_NODE
         def __test__(self, args, kwargs, size, length, root, items):
             mn = MerkleNode(*args, **kwargs)
-            self.assertEqual(icmp(reversed(mn), (hash_ for idx,hash_ in reversed(items))), 0, (args, kwargs, [x for x in reversed(items)], [x for x in reversed(items)]))
+            self.assertEqual(icmp(reversed(mn), (hash_ for idx,hash_ in reversed(items))), 0)
 
 class TestMerkleNode(unittest2.TestCase):
     def test_init_invalid(self):
