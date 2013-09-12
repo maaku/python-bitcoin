@@ -49,21 +49,21 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         - VARINT(reference_height)
 
     The code value consists of:
-        - bit 1: is_coinbase flag
-        - bit 2: outputs[0] is not spent
-        - bit 4: outputs[1] is not spent
+        - bit 1: outputs[0] is not spent
+        - bit 2: outputs[1] is not spent
+        - bit 3: outputs[2] is not spent
         - The higher bits encode N, the number of non-zero bytes in the following
           bitvector.
-            - In case both bit 2 and bit 4 are unset, they encode N-1, as there
-              must be at least one non-spent output.
+            - In case bit 1, bit 2 and bit 4 are all unset, they encode N-1, as
+              there must be at least one non-spent output.
 
-    Example: 0104835800816115944e077fe7c803cfa57f29b36bf87c1d358bb85e
+    Example: 0102835800816115944e077fe7c803cfa57f29b36bf87c1d358bb85e
              <><><--------------------------------------------><---->
              |  \                  |                             /
        version   code           outputs[1]                  height
     
         - version = 1
-        - code = 4 (outputs[1] is not spent, and 0 non-zero bytes of bitvector follow)
+        - code = 2 (outputs[1] is not spent, and 0 non-zero bytes of bitvector follow)
         - unspentness bitvector: as 0 non-zero bytes follow, it has length 0
         - outputs[1]: 835800816115944e077fe7c803cfa57f29b36bf87c1d35
             * 8358: compact amount representation for 60000000000 (600 BTC)
@@ -71,7 +71,7 @@ class UnspentTransaction(SerializableMixin, sorteddict):
             * 816115944e077fe7c803cfa57f29b36bf87c1d35: address uint160
         - height = 203998
     
-     Example: 02090440fe792b067e0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee...
+     Example: 02080440fe792b067e0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee...
               <><><--><-------------------------------------------------->
              /  |   \                     |
       version  code  unspentness     outputs[4]
@@ -82,11 +82,11 @@ class UnspentTransaction(SerializableMixin, sorteddict):
                                         outputs[16]               height  reference_height
     
       - version = 2
-      - code = 9: coinbase, neither outputs[0] or outputs[1] are unspent,
-        2 (1, +1 because both bit 2 and bit 4 are unset) non-zero bitvector
-        bytes follow.
-      - unspentness bitvector: bits 2 (0x04) and 14 (0x4000) are set, so
-        outputs[2+2] and outputs[14+2] are unspent
+      - code = 8: neither outputs[0], outputs[1], nor outputs[2] are unspent, 2
+        (1, +1 because both bit 2 and bit 4 are unset) non-zero bitvector bytes
+        follow.
+      - unspentness bitvector: bits 1 (0x02) and 13 (0x2000) are set, so
+        outputs[1+3] and outputs[13+3] are unspent
       - outputs[4]: fe792b067e0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee
                     * fe792b067e: compact amount representation for 234925952 (2.35 BTC)
                     * 00: special txout type pay-to-pubkey-hash
@@ -108,7 +108,7 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         # constructor, which requires copying meta information not contained
         # within the dictionary itself.
         if args and all(hasattr(args[0], x) for x in
-                ('version', 'is_coinbase', 'height', 'reference_height')):
+                ('version', 'height', 'reference_height')):
             other = args[0]
         else:
             other = None
@@ -117,8 +117,7 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         # object, or the metadata directly. Choose one.
         a = 'transaction' in kwargs
         b = other is not None
-        c = any(x in kwargs for x in (
-            'coinbase', 'version', 'reference_height'))
+        c = any(x in kwargs for x in ('version', 'reference_height'))
         if a + b + c >= 2: # <-- yes, you can do this
             raise TypeError(u"instantiate by either specifying the "
                 u"transaction directly, another %s, or its individual "
@@ -131,7 +130,6 @@ class UnspentTransaction(SerializableMixin, sorteddict):
             other = transaction
 
         version = kwargs.pop('version', getattr(other, 'version', 1))
-        is_coinbase = kwargs.pop('coinbase', getattr(other, 'is_coinbase', False))
         height = kwargs.pop('height', getattr(other, 'height', 0))
 
         # Reference heights are added with transaction version=2, so we do
@@ -145,7 +143,6 @@ class UnspentTransaction(SerializableMixin, sorteddict):
 
         # Store metadata
         self.version          = version
-        self.is_coinbase      = is_coinbase
         self.height           = height
         self.reference_height = reference_height
 
@@ -157,26 +154,23 @@ class UnspentTransaction(SerializableMixin, sorteddict):
                 self[idx] = output
 
     def serialize(self):
-        # code&0x1: is_coinbase
-        # code&0x2: outputs[0] unspent
-        # code&0x4: outputs[1] unspent
-        # code>>3: N, the minimal length of bitvector in bytes, or N-1 if both
-        #   outputs[0] and outputs[1] are spent
-        code, bitvector = 0, 0
+        # code&0x1: outputs[0] unspent
+        # code&0x2: outputs[1] unspent
+        # code&0x4: outputs[2] unspent
+        # code>>3: N, the minimal length of bitvector in bytes, or N-1 if
+        #   outputs[0], outputs[1], and outputs[1] are all spent
+        bitvector = 0
         for idx in six.iterkeys(self):
             bitvector |= 1 << idx
         if not bitvector:
             raise TypeError()
-        code |= bitvector & 0x3
-        bitvector >>= 2
+        code = bitvector & 0x7
+        bitvector >>= 3
         bitvector = serialize_leint(bitvector)
         bitvector_len = len(bitvector)
         if not code:
             bitvector_len -= 1
-        code |= bitvector_len << 2
-        code <<= 1
-        if self.is_coinbase:
-            code |= 1
+        code |= bitvector_len << 3
 
         result  = serialize_varint(self.version)
         result += serialize_varint(code)
@@ -197,14 +191,12 @@ class UnspentTransaction(SerializableMixin, sorteddict):
 
         # See description of code, bitvector above.
         code, bitvector = deserialize_varint(file_), 0
-        kwargs['coinbase'] = bool(code & 0x1)
-        code >>= 1
-        bitvector |= code & 0x3
-        code >>= 2
+        bitvector |= code & 0x7
+        code >>= 3
         if not bitvector:
             code += 1
         if code:
-            bitvector |= deserialize_leint(file_, code) << 2
+            bitvector |= deserialize_leint(file_, code) << 3
         idx, items = 0, []
         while bitvector:
             if bitvector & 0x1:
@@ -221,19 +213,17 @@ class UnspentTransaction(SerializableMixin, sorteddict):
 
     def __eq__(self, other):
         # Compare metadata first, as it's probably less expensive
-        if any((self.height      != other.height,
-                self.is_coinbase != other.is_coinbase,
-                self.version     != other.version)):
+        if any((self.height  != other.height,
+                self.version != other.version)):
             return False
         if self.version in (2,) and self.reference_height != other.reference_height:
             return False
         return super(UnspentTransaction, self).__eq__(other)
     __ne__ = lambda a,b:not a==b
     def __repr__(self):
-        return '%s%s, coinbase=%s, version=%d, height=%d, reference_height=%d)' % (
+        return '%s%s, version=%d, height=%d, reference_height=%d)' % (
             self.__class__.__name__,
             super(UnspentTransaction, self).__repr__()[10:-1],
-            self.is_coinbase,
             self.version,
             self.height,
             self.reference_height)
@@ -271,22 +261,20 @@ def _repr_contract_outpoint(self):
 ContractOutPoint.__repr__ = _repr_contract_outpoint
 
 OutputData = recordtype('OutputData',
-    ['version', 'amount', 'coinbase', 'height', 'reference_height'])
-OutputData.is_coinbase = OutputData.coinbase
+    ['version', 'amount', 'height', 'reference_height'])
 def _serialize_output_data(self):
-    result  = serialize_varint(self.version)
-    result += serialize_varint((self.height<<1)|self.is_coinbase)
-    result += serialize_varint(compress_amount(self.amount))
+    parts = []
+    parts.append(serialize_varint(self.version))
+    parts.append(serialize_varint(self.height))
+    parts.append(serialize_varint(compress_amount(self.amount)))
     if self.version in (2,):
-        result += serialize_varint((self.height<<1)|self.reference_height)
-    return result
+        parts.append(serialize_varint((self.height<<1)|self.reference_height))
+    return b''.join(parts)
 OutputData.serialize = _serialize_output_data
 def _deserialize_output_data(cls, file_):
     kwargs = {}
     kwargs['version'] = deserialize_varint(file_)
-    code = deserialize_varint(file_)
-    kwargs['coinbase'] = code & 1
-    kwargs['height'] = code >> 1
+    kwargs['height'] = deserialize_varint(file_)
     kwargs['amount'] = decompress_amount(deserialize_varint(file_))
     if kwargs['version'] in (2,):
         kwargs['reference_height'] = deserialize_varint(file_)
