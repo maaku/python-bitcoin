@@ -7,6 +7,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 #
 
+# Python 2 and 3 compatibility utilities
+import six
+
 # Python standard library, unit-testing
 import unittest2
 

@@ -15,11 +15,21 @@ from blist import sorteddict
 from .core import Output
 from .crypto import hash256
 from .mixins import SerializableMixin
-from .patricia import PatriciaNode
+from .patricia import MemoryPatriciaDict
 from .serialize import (
     serialize_leint, deserialize_leint,
     serialize_varint, deserialize_varint)
 from .tools import compress_amount, decompress_amount
+
+__all__ = (
+    'UnspentTransaction',
+    'BaseTxIdIndex',
+    'MemoryTxIdIndex',
+    'ContractOutPoint',
+    'OutputData',
+    'BaseContractIndex',
+    'MemoryContractIndex',
+)
 
 # ===----------------------------------------------------------------------===
 
@@ -234,7 +244,7 @@ class BaseTxIdIndex(object):
     key_class = hash256
     value_class = UnspentTransaction
 
-class TxIdIndex(BaseTxIdIndex, PatriciaNode):
+class MemoryTxIdIndex(BaseTxIdIndex, MemoryPatriciaDict):
     pass
 
 # ===----------------------------------------------------------------------===
@@ -287,7 +297,7 @@ class BaseContractIndex(object):
     key_class = ContractOutPoint
     value_class = OutputData
 
-class ContractIndex(BaseContractIndex, PatriciaNode):
+class MemoryContractIndex(BaseContractIndex, MemoryPatriciaDict):
     pass
 
 #

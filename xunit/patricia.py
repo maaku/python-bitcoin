@@ -24,77 +24,77 @@ from bitcoin.tools import Bits, StringIO, icmp
 
 class TestPatriciaLink(unittest2.TestCase):
     def test_init(self):
-        pn = PatriciaNode()
+        pn = MemoryPatriciaDict()
         pl = PatriciaLink(Bits(), pn)
         self.assertEqual(pl.prefix, Bits())
         self.assertEqual(pl.node, pn)
-        pl2 = PatriciaLink(Bits(bytes=b'\x80', length=1), PatriciaNode())
+        pl2 = PatriciaLink(Bits(bytes=b'\x80', length=1), MemoryPatriciaDict())
         self.assertEqual(pl2.prefix.uint, 0x01)
         self.assertEqual(pl2.node, pn)
-        pl3 = PatriciaLink(Bits(bytes=b'\x80'), PatriciaNode())
+        pl3 = PatriciaLink(Bits(bytes=b'\x80'), MemoryPatriciaDict())
         self.assertEqual(pl3.prefix.uint, 0x80)
         self.assertEqual(pl3.node, pn)
-        pl3 = PatriciaLink(b'\x80', PatriciaNode())
-        self.assertEqual(pl3.prefix.uint, 0x80)
-        self.assertEqual(pl3.node, pn)
+        pl4 = PatriciaLink(b'\x80', MemoryPatriciaDict())
+        self.assertEqual(pl4.prefix.uint, 0x80)
+        self.assertEqual(pl4.node, pn)
 
     def test_eq(self):
-        pn = PatriciaNode()
+        pn = MemoryPatriciaDict()
         self.assertEqual(
-            PatriciaLink(b'', PatriciaNode()),
-            PatriciaLink(b'', PatriciaNode()))
+            PatriciaLink(b'', MemoryPatriciaDict()),
+            PatriciaLink(b'', MemoryPatriciaDict()))
         self.assertNotEqual(
-            PatriciaLink(b'abc', PatriciaNode()),
-            PatriciaLink(b'', PatriciaNode()))
+            PatriciaLink(b'abc', MemoryPatriciaDict()),
+            PatriciaLink(b'', MemoryPatriciaDict()))
         self.assertEqual(
-            PatriciaLink(b'abc', PatriciaNode()),
-            PatriciaLink(b'abc', PatriciaNode()))
+            PatriciaLink(b'abc', MemoryPatriciaDict()),
+            PatriciaLink(b'abc', MemoryPatriciaDict()))
         self.assertNotEqual(
-            PatriciaLink(b'abc', PatriciaNode()),
-            PatriciaLink(b'abc', PatriciaNode(value=b'')))
+            PatriciaLink(b'abc', MemoryPatriciaDict()),
+            PatriciaLink(b'abc', MemoryPatriciaDict(value=b'')))
         self.assertEqual(
-            PatriciaLink(b'abc', PatriciaNode(value=b'')),
-            PatriciaLink(b'abc', PatriciaNode(value=b'')))
+            PatriciaLink(b'abc', MemoryPatriciaDict(value=b'')),
+            PatriciaLink(b'abc', MemoryPatriciaDict(value=b'')))
 
 # ===----------------------------------------------------------------------===
 
-class TestPatriciaNode(unittest2.TestCase):
+class TestPatriciaDict(unittest2.TestCase):
     def test_init(self):
-        pn = PatriciaNode()
+        pn = MemoryPatriciaDict()
         self.assertIs(pn.value, None)
         self.assertEqual(icmp(pn.children, iter([])), 0)
         self.assertEqual(pn.hash,
             0x9a538906e6466ebd2617d321f71bc94e56056ce213d366773699e28158e00614)
-        pn2 = PatriciaNode(value=b'123')
+        pn2 = MemoryPatriciaDict(value=b'123')
         self.assertEqual(pn2.value, b'123')
         self.assertEqual(icmp(pn2.children, iter([])), 0)
         self.assertEqual(pn2.hash,
             0x31d9ef51c7169e064ced0bf759d5b60f1067c12171414b30aae8359f8634a505)
         pl = PatriciaLink(b'abc', pn2)
-        pn3 = PatriciaNode(children=[pl])
+        pn3 = MemoryPatriciaDict(children=[pl])
         self.assertIs(pn3.value, None)
         self.assertEqual(icmp(pn3.children, iter([pl])), 0)
         self.assertEqual(pn3.hash,
             0x54e70d605c1e8c043ecc062b5c2113958d5be9156bfb7ccdd78d152a716ea8f0)
-        pn4 = PatriciaNode(children={b'abc': pn2})
+        pn4 = MemoryPatriciaDict(children={b'abc': pn2})
         self.assertIs(pn4.value, None)
         self.assertEqual(icmp(pn4.children, iter([pl])), 0)
         self.assertEqual(pn4.hash,
             0x54e70d605c1e8c043ecc062b5c2113958d5be9156bfb7ccdd78d152a716ea8f0)
-        pn5 = PatriciaNode(b'456', {b'abc': pn2})
+        pn5 = MemoryPatriciaDict(b'456', {b'abc': pn2})
         self.assertEqual(pn5.value, b'456')
         self.assertEqual(icmp(pn4.children, iter([pl])), 0)
         self.assertEqual(pn5.hash,
             0x2d9012770715c0d1b568d9a2a15a2e180fc654906b1a7570632cdc1eb60d6ad4)
 
     def test_invalid_init_parameters(self):
-        # An older version of PatriciaNode uses hashes for the `value` field.
+        # An older version of PatriciaDict uses hashes for the `value` field.
         # The new code takes binary strings, and rejects integer values to make
         # finding bugs from the conversion process easier:
         with self.assertRaises(TypeError):
-            pn = PatriciaNode(0)
+            pn = MemoryPatriciaDict(0)
         with self.assertRaises(TypeError):
-            pn = PatriciaNode(
+            pn = MemoryPatriciaDict(
                 value = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d)
 
 SCENARIOS = [
@@ -103,18 +103,18 @@ SCENARIOS = [
          hash_ = 0x9a538906e6466ebd2617d321f71bc94e56056ce213d366773699e28158e00614),
 ]
 
-class TestPatriciaNodeSerialization(unittest2.TestCase):
+class TestPatriciaDictSerialization(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, value, children, str_, hash_):
-            pn = PatriciaNode(value, children)
+            pn = MemoryPatriciaDict(value, children)
             self.assertEqual(pn.serialize(), str_)
             self.assertEqual(pn.hash, hash_)
     class test_deserialize(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, value, children, str_, hash_):
-            pn = PatriciaNode.deserialize(StringIO(str_))
+            pn = MemoryPatriciaDict.deserialize(StringIO(str_))
             self.assertEqual(pn.value, value)
             self.assertEqual(list(pn.children), children)
             self.assertEqual(pn.hash, hash_)
@@ -215,116 +215,116 @@ SCENARIOS = [
     },
 ]
 
-class TestPatriciaNodeScenarios(unittest2.TestCase):
+class TestPatriciaDictScenarios(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_init_mapping(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             self.assertEqual(pn.hash, hash_, kwargs)
 
     class test_init_iterable(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(six.iteritems(kwargs))
             self.assertEqual(pn.hash, hash_, kwargs)
 
     class test_bool(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             self.assertEqual(bool(pn), bool(kwargs))
 
-class TestPatriciaNodeScenarios2(unittest2.TestCase):
+class TestPatriciaDictScenarios2(unittest2.TestCase):
     def test_lt(self):
         for flags in xrange(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             for other in xrange(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(items2)
                 self.assertEqual(pn < pn2, cmp(sorted(items), sorted(items2)) < 0)
 
     def test_le(self):
         for flags in xrange(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             for other in xrange(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(items2)
                 self.assertEqual(pn <= pn2, cmp(sorted(items), sorted(items2)) <= 0)
 
     def test_eq(self):
         for flags in xrange(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             for other in xrange(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(items2)
                 self.assertEqual(pn == pn2, cmp(sorted(items), sorted(items2)) == 0)
 
     def test_ne(self):
         for flags in xrange(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             for other in xrange(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(items2)
                 self.assertEqual(pn != pn2, cmp(sorted(items), sorted(items2)) != 0)
 
     def test_ge(self):
         for flags in xrange(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             for other in xrange(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(items2)
                 self.assertEqual(pn >= pn2, cmp(sorted(items), sorted(items2)) >= 0)
 
     def test_gt(self):
         for flags in xrange(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             for other in xrange(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(items2)
                 self.assertEqual(pn > pn2, cmp(sorted(items), sorted(items2)) > 0)
 
-class TestPatriciaNodeScenarios3(unittest2.TestCase):
+class TestPatriciaDictScenarios3(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_len(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             self.assertEqual(len(pn), len(kwargs))
 
     class test_size(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             self.assertEqual(pn.size, len(kwargs))
 
     class test_length(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             self.assertEqual(pn.length, len(kwargs))
 
@@ -332,10 +332,10 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp((k for k,v in items), iter(pn)))
-            pn2 = PatriciaNode()
+            pn2 = MemoryPatriciaDict()
             pn2.update(reversed(items))
             self.assertFalse(icmp((k for k,v in items), iter(pn2)))
 
@@ -343,10 +343,10 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp((k for k,v in reversed(items)), reversed(pn)))
-            pn2 = PatriciaNode()
+            pn2 = MemoryPatriciaDict()
             pn2.update(reversed(items))
             self.assertFalse(icmp((k for k,v in reversed(items)), reversed(pn2)))
 
@@ -354,14 +354,14 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(items, iter(pn.items())))
     class test_iteritems(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(items, pn.iteritems()))
             self.assertFalse(icmp(items, six.iteritems(pn)))
@@ -370,14 +370,14 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(reversed(items), iter(pn.reversed_items())))
     class test_reversed_iteritems(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(reversed(items), pn.reversed_iteritems()))
 
@@ -385,14 +385,14 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp((k for k,v in items), iter(pn.keys())))
     class test_iterkeys(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp((k for k,v in items), pn.iterkeys()))
             self.assertFalse(icmp((k for k,v in items), six.iterkeys(pn)))
@@ -401,14 +401,14 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(reversed([k for k,v in items]), iter(pn.reversed_keys())))
     class test_reversed_iterkeys(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(reversed([k for k,v in items]), pn.reversed_iterkeys()))
 
@@ -416,14 +416,14 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp((v for k,v in items), iter(pn.values())))
     class test_itervalues(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp((v for k,v in items), pn.itervalues()))
             self.assertFalse(icmp((v for k,v in items), six.itervalues(pn)))
@@ -432,21 +432,21 @@ class TestPatriciaNodeScenarios3(unittest2.TestCase):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(reversed([v for k,v in items]), iter(pn.reversed_values())))
     class test_reversed_itervalues(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
             items = sorted((k,v) for k,v in six.iteritems(kwargs))
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(items)
             self.assertFalse(icmp(reversed([v for k,v in items]), pn.reversed_itervalues()))
 
-class TestPatriciaNodeScenarios4(unittest2.TestCase):
+class TestPatriciaDictScenarios4(unittest2.TestCase):
     def test_contains(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
                 if flags & ord(value):
@@ -456,17 +456,17 @@ class TestPatriciaNodeScenarios4(unittest2.TestCase):
 
     def test_has_key(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
                 self.assertTrue(pn.has_key(key) == bool(flags & ord(value)))
 
-class TestPatriciaNodeScenarios5(unittest2.TestCase):
+class TestPatriciaDictScenarios5(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_getitem(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             for key,value in six.iteritems(kwargs):
                 self.assertEqual(pn[key], kwargs[key])
@@ -476,7 +476,7 @@ class TestPatriciaNodeScenarios5(unittest2.TestCase):
     class test_get(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, hash_, **kwargs):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update(kwargs)
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
                 if key in kwargs:
@@ -486,14 +486,14 @@ class TestPatriciaNodeScenarios5(unittest2.TestCase):
                     self.assertIs(pn.get(key), None)
                     self.assertIs(pn.get(key, SENTINAL), SENTINAL)
 
-class TestPatriciaNodeScenarios6(unittest2.TestCase):
+class TestPatriciaDictScenarios6(unittest2.TestCase):
     def test_update(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for idx,scenario in enumerate(SCENARIOS):
                 items = [(k,v) for k,v in six.iteritems(scenario) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(pn)
                 self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'])
                 self.assertEqual(pn2.size, gmpy2.popcount(flags))
@@ -503,7 +503,7 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
                 self.assertEqual(pn2.size, gmpy2.popcount(flags|idx))
                 self.assertEqual(pn2.length, gmpy2.popcount(flags|idx))
 
-                pn3 = PatriciaNode()
+                pn3 = MemoryPatriciaDict()
                 pn3.update(pn)
                 self.assertEqual(pn3.hash, SCENARIOS[flags]['hash_'])
                 self.assertEqual(pn3.size, gmpy2.popcount(flags))
@@ -513,7 +513,7 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
                 self.assertEqual(pn3.size, gmpy2.popcount(flags|idx))
                 self.assertEqual(pn3.length, gmpy2.popcount(flags|idx))
 
-                pn4 = PatriciaNode()
+                pn4 = MemoryPatriciaDict()
                 pn4.update(pn)
                 self.assertEqual(pn4.hash, SCENARIOS[flags]['hash_'])
                 self.assertEqual(pn4.size, gmpy2.popcount(flags))
@@ -525,10 +525,10 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
 
     def test_setitem(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(pn)
                 self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'])
                 pn2[key] = value
@@ -542,10 +542,10 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
 
     def test_setdefault(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(pn)
                 if flags & ord(value):
                     pn2.setdefault(key, six.int2byte(ord(value) + 1))
@@ -560,16 +560,16 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
 
     def test_delete(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for idx,scenario in enumerate(SCENARIOS):
                 items = [(k,v) for k,v in six.iteritems(scenario) if k != 'hash_']
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(pn)
                 self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'])
                 self.assertEqual(pn2.size, gmpy2.popcount(flags))
                 self.assertEqual(pn2.length, gmpy2.popcount(flags))
-                pn3 = PatriciaNode()
+                pn3 = MemoryPatriciaDict()
                 pn3.update(pn)
                 self.assertEqual(pn3.hash, SCENARIOS[flags]['hash_'])
                 self.assertEqual(pn3.size, gmpy2.popcount(flags))
@@ -592,10 +592,10 @@ class TestPatriciaNodeScenarios6(unittest2.TestCase):
 
     def test_delitem(self):
         for flags in xrange(16):
-            pn = PatriciaNode()
+            pn = MemoryPatriciaDict()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
-                pn2 = PatriciaNode()
+                pn2 = MemoryPatriciaDict()
                 pn2.update(pn)
                 self.assertEqual(pn2.hash, SCENARIOS[flags]['hash_'])
                 if key in pn2:

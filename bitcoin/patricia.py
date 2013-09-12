@@ -19,6 +19,12 @@ from bitcoin.serialize import (
 
 from .tools import Bits, StringIO, icmp, list, tuple
 
+__all__ = (
+    'PatriciaLink',
+    'BasePatriciaDict',
+    'MemoryPatriciaDict',
+)
+
 SENTINAL = object()
 
 # ===----------------------------------------------------------------------===
@@ -191,7 +197,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             assert 0 < len(link.prefix) < 2**64
         assert len(children) == len(set(l.prefix[0] for l in children))
 
-        super(PatriciaNode, self).__init__(*args, **kwargs)
+        super(BasePatriciaDict, self).__init__(*args, **kwargs)
 
         self.value, self.prune_value = value, prune_value
         getattr(self, 'children_create', lambda:setattr(self, 'children', list()))()
@@ -284,7 +290,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         return cls(**initargs)
 
     def hash__getter(self):
-        return super(PatriciaNode, self).hash__getter(digest=True)
+        return super(BasePatriciaDict, self).hash__getter(digest=True)
 
     def __hash__(self):
         "x.__hash__() <==> hash(x)"
@@ -309,7 +315,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             def _hash():
                 return getattr(other, 'hash', NotImplemented)
             def _icmp():
-                if isinstance(other, PatriciaNode):
+                if isinstance(other, BasePatriciaDict):
                     return icmp(self.iteritems(), other.iteritems())
                 elif hasattr(other, 'keys'):
                     return icmp(self.iteritems(), sorted((x,other[x]) for x in other))
@@ -646,6 +652,9 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
         return node_class(value=self.value, children=self.children)
+
+class MemoryPatriciaDict(BasePatriciaDict):
+    pass
 
 #
 # End of File
