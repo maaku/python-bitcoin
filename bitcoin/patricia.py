@@ -32,9 +32,9 @@ SENTINAL = object()
 import numbers
 
 class PatriciaLink(HashableMixin):
-    __slots__ = 'prefix node _hash'.split()
+    __slots__ = 'prefix node _hash _size'.split()
 
-    def __init__(self, prefix, node=None, hash=None, *args, **kwargs):
+    def __init__(self, prefix, node=None, hash=None, size=0, *args, **kwargs):
         if not isinstance(prefix, Bits):
             if isinstance(prefix, six.binary_type):
                 prefix = Bits(bytes=prefix)
@@ -42,12 +42,26 @@ class PatriciaLink(HashableMixin):
                 prefix = Bits(prefix)
         if isinstance(node, numbers.Integral):
             node, hash = hash, node
+        if hasattr(node, 'size'):
+            size = node.size
         super(PatriciaLink, self).__init__(*args, **kwargs)
-        self.prefix, self.node, self._hash = prefix, node, hash
+        self.prefix, self.node, self._hash, self._size = prefix, node, hash, size
 
     @property
     def pruned(self):
         return self.node is None
+
+    @property
+    def size(self):
+        if getattr(self, '_size', None) is None:
+            self._size = getattr(self.node, 'size', 0)
+        return self._size
+
+    @property
+    def length(self):
+        if self.pruned:
+            return 0
+        return self.node.length
 
     def hash__getter(self):
         if getattr(self, '_hash', None) is not None:
@@ -184,9 +198,8 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         size = int(value is not None)
         length = size - int(prune_value is True)
         for link in children:
-            if not link.pruned:
-                size += link.node.size
-                length += link.node.length
+            size += link.size
+            length += link.length
         self.size, self.length = size, length
 
     @property
@@ -464,11 +477,15 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             lambda: getattr(self, 'node_class', self.__class__))()
         while path:
             parent, idx, prefix = path.pop()
+            if node.length:
+                link = link_class(prefix=prefix, node=node)
+            else:
+                link = link_class(prefix=prefix, hash=node.hash, size=node.size)
             node = node_class(
-                value    = parent.value,
-                children = (list(x for x in parent.children[:idx]) +
-                            list((link_class(prefix=prefix, node=node),)) +
-                            list(x for x in parent.children[idx+1:])))
+                value       = parent.value,
+                children    = (list(x for x in parent.children[:idx]) + list((link,)) +
+                               list(x for x in parent.children[idx+1:])),
+                prune_value = parent.prune_value)
         for attr in self.__slots__:
             setattr(self, attr, getattr(node, attr, None))
 
