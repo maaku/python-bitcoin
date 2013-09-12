@@ -608,6 +608,21 @@ class TestPatriciaDictScenarios6(unittest2.TestCase):
                     ipdb.set_trace()
                 self.assertEqual(pn2.hash, SCENARIOS[flags & ~ord(value)]['hash_'])
 
+    class test_copy(ScenarioTest):
+        scenarios = SCENARIOS
+        def __test__(self, hash_, **kwargs):
+            pt = PatriciaTrie(kwargs)
+            pt2 = pt.copy()
+            for key in pt2:
+                pt2[key] = six.int2byte(ord(pt2[key]) + 1)
+            self.assertEqual(pt.hash, hash_)
+            if kwargs:
+                self.assertNotEqual(pt.hash, pt2.hash)
+            pt2.clear()
+            self.assertEqual(pt.hash, hash_)
+            if kwargs:
+                self.assertNotEqual(pt.hash, pt2.hash)
+
 #
 # End of File
 #
