@@ -31,7 +31,7 @@ class HashableMixin(object):
     as hooks to enable caching of the hash value using the storage backend of
     the object relational mapper. By default, the `_hash` attribute is used to
     store cached hash values."""
-    from .crypto import hash256 as compressor
+    from .hash import hash256 as compressor
 
     def hash__getter(self, *args, **kwargs):
         # Cryptographic hashes are expensive, so `hash` is only recomputed if

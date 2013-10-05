@@ -13,7 +13,7 @@ import six
 from blist import sorteddict
 
 from .core import Output
-from .crypto import hash256
+from .hash import hash256
 from .mixins import SerializableMixin
 from .patricia import MemoryPatriciaDict
 from .serialize import (

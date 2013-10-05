@@ -160,7 +160,7 @@ class VersionedPayload(HashCheckedData):
 # Placed at the bottom of the file so as to avoid a circular import
 # dependency that would otherwise occur (the Secret class within the crypto
 # module derives from VersionedPayload).
-from .crypto import hash256
+from .hash import hash256
 
 #
 # End of File

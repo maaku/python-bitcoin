@@ -278,7 +278,7 @@ class VerifyingKey(object):
 
 # ===----------------------------------------------------------------------===
 
-from .crypto import hash256
+from .hash import hash256
 
 #
 # End of File

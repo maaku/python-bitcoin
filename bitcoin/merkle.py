@@ -16,7 +16,7 @@ from .serialize import (
 # ===----------------------------------------------------------------------===
 
 from itertools import izip
-from .crypto import hash256
+from .hash import hash256
 from .tools import list
 
 def _merkle_hash256(*args):
