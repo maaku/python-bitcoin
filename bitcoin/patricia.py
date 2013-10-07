@@ -10,8 +10,8 @@
 # Python 2 and 3 compatibility utilities
 import six
 
-from bitcoin.mixins import HashableMixin, SerializableMixin
-from bitcoin.serialize import (
+from .mixins import HashableMixin, SerializableMixin
+from .serialize import (
     serialize_varint, deserialize_varint,
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,

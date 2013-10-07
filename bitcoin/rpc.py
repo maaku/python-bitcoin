@@ -21,13 +21,8 @@ except:
     except:
         import django.utils.simplejson as json
 
-try:
-    from cStringIO import StringIO
-except:
-    from StringIO import StringIO
-
+from .tools import StringIO
 from .numeric import mpd
-
 from .serialize import serialize_hash, deserialize_hash
 
 __all__ = [

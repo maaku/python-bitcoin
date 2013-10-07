@@ -15,6 +15,7 @@ from recordtype import recordtype
 
 from .mixins import HashableMixin, SerializableMixin
 from .numeric import mpq
+from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash,
@@ -37,10 +38,6 @@ ChainParameters = recordtype('ChainParameters',
      'script_hash_prefix', 'secret_prefix', 'max_value', 'transient_reward',
      'transient_budget', 'perpetual_reward', 'perpetual_budget', 'fee_budget',
      'maximum_target', 'next_target', 'alert_keys','checkpoints', 'features'])
-
-# ===----------------------------------------------------------------------===
-
-from .script import Script
 
 # ===----------------------------------------------------------------------===
 

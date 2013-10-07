@@ -12,8 +12,6 @@ import six
 
 from struct import unpack
 
-from .base58 import VersionedPayload
-from .errors import InvalidSecretError
 from .mixins import SerializableMixin
 from .serialize import serialize_beint, deserialize_beint, serialize_bignum
 from .tools import StringIO
@@ -55,6 +53,8 @@ class Point(pyecdsa.ellipticcurve.Point):
         kwargs.setdefault('order', SECP256k1.order)
         super(Point, self).__init__(SECP256k1.curve, *args, **kwargs)
 
+from .base58 import VersionedPayload
+from .errors import InvalidSecretError
 class Secret(VersionedPayload):
     # The only understood secret version has a prefix byte of 0x80 (128)
     SECP256K1_EXPONENT = 0x80

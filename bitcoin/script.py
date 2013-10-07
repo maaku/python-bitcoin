@@ -11,12 +11,11 @@ import six
 
 from struct import pack, unpack
 
-from .tools import StringIO
-
 from .mixins import SerializableMixin
 from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_hash, deserialize_hash)
+from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
 
@@ -619,10 +618,8 @@ class Script(SerializableMixin, six.binary_type):
 
 # ===----------------------------------------------------------------------===
 
-from .crypto import VerifyingKey
 from .defaults import CLIENT_VERSION
 from .serialize import SER_DISK, serialize_varint, deserialize_varchar
-from .tools import StringIO
 
 class ScriptPickler(object):
     """Compact serializer for scripts.
@@ -774,6 +771,8 @@ __all__ = OPCODE_NAMES.values() + [
     'ScriptPickler',
     'ScriptUnpickler',
 ]
+
+from .crypto import VerifyingKey
 
 #
 # End of File
