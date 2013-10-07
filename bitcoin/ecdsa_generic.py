@@ -25,7 +25,7 @@ import ecdsa as pyecdsa
 # been added to the python-ecdsa repository, but is still missing from the latest
 # version on PyPI.
 try:
-    pyecdsa.curves.find_curve((1, 3, 132, 0, 10))
+    SECP256k1 = pyecdsa.curves.find_curve((1, 3, 132, 0, 10))
 except pyecdsa.curves.UnknownCurveError:
     _a  = 0x0000000000000000000000000000000000000000000000000000000000000000L
     _b  = 0x0000000000000000000000000000000000000000000000000000000000000007L
