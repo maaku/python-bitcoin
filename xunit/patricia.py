@@ -642,13 +642,6 @@ class TestPatriciaDictScenarios6(unittest2.TestCase):
                         else:
                             self.assertEqual(d[key], value)
 
-                for item in old_items:
-                    if item in new_items:
-                        self.assertEqual(d[item[0]], item[1])
-                    else:
-                        with self.assertRaises(KeyError):
-                            d.prune([item[0]])
-
     def test_delete(self):
         for flags in xrange(16):
             pn = MemoryPatriciaDict()
