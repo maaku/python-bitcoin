@@ -148,7 +148,7 @@ ${PYENV}/.stamp-h: ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${CACHE_RO
 	    CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib \
 	    "${PYENV}"/bin/python "${PYENV}"/bin/pip install \
 	        --download-cache="${CACHE_ROOT}"/pypi \
-	        -r "$$reqfile"; \
+	        -r "$$reqfile" || { exit 1; }; \
 	done
 	
 	# All done!
