@@ -136,7 +136,7 @@ ${PYENV}/.stamp-h: ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${CACHE_RO
 	# which is causing readline to not build properly if installed
 	# from pip, and the fact that a different package must be used
 	# to support it on Windows/Cygwin.
-	if [ "x`uname -o`" == "xCygwin" ]; then \
+	if [ "x`uname -o`" = "xCygwin" ]; then \
 	    "${PYENV}"/bin/pip install pyreadline; \
 	else \
 	    "${PYENV}"/bin/easy_install readline; \
