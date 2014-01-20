@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 # Python 2 and 3 compatibility utilities
 import six
 
 from blist import sorteddict
 
+from .authtree import MemoryPatriciaAuthTree
 from .core import Output
 from .hash import hash256
 from .mixins import SerializableMixin
-from .patricia import MemoryPatriciaDict
 from .serialize import (
     serialize_leint, deserialize_leint,
     serialize_varint, deserialize_varint)
@@ -234,7 +230,7 @@ class BaseTxIdIndex(object):
     key_class = hash256
     value_class = UnspentTransaction
 
-class MemoryTxIdIndex(BaseTxIdIndex, MemoryPatriciaDict):
+class MemoryTxIdIndex(BaseTxIdIndex, MemoryPatriciaAuthTree):
     pass
 
 # ===----------------------------------------------------------------------===
@@ -285,9 +281,5 @@ class BaseContractIndex(object):
     key_class = ContractOutPoint
     value_class = OutputData
 
-class MemoryContractIndex(BaseContractIndex, MemoryPatriciaDict):
+class MemoryContractIndex(BaseContractIndex, MemoryPatriciaAuthTree):
     pass
-
-#
-# End of File
-#

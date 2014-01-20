@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 from six.moves import xrange
 
@@ -417,7 +413,3 @@ class TestMerkleList(unittest2.TestCase):
         scenarios = MERKLE
         def __test__(self, list_, root):
             self.assertEqual(MerkleList(list_).hash, root)
-
-#
-# End of File
-#

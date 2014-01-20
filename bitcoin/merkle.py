@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 import numbers
 
-from .serialize import (
-    serialize_hash, deserialize_hash,
-    serialize_list, deserialize_list)
+from .hash import hash256
 
 # ===----------------------------------------------------------------------===
 
 from itertools import izip
-from .hash import hash256
 from .tools import list
 
 def _merkle_hash256(*args):
@@ -44,7 +37,7 @@ def _merkle_hash256(*args):
         return _to_hash(args[0])
     # Otherwise we are given two parameters, the hash values of which we
     # serialize, concatenate, and return the hash of.
-    return hash256(b''.join(map(lambda h:serialize_hash(h, 32),
+    return hash256(b''.join(map(lambda h:hash256.serialize(h),
                                 map(_to_hash, args)))).intdigest()
 
 def merkle(hashes, func=_merkle_hash256):
@@ -216,8 +209,8 @@ class MerkleNode(HashableMixin):
             return 0
         if right is None:
             return left
-        return hash256(b''.join([serialize_hash(left, 32),
-                                 serialize_hash(right, 32)])).intdigest()
+        return hash256(b''.join([hash256.serialize(left),
+                                 hash256.serialize(right)])).intdigest()
 
     def __hash__(self):
         "x.__hash__() <==> hash(x)"
@@ -456,7 +449,3 @@ class MerkleList(SerializableMixin):
     def deserialize(cls, file_):
         raise NotImplementedError()
 
-
-#
-# End of File
-#

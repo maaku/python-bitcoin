@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 import six
 import numbers
 
-from .serialize import serialize_hash, deserialize_hash
+from .hash import hash160
 from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
@@ -27,8 +23,8 @@ class BitcoinAddress(VersionedPayload):
         if isinstance(hash, numbers.Integral):
             # hash160 is used for the standard bitcoin address formats, which
             # means a 20-byte hash.
-            hash = serialize_hash(hash, 20)
-            # The default version is SCRIPT_HASH, which is the future of bitcoin.
+            hash = hash160.serialize(hash)
+            # The default version is SCRIPT_HASH, the future of bitcoin.
             kwargs.setdefault('version', cls.SCRIPT_HASH)
             # Returns an immutable value, an instance of Python's binary type:
             return super(BitcoinAddress, cls).__new__(cls, hash, *args, **kwargs)
@@ -65,16 +61,16 @@ class BitcoinAddress(VersionedPayload):
     # Re-interpret the hash value from the serialized payload:
     @property
     def hash(self):
-        return deserialize_hash(StringIO(self.payload), 20)
+        return hash160.deserialize(StringIO(self.payload))
 
     @property
     def destination(self):
         # The original pay-to-pubkey-hash bitcoin address:
         if self.version == self.PUBKEY_HASH:
-            return PubKeyHashId(hash=deserialize_hash(StringIO(self.payload), 20))
+            return PubKeyHashId(hash=hash160.deserialize(StringIO(self.payload)))
         # The new BIP-0016 pay-to-script-hash address:
         if self.version == self.SCRIPT_HASH:
-            return ScriptHashId(hash=deserialize_hash(StringIO(self.payload), 20))
+            return ScriptHashId(hash=hash160.deserialize(StringIO(self.payload)))
         # Any futue defined address format is not understood:
         raise InvalidAddressError(u"unknown address version: %s" % repr(self.version))
 
@@ -83,7 +79,3 @@ class BitcoinAddress(VersionedPayload):
         # Use payload over hash because there's no need to incur deserialization
         # costs if we can compare directly:
         return self.payload != '\x00'*20
-
-#
-# End of File
-#

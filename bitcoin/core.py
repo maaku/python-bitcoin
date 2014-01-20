@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 import calendar
 import numbers
@@ -13,12 +9,12 @@ from struct import pack, unpack
 
 from recordtype import recordtype
 
+from .hash import hash256
 from .mixins import HashableMixin, SerializableMixin
 from .numeric import mpq
 from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
-    serialize_hash, deserialize_hash,
     serialize_list, deserialize_list)
 from .tools import StringIO, icmp, list, target_from_compact, tuple
 
@@ -92,7 +88,7 @@ class Input(SerializableMixin):
         return getattr(cls, 'script_class', Script)
 
     def serialize(self):
-        result  = serialize_hash(self.hash, 32)
+        result  = hash256.serialize(self.hash)
         result += pack('<I', self.index)
         if hasattr(self.endorsement, 'serialize'):
             result += self.endorsement.serialize()
@@ -103,7 +99,7 @@ class Input(SerializableMixin):
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        initargs['hash'] = deserialize_hash(file_, 32)
+        initargs['hash'] = hash256.deserialize(file_)
         initargs['index'] = unpack('<I', file_.read(4))[0]
         str_ = deserialize_varchar(file_) # <-- might be coinbase!
         initargs['sequence'] = unpack('<I', file_.read(4))[0]
@@ -254,8 +250,8 @@ class Block(SerializableMixin, HashableMixin):
         if self.version not in (1,2):
             raise NotImplementedError()
         result  = pack('<I', self.version)
-        result += serialize_hash(self.parent_hash, 32)
-        result += serialize_hash(self.merkle_hash, 32)
+        result += hash256.serialize(self.parent_hash)
+        result += hash256.serialize(self.merkle_hash)
         if isinstance(self.time, numbers.Integral):
             time = self.time
         else:
@@ -272,8 +268,8 @@ class Block(SerializableMixin, HashableMixin):
         initargs['version'] = unpack('<I', file_.read(4))[0]
         if initargs['version'] not in (1,2):
             raise NotImplementedError()
-        initargs['parent_hash'] = deserialize_hash(file_, 32)
-        initargs['merkle_hash'] = deserialize_hash(file_, 32)
+        initargs['parent_hash'] = hash256.deserialize(file_)
+        initargs['merkle_hash'] = hash256.deserialize(file_)
         initargs['time'] = unpack('<I', file_.read(4))[0]
         initargs['bits'] = unpack('<I', file_.read(4))[0]
         initargs['nonce'] = unpack('<I', file_.read(4))[0]
@@ -315,7 +311,3 @@ class Block(SerializableMixin, HashableMixin):
 
 ConnectedBlockInfo = recordtype('ConnectedBlockInfo',
     ['parent', 'height', 'aggregate_work'])
-
-#
-# End of File
-#

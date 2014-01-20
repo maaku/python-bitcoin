@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 from .script import *
 
@@ -19,7 +15,7 @@ __all__ = [
 
 # ===----------------------------------------------------------------------===
 
-from .serialize import serialize_hash
+from .hash import hash160
 
 class BaseId(object):
     @property
@@ -64,7 +60,7 @@ class HashId(BaseId):
     @property
     def hash_digest(self):
         if getattr(self, '_hash_digest', None) is None:
-            self._hash_digest = serialize_hash(self._hash, 20)
+            self._hash_digest = hash160.serialize(self._hash)
         return self._hash_digest
     @hash_digest.deleter
     def hash_digest(self):
@@ -113,6 +109,3 @@ class ScriptHashId(HashId):
             ScriptOp(OP_HASH160),
             ScriptOp(data=self.hash_digest),
             ScriptOp(OP_EQUAL)])
-#
-# End of File
-#

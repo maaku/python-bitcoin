@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 __all__ = [
     'SerializableMixin',
@@ -71,7 +67,3 @@ class HashableMixin(object):
     @hash.deleter
     def hash(self):
         self.hash__deleter()
-
-#
-# End of File
-#

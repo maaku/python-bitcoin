@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 import time
 from random import randrange
@@ -23,7 +19,7 @@ except:
 
 from .tools import StringIO
 from .numeric import mpd
-from .serialize import serialize_hash, deserialize_hash
+from .serialize import serialize_leint, deserialize_leint
 
 __all__ = [
     'ResponseError',
@@ -151,9 +147,9 @@ class Proxy(object):
         self._ctr = (self._ctr+1) & 0xffffffff
         hash_ = sha1(b''.join([
             self.uri, self.service, self.username,
-            serialize_hash(self._ctr, 4), time.ctime(),
-            serialize_hash(randrange(2**32), 4)])).digest()
-        id_ = deserialize_hash(StringIO(hash_[:4]), 4)
+            serialize_leint(self._ctr, 4), time.ctime(),
+            serialize_leint(randrange(2**32), 4)])).digest()
+        id_ = deserialize_leint(StringIO(hash_[:4]), 4)
 
         # Execute the JSON-RPC call:
         payload = dumps(id_, self.service, kwargs or args)
@@ -182,7 +178,3 @@ class Proxy(object):
             return response['result']
         else:
             raise ResponseError(u"server reply must contain one of 'result' or 'error'")
-
-#
-# End of File
-#

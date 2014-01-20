@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 import six
 
 from struct import pack, unpack
 
 from .mixins import SerializableMixin
-from .serialize import (
-    serialize_varchar, deserialize_varchar,
-    serialize_hash, deserialize_hash)
+from .serialize import serialize_varchar, deserialize_varchar
 from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
@@ -543,10 +537,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
             return self.opcode - OP_1 + 1
         elif self.opcode in xrange(1,OP_PUSHDATA4+1):
             data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
-            bignum = deserialize_hash(StringIO(data), len(data))
-            if ord(self.data[-1]) & 0x80:
-                return -bignum
-            return bignum
+            return deserialize_bignum(StringIO(data), len(data))
         else:
             raise ValueError(u"non-data script-op cannot be interpreted as integer")
 
@@ -560,10 +551,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
         elif 1 <= value <= 16:
             self.opcode = OP_1 + value - 1
         else:
-            neg = value < 1
-            absv = abs(value)
-            data = serialize_hash(absv, 1+len(bin(long(absv)).rstrip('L')[2:])//8)
-            if neg: data = data[:-1] + chr(ord(data[-1])|0x80)
+            data = serialize_bignum(value)
             datalen = len(data)
             if datalen < OP_PUSHDATA1:
                 self.opcode = datalen
@@ -619,7 +607,7 @@ class Script(SerializableMixin, six.binary_type):
 # ===----------------------------------------------------------------------===
 
 from .defaults import CLIENT_VERSION
-from .serialize import SER_DISK, serialize_varint, deserialize_varchar
+from .serialize import SER_DISK, serialize_varint
 
 class ScriptPickler(object):
     """Compact serializer for scripts.
@@ -773,7 +761,3 @@ __all__ = OPCODE_NAMES.values() + [
 ]
 
 from .crypto import VerifyingKey
-
-#
-# End of File
-#

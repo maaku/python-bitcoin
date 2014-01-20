@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 "Utility functions used in implementing the block chain serialization format."
 
@@ -27,8 +23,6 @@ __all__ = [
     'deserialize_leint',
     'serialize_bignum',
     'deserialize_bignum',
-    'serialize_hash',
-    'deserialize_hash',
     'serialize_list',
     'deserialize_list',
 ]
@@ -143,9 +137,6 @@ def deserialize_bignum(file_, len_, *args, **kwargs):
         n = e - n
     return n
 
-serialize_hash = serialize_leint
-deserialize_hash = deserialize_leint
-
 def serialize_list(list_, serializer=lambda i:i.serialize()):
     result = serialize_varint(len(list_))
     for item in list_:
@@ -156,7 +147,3 @@ def deserialize_list(file_, deserializer):
     for _ in xrange(deserialize_varint(file_)):
         yield deserializer(file_)
     raise StopIteration
-
-#
-# End of File
-#

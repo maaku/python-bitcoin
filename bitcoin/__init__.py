@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 VERSION = (0,0,10, 'alpha', 0)
 
@@ -21,7 +17,3 @@ def get_version():
             if VERSION[4] != 0:
                 version = '%s%s' % (version, VERSION[4])
     return version
-
-#
-# End of File
-#

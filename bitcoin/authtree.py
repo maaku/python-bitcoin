@@ -1,28 +1,27 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 # Python 2 and 3 compatibility utilities
 import six
 
+from .hash import hash256
 from .mixins import HashableMixin, SerializableMixin
 from .serialize import (
-    serialize_varint, deserialize_varint,
+    serialize_varint,  deserialize_varint,
     serialize_varchar, deserialize_varchar,
-    serialize_hash, deserialize_hash,
-    serialize_list, deserialize_list)
+    serialize_list,    deserialize_list)
 
 from .tools import Bits, StringIO, icmp, lookahead, list, tuple
 
 __all__ = (
-    'PatriciaLink',
-    'BasePatriciaDict',
-    'MemoryPatriciaDict',
+    'AuthTreeLink',
+    'BaseAuthTreeNode',
+    'BaseComposableAuthTree',
+    'MemoryComposableAuthTree',
+    'BasePatriciaAuthTree',
+    'MemoryPatriciaAuthTree',
 )
 
 SENTINAL = object()
@@ -31,7 +30,7 @@ SENTINAL = object()
 
 import numbers
 
-class PatriciaLink(HashableMixin):
+class AuthTreeLink(HashableMixin):
     __slots__ = 'prefix node _hash _size'.split()
 
     def __init__(self, prefix, node=None, hash=None, size=0, *args, **kwargs):
@@ -44,7 +43,7 @@ class PatriciaLink(HashableMixin):
             node, hash = hash, node
         if hasattr(node, 'size'):
             size = node.size
-        super(PatriciaLink, self).__init__(*args, **kwargs)
+        super(AuthTreeLink, self).__init__(*args, **kwargs)
         self.prefix, self.node, self._hash, self._size = prefix, node, hash, size
 
     @property
@@ -103,10 +102,10 @@ import operator
 from bisect import bisect_left
 from os.path import commonprefix
 from struct import pack, unpack
-class BasePatriciaDict(SerializableMixin, HashableMixin):
+class BaseAuthTreeNode(SerializableMixin, HashableMixin):
     """An ordered dictionary implemented with a hybrid
     level- and node-compressed prefix tree."""
-    __slots__ = 'value prune_value children _hash size length'.split()
+    __slots__ = 'value children extra prune_value _hash size length'.split()
 
     OFFSET_LEFT  = 0
     OFFSET_RIGHT = 2
@@ -154,7 +153,8 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         return cls._unpickle(string, 'key')
     _unpickle_value = classmethod(lambda cls,string:cls._unpickle(string, 'value'))
 
-    def __init__(self, value=None, children=None, prune_value=None, *args, **kwargs):
+    def __init__(self, value=None, children=None, extra=b'',
+                 prune_value=None, *args, **kwargs):
         if value is not None:
             if not isinstance(value, six.binary_type):
                 raise TypeError(u"value must be a binary string, or None")
@@ -166,7 +166,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         if children is None:
             children = tuple()
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', PatriciaLink))()
+            lambda: getattr(self, 'link_class', AuthTreeLink))()
         if hasattr(children, 'keys'):
             _children = list()
             for prefix in children:
@@ -189,9 +189,9 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             assert 0 < len(link.prefix) < 2**64
         assert len(children) == len(set(l.prefix[0] for l in children))
 
-        super(BasePatriciaDict, self).__init__(*args, **kwargs)
+        super(BaseAuthTreeNode, self).__init__(*args, **kwargs)
 
-        self.value, self.prune_value = value, prune_value
+        self.value, self.prune_value, self.extra = value, prune_value, extra
         getattr(self, 'children_create', lambda:setattr(self, 'children', list()))()
         self.children.extend(sorted(children))
 
@@ -225,20 +225,37 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             int(getattr(self.left,  'pruned', False) is True) << self.PRUNE_LEFT,
             int(getattr(self.right, 'pruned', False) is True) << self.PRUNE_RIGHT,
             int(        self.prune_value             is True) << self.PRUNE_VALUE,))
+        def _compressed_length(len_):
+            if   len_ == 1: return 1
+            elif len_ <= 8: return 2
+            else:           return 3
         if self.left is not None:
-            flags |= min(3, len(self.left.prefix))  << self.OFFSET_LEFT
+            flags |= _compressed_length(len(self.left.prefix))  << self.OFFSET_LEFT
         if self.right is not None:
-            flags |= min(3, len(self.right.prefix)) << self.OFFSET_RIGHT
+            flags |= _compressed_length(len(self.right.prefix)) << self.OFFSET_RIGHT
         return flags
 
     def serialize(self, digest=False):
         def _serialize_branch(link):
             len_ = len(link.prefix)
-            if len_ >= 3:
-                parts.append(serialize_varint(len_-3))
-            parts.append(link.prefix[1:].tobytes())
-            if digest or link.pruned:
-                parts.append(serialize_hash(link.hash, 32))
+            if 2 <= len_ <= 8:
+                parts.append(
+                    six.int2byte(
+                        (Bits((False,)*(8-len_)+(True,)) +
+                         link.prefix[:0:-1]).uint))
+            elif 9 <= len_:
+                skiplist = link.prefix[1:] + Bits((False,) * ((1-len_)%8))
+                parts.append(serialize_varint(len_-9))
+                parts.append(skiplist[::-1].tobytes()[::-1])
+            if digest and not getattr(self, 'level_compress', False):
+                hash_ = hash256.serialize(link.hash)
+                for bit in link.prefix[:-len_:-1]:
+                    hash_ = self.compressor(''.join([
+                            bit and '\x04' or '\x01', '\x00', hash_
+                        ])).digest()
+                parts.append(hash_)
+            elif digest or link.pruned:
+                parts.append(hash256.serialize(link.hash))
             else:
                 parts.append(link.node.serialize(digest=digest))
         parts = []
@@ -246,42 +263,53 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         if digest:
             flags &= self.HASH_MASK
         parts.append(pack('B', flags))
+        parts.append(serialize_varchar(self.extra))
+        if self.value is not None:
+            parts.append(serialize_varchar(self.value))
         if self.left is not None:
             _serialize_branch(self.left)
         if self.right is not None:
             _serialize_branch(self.right)
-        if self.value is not None:
-            parts.append(serialize_varchar(self.value))
         return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
         flags = deserialize_varint(file_)
         initargs['children'] = {}
-        def _deserialize_branch(attr, implicit, bitlength, prune):
-            if not bitlength:
-                return
-            if bitlength == 3:
-                bitlength = deserialize_varint(file_) + 3
-            bytelength = (bitlength + 7) // 8
-            bytes_ = file_.read(bytelength)
-            assert len(bytes_) == bytelength
-            prefix = implicit + Bits(bytes=bytes_, length=bitlength-1)
-            if prune:
-                initargs['children'][prefix] = deserialize_hash(file_, 32)
-            else:
-                initargs['children'][prefix] = cls.deserialize(file_)
-        _deserialize_branch('left', Bits([False]),
-            (flags >> cls.OFFSET_LEFT)  & 3, bool(flags & (1 << cls.PRUNE_LEFT)),)
-        _deserialize_branch('right', Bits([True]),
-            (flags >> cls.OFFSET_RIGHT) & 3, bool(flags & (1 << cls.PRUNE_RIGHT)),)
+        initargs['extra'] = deserialize_varchar(file_)
         if flags & (1 << cls.HAS_VALUE):
             initargs['value'] = deserialize_varchar(file_)
             initargs['prune_value'] = bool(flags & (1 << cls.PRUNE_VALUE))
+        def _deserialize_branch(attr, prefix, bitlength, prune):
+            if not bitlength:
+                return
+            elif bitlength == 2:
+                skiplist = file_.read(1)
+                assert len(skiplist) == 1
+                bitlength = ord(skiplist).bit_length()
+                prefix += Bits(bytes=skiplist)[:-bitlength:-1]
+            elif bitlength == 3:
+                bitlength = deserialize_varint(file_) + 9
+                bytelength = (bitlength + 6) // 8
+                bytes_ = file_.read(bytelength)
+                assert len(bytes_) == bytelength
+                prefix += Bits(bytes=bytes_[::-1])[:-bitlength:-1]
+            if prune:
+                initargs['children'][prefix] = hash256.deserialize(file_)
+            else:
+                initargs['children'][prefix] = cls.deserialize(file_)
+        _deserialize_branch('left', Bits('0b0'),
+            (flags >> cls.OFFSET_LEFT)  & 3, bool(flags & (1 << cls.PRUNE_LEFT)),)
+        _deserialize_branch('right', Bits('0b1'),
+            (flags >> cls.OFFSET_RIGHT) & 3, bool(flags & (1 << cls.PRUNE_RIGHT)),)
         return cls(**initargs)
 
+    # The single-application SHA-256 function is used over the usual double-
+    # SHA-256 construction for performance reasons. *A lot* of hash operations
+    # are required, and hash extension attacks are not possible anyway.
+    from .hash import sha256 as compressor
     def hash__getter(self):
-        return super(BasePatriciaDict, self).hash__getter(digest=True)
+        return super(BaseAuthTreeNode, self).hash__getter(digest=True)
 
     def __hash__(self):
         "x.__hash__() <==> hash(x)"
@@ -306,7 +334,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             def _hash():
                 return getattr(other, 'hash', NotImplemented)
             def _icmp():
-                if isinstance(other, BasePatriciaDict):
+                if isinstance(other, BaseAuthTreeNode):
                     return icmp(self.iteritems(), other.iteritems())
                 elif hasattr(other, 'keys'):
                     return icmp(self.iteritems(), sorted((x,other[x]) for x in other))
@@ -474,7 +502,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
 
     def _propogate(self, node, path):
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', PatriciaLink))()
+            lambda: getattr(self, 'link_class', AuthTreeLink))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
         while path:
@@ -496,7 +524,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         value = self._prepare_value(value)
 
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', PatriciaLink))()
+            lambda: getattr(self, 'link_class', AuthTreeLink))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -605,7 +633,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         key, key_ = self._prepare_key(key), key
 
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', PatriciaLink))()
+            lambda: getattr(self, 'link_class', AuthTreeLink))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -665,7 +693,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
 
     def _prune(self, key):
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', PatriciaLink))()
+            lambda: getattr(self, 'link_class', AuthTreeLink))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -689,7 +717,7 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
         key, key_ = self._prepare_key(key), key
 
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', PatriciaLink))()
+            lambda: getattr(self, 'link_class', AuthTreeLink))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -743,9 +771,12 @@ class BasePatriciaDict(SerializableMixin, HashableMixin):
             children    = self.children,
             prune_value = self.prune_value)
 
-class MemoryPatriciaDict(BasePatriciaDict):
+class BaseComposableAuthTree(BaseAuthTreeNode):
+    level_compress = False
+class MemoryComposableAuthTree(BaseComposableAuthTree):
     pass
 
-#
-# End of File
-#
+class BasePatriciaAuthTree(BaseAuthTreeNode):
+    level_compress = True
+class MemoryPatriciaAuthTree(BasePatriciaAuthTree):
+    pass

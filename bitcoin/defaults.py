@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 CLIENT_VERSION_MAJOR    = 0
 CLIENT_VERSION_MINOR    = 8
@@ -186,7 +182,3 @@ CHAIN_PARAMETERS = {
         },
         features = {}),
 }
-
-#
-# End of File
-#

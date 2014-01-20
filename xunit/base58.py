@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-#
-# Copyright © 2012-2013 by its contributors. See AUTHORS for details.
-#
+# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-#
 
 # Python 2 and 3 compatibility utilities
 import six
@@ -170,7 +166,3 @@ class TestInvalidInit(unittest2.TestCase):
     def test_invalid_init_with_empty_data(self):
         with self.assertRaises(VersionedPayloadError):
             VersionedPayload(data=b'', add_hash=True)
-
-#
-# End of File
-#
