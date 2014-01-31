@@ -598,6 +598,9 @@ class Script(SerializableMixin, six.binary_type):
     def deserialize(cls, file_):
         return cls(deserialize_varchar(file_))
 
+    def join(self, *args, **kwargs):
+        return self.__class__(super(Script, self).join(*args, **kwargs))
+
     def __repr__(self):
         try:
             return u"Script([%s])" % ', '.join(map(repr, self))
