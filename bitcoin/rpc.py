@@ -174,7 +174,7 @@ class Proxy(object):
                 'code'        in response['error'] and response['error']['code']        or -1,
                 'message'     in response['error'] and response['error']['message']     or '',
                 'description' in response['error'] and response['error']['description'] or None)
-        elif 'result' in response and response['result'] is not None:
+        elif 'result' in response:
             return response['result']
         else:
             raise ResponseError(u"server reply must contain one of 'result' or 'error'")
