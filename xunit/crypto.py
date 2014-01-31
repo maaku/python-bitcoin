@@ -13,7 +13,7 @@ import unittest2
 from scenariotest import ScenarioMeta, ScenarioTest
 
 from bitcoin.crypto import *
-from bitcoin.serialize import serialize_beint
+from bitcoin.serialize import BigInteger
 
 # ===----------------------------------------------------------------------===
 
@@ -59,16 +59,16 @@ class TestSecret(unittest2.TestCase):
             with self.assertRaises(InvalidSecretError):
                 Secret(b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     secret[-4:]]), compressed=False)
             with self.assertRaises(InvalidSecretError):
                 Secret(b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     secret[-4:]]), compressed=True)
             obj = Secret(b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 secret[-4:]]))
             self.assertEqual(obj, secret)
             self.assertEqual(obj.exponent, exponent)
@@ -76,18 +76,18 @@ class TestSecret(unittest2.TestCase):
             with self.assertRaises(InvalidSecretError):
                 Secret(b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01),
                     compressed_secret[-4:]]), compressed=False)
             with self.assertRaises(InvalidSecretError):
                 Secret(b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01),
                     compressed_secret[-4:]]), compressed=True)
             obj = Secret(b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 six.int2byte(0x01),
                 compressed_secret[-4:]]))
             self.assertEqual(obj, compressed_secret)
@@ -100,48 +100,48 @@ class TestSecret(unittest2.TestCase):
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=False, data=b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     secret[-4:]]))
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=True, data=b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     secret[-4:]]))
             obj = Secret(data=b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 secret[-4:]]))
             self.assertEqual(obj, secret)
             self.assertEqual(obj.exponent, exponent)
             self.assertFalse(obj.compressed)
             obj = Secret(add_hash=False, data=b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 secret[-4:]]))
             self.assertEqual(obj, secret)
             self.assertEqual(obj.exponent, exponent)
             self.assertFalse(obj.compressed)
             obj = Secret(add_hash=True, data=b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32)]))
+                BigInteger(exponent).serialize(32)]))
             self.assertEqual(obj, secret)
             self.assertEqual(obj.exponent, exponent)
             self.assertFalse(obj.compressed)
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=True, data=b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01),
                     compressed_secret[-4:]]))
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=False, data=b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01),
                     compressed_secret[-4:]]))
             obj = Secret(data=b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 six.int2byte(0x01),
                 compressed_secret[-4:]]))
             self.assertEqual(obj, compressed_secret)
@@ -149,7 +149,7 @@ class TestSecret(unittest2.TestCase):
             self.assertTrue(obj.compressed)
             obj = Secret(add_hash=False, data=b''.join([
                 six.int2byte(0x80),
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 six.int2byte(0x01),
                 compressed_secret[-4:]]))
             self.assertEqual(obj, compressed_secret)
@@ -157,7 +157,7 @@ class TestSecret(unittest2.TestCase):
             self.assertTrue(obj.compressed)
             obj = Secret(add_hash=True, data=b''.join([
                     six.int2byte(0x80),
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01)]))
             self.assertEqual(obj, compressed_secret)
             self.assertEqual(obj.exponent, exponent)
@@ -168,24 +168,24 @@ class TestSecret(unittest2.TestCase):
         def __test__(self, exponent, secret, compressed_secret):
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=False, payload=b''.join([
-                    serialize_beint(exponent, 32)]))
+                    BigInteger(exponent).serialize(32)]))
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=True, payload=b''.join([
-                    serialize_beint(exponent, 32)]))
-            obj = Secret(payload=b''.join([serialize_beint(exponent, 32)]))
+                    BigInteger(exponent).serialize(32)]))
+            obj = Secret(payload=b''.join([BigInteger(exponent).serialize(32)]))
             self.assertEqual(obj, secret)
             self.assertEqual(obj.exponent, exponent)
             self.assertFalse(obj.compressed)
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=False, payload=b''.join([
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01)]))
             with self.assertRaises(InvalidSecretError):
                 Secret(compressed=True, payload=b''.join([
-                    serialize_beint(exponent, 32),
+                    BigInteger(exponent).serialize(32),
                     six.int2byte(0x01)]))
             obj = Secret(payload=b''.join([
-                serialize_beint(exponent, 32),
+                BigInteger(exponent).serialize(32),
                 six.int2byte(0x01)]))
             self.assertEqual(obj, compressed_secret)
             self.assertEqual(obj.exponent, exponent)

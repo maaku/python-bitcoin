@@ -12,9 +12,7 @@ from .authtree import MemoryPatriciaAuthTree
 from .core import Output
 from .hash import hash256
 from .mixins import SerializableMixin
-from .serialize import (
-    serialize_leint, deserialize_leint,
-    serialize_varint, deserialize_varint)
+from .serialize import LittleInteger, VarInt
 from .tools import compress_amount, decompress_amount
 
 __all__ = (
@@ -162,49 +160,49 @@ class UnspentTransaction(SerializableMixin, sorteddict):
             raise TypeError()
         code = bitvector & 0x7
         bitvector >>= 3
-        bitvector = serialize_leint(bitvector)
+        bitvector = LittleInteger(bitvector).serialize()
         bitvector_len = len(bitvector)
         if not code:
             bitvector_len -= 1
         code |= bitvector_len << 3
 
-        result  = serialize_varint(self.version)
-        result += serialize_varint(code)
+        result  = VarInt(self.version).serialize()
+        result += VarInt(code).serialize()
         result += bitvector
         for output in six.itervalues(self):
-            result += serialize_varint(compress_amount(output.amount))
+            result += VarInt(compress_amount(output.amount)).serialize()
             result += self._pickler.dumps(output.contract)
-        result += serialize_varint(self.height)
+        result += VarInt(self.height).serialize()
         if self.version in (2,):
-            result += serialize_varint(self.reference_height)
+            result += VarInt(self.reference_height).serialize()
         return result
     @classmethod
     def deserialize(cls, file_):
         output_class = getattr(cls, 'get_output_class', lambda:
                        getattr(cls, 'output_class', Output))()
         kwargs = {}
-        kwargs['version'] = deserialize_varint(file_)
+        kwargs['version'] = VarInt.deserialize(file_)
 
         # See description of code, bitvector above.
-        code, bitvector = deserialize_varint(file_), 0
+        code, bitvector = VarInt.deserialize(file_), 0
         bitvector |= code & 0x7
         code >>= 3
         if not bitvector:
             code += 1
         if code:
-            bitvector |= deserialize_leint(file_, code) << 3
+            bitvector |= LittleInteger.deserialize(file_, code) << 3
         idx, items = 0, []
         while bitvector:
             if bitvector & 0x1:
                 items.append(
                     (idx, output_class(
-                        decompress_amount(deserialize_varint(file_)),
+                        decompress_amount(VarInt.deserialize(file_)),
                         cls._pickler.load(file_))))
             idx, bitvector = idx + 1, bitvector >> 1
 
-        kwargs['height'] = deserialize_varint(file_)
+        kwargs['height'] = VarInt.deserialize(file_)
         if kwargs['version'] in (2,):
-            kwargs['reference_height'] = deserialize_varint(file_)
+            kwargs['reference_height'] = VarInt.deserialize(file_)
         return cls(items, **kwargs)
 
     def __eq__(self, other):
@@ -242,13 +240,13 @@ ContractOutPoint._pickler = ScriptPickler()
 def _serialize_contract_outpoint(self):
     return b''.join([self._pickler.dumps(self.contract.serialize()),
                      hash256.serialize(self.hash),
-                     serialize_varint(self.index)])
+                     VarInt(self.index).serialize()])
 ContractOutPoint.serialize = _serialize_contract_outpoint
 def _deserialize_contract_outpoint(cls, file_):
     kwargs = {}
     kwargs['contract'] = cls._pickler.load(file_)
     kwargs['hash'] = hash256.deserialize(file_)
-    kwargs['index'] = deserialize_varint(file_)
+    kwargs['index'] = VarInt.deserialize(file_)
     return cls(**kwargs)
 ContractOutPoint.deserialize = classmethod(_deserialize_contract_outpoint)
 def _repr_contract_outpoint(self):
@@ -260,20 +258,20 @@ OutputData = recordtype('OutputData',
     ['version', 'amount', 'height', 'reference_height'])
 def _serialize_output_data(self):
     parts = []
-    parts.append(serialize_varint(self.version))
-    parts.append(serialize_varint(self.height))
-    parts.append(serialize_varint(compress_amount(self.amount)))
+    parts.append(VarInt(self.version).serialize())
+    parts.append(VarInt(self.height).serialize())
+    parts.append(VarInt(compress_amount(self.amount)).serialize())
     if self.version in (2,):
-        parts.append(serialize_varint((self.height<<1)|self.reference_height))
+        parts.append(VarInt((self.height<<1)|self.reference_height).serialize())
     return b''.join(parts)
 OutputData.serialize = _serialize_output_data
 def _deserialize_output_data(cls, file_):
     kwargs = {}
-    kwargs['version'] = deserialize_varint(file_)
-    kwargs['height'] = deserialize_varint(file_)
-    kwargs['amount'] = decompress_amount(deserialize_varint(file_))
+    kwargs['version'] = VarInt.deserialize(file_)
+    kwargs['height'] = VarInt.deserialize(file_)
+    kwargs['amount'] = decompress_amount(VarInt.deserialize(file_))
     if kwargs['version'] in (2,):
-        kwargs['reference_height'] = deserialize_varint(file_)
+        kwargs['reference_height'] = VarInt.deserialize(file_)
     return cls(**kwargs)
 OutputData.deserialize = classmethod(_deserialize_output_data)
 

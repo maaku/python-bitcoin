@@ -12,18 +12,14 @@ __all__ = [
     'SER_NETWORK',
     'SER_DISK',
     'SER_HASH',
-    'serialize_varint',
-    'deserialize_varint',
-    'serialize_varchar',
-    'deserialize_varchar',
-    'serialize_beint',
-    'deserialize_beint',
-    'serialize_leint',
-    'deserialize_leint',
-    'serialize_bignum',
-    'deserialize_bignum',
-    'serialize_list',
-    'deserialize_list',
+    'CompactSize',
+    'BigInteger',
+    'LittleInteger',
+    'BigNum',
+    'VarInt',
+    'FlatData',
+    'serialize_iterator',
+    'deserialize_iterator',
 ]
 
 SER_NETWORK = 1 << 0
@@ -36,113 +32,138 @@ def _force_read(file_, len_):
         raise EOFError(u"unexpected end-of-file")
     return data
 
-def serialize_varint(long_):
-    if 0 <= long_:
-        if long_ < 253:
-            return chr(long_)
-        elif long_ <= 0xffffL:
-            return chr(253) + pack("<H", long_)
-        elif long_ <= 0xffffffffL:
-            return chr(254) + pack("<I", long_)
-        elif long_ <= 0xffffffffffffffffL:
-            return chr(255) + pack("<Q", long_)
-    raise ValueError(u"out of bounds: %d" % long_)
+class CompactSize(long):
+    """\
+    Compact size
+      size <  253        -- 1 byte
+      size <= USHRT_MAX  -- 3 bytes  (253 + 2 bytes)
+      size <= UINT_MAX   -- 5 bytes  (254 + 4 bytes)
+      size >  UINT_MAX   -- 9 bytes  (255 + 8 bytes)"""
+    def serialize(self):
+        if 0 <= self:
+            if self < 253:
+                return chr(self)
+            elif self <= 0xffff:
+                return '\xfd' + pack("<H", self)
+            elif self <= 0xffffffff:
+                return '\xfe' + pack("<I", self)
+            elif self <= 0xffffffffffffffff:
+                return '\xff' + pack("<Q", self)
+        raise ValueError(u"out of bounds: %d" % self)
 
-def deserialize_varint(file_):
-    result = unpack("<B", _force_read(file_, 1))[0]
-    if result == 253:
-        result = unpack("<H", _force_read(file_, 2))[0]
-    elif result == 254:
-        result = unpack("<I", _force_read(file_, 4))[0]
-    elif result == 255:
-        result = unpack("<Q", _force_read(file_, 8))[0]
-    return result
+    @classmethod
+    def deserialize(cls, file_):
+        result = unpack("<B", _force_read(file_, 1))[0]
+        if result == 253:
+            result = unpack("<H", _force_read(file_, 2))[0]
+        elif result == 254:
+            result = unpack("<I", _force_read(file_, 4))[0]
+        elif result == 255:
+            result = unpack("<Q", _force_read(file_, 8))[0]
+        return cls(result)
 
-def serialize_varchar(str_):
-    return serialize_varint(len(str_)) + str_
+class LittleInteger(long):
+    "Little-endian serialized integer representation."
+    def serialize(self, len_=None):
+        if self < 0:
+            raise ValueError(u"received integer value is negative")
 
-def deserialize_varchar(file_):
-    len_ = deserialize_varint(file_)
-    return len_ and _force_read(file_, len_) or b''
+        result = []
+        while self:
+            result.append(pack("<Q", self & 0xffffffffffffffffL))
+            self >>= 64
+        result = b''.join(result)
+        result = result.rstrip('\x00')
 
-def serialize_leint(long_, len_=None):
-    if long_ < 0:
-        raise ValueError(u"received integer value is negative")
+        if len_ > 0:
+            result_len = len(result)
+            if result_len < len_:
+                result = result + b'\x00' * (len_ - result_len)
+            elif result_len > len_:
+                raise ValueError(u"integer exceeds maximum representable value")
 
-    result = []
-    while long_:
-        result.append(pack("<Q", long_ & 0xffffffffffffffffL))
-        long_ >>= 64
-    result = b''.join(result)
-    result = result.rstrip('\x00')
+        return result
 
-    if len_ is not None:
-        result_len = len(result)
-        if result_len < len_:
-            result = result + b'\x00' * (len_ - result_len)
-        elif result_len > len_:
-            raise ValueError(u"integer value exceeds maximum representable value")
+    @classmethod
+    def deserialize(cls, file_, len_):
+        result = 0
+        for idx in xrange(len_//8):
+            limb = unpack("<Q", _force_read(file_, 8))[0]
+            result += limb << (idx * 64)
+        if len_ & 4:
+            limb = unpack("<I", _force_read(file_, 4))[0]
+            result += limb << ((len_ & ~7) * 8)
+        if len_ & 2:
+            limb = unpack("<H", _force_read(file_, 2))[0]
+            result += limb << ((len_ & ~3) * 8)
+        if len_ & 1:
+            limb = unpack("<B", _force_read(file_, 1))[0]
+            result += limb << ((len_ & ~1) * 8)
+        return cls(result)
 
-    return result
+class BigInteger(long):
+    "Big-endian serialized integer representation."
+    def serialize(self, *args, **kwargs):
+        return LittleInteger(self).serialize(*args, **kwargs)[::-1]
 
-def deserialize_leint(file_, len_):
-    result = 0L
-    for idx in xrange(len_//8):
-        limb = unpack("<Q", _force_read(file_, 8))[0]
-        result += limb << (idx * 64)
-    if len_ & 4:
-        limb = unpack("<I", _force_read(file_, 4))[0]
-        result += limb << ((len_ & ~7) * 8)
-    if len_ & 2:
-        limb = unpack("<H", _force_read(file_, 2))[0]
-        result += limb << ((len_ & ~3) * 8)
-    if len_ & 1:
-        limb = unpack("<B", _force_read(file_, 1))[0]
-        result += limb << ((len_ & ~1) * 8)
-    return result
+    @classmethod
+    def deserialize(cls, file_, len_):
+        result = 0
+        for idx in xrange(len_//8):
+            limb = unpack(">Q", _force_read(file_, 8))[0]
+            result = (result << 64) + limb
+        if len_ & 4:
+            limb = unpack(">I", _force_read(file_, 4))[0]
+            result = (result << 32) + limb
+        if len_ & 2:
+            limb = unpack(">H", _force_read(file_, 2))[0]
+            result = (result << 16) + limb
+        if len_ & 1:
+            limb = unpack(">B", _force_read(file_, 1))[0]
+            result = (result << 8) + limb
+        return cls(result)
 
-def serialize_beint(long_, len_=None):
-    return serialize_leint(long_, len_)[::-1]
+class BigNum(long):
+    def serialize(self, *args, **kwargs):
+        neg = self < 0
+        bytes_ = BigInteger(self).serialize(*args, **kwargs)
+        if not bytes_ or bytes_[:1] > six.int2byte(0x7f):
+            bytes_ = six.int2byte(0) + bytes_
+        if neg:
+            bytes_ = b''.join([six.int2byte(ord(bytes_[:1])|0x80), bytes_[1:]])
+        return bytes_
 
-def deserialize_beint(file_, len_):
-    result = 0L
-    for idx in xrange(len_//8):
-        limb = unpack(">Q", _force_read(file_, 8))[0]
-        result = (result << 64) + limb
-    if len_ & 4:
-        limb = unpack(">I", _force_read(file_, 4))[0]
-        result = (result << 32) + limb
-    if len_ & 2:
-        limb = unpack(">H", _force_read(file_, 2))[0]
-        result = (result << 16) + limb
-    if len_ & 1:
-        limb = unpack(">B", _force_read(file_, 1))[0]
-        result = (result << 8) + limb
-    return result
+    @classmethod
+    def deserialize(cls, file_, len_, *args, **kwargs):
+        n = BigInteger.deserialize(file_, len_, *args, **kwargs)
+        e = 2**(len_*8 - 1)
+        if n >= e:
+            n = e - n
+        return cls(n)
 
-def serialize_bignum(n, *args, **kwargs):
-    neg = n < 0
-    n_str = serialize_beint(n, *args, **kwargs)
-    if not n_str or n_str[:1] > six.int2byte(0x7f):
-        n_str = six.int2byte(0) + n_str
-    if neg:
-        n_str = b''.join([six.int2byte(ord(n_str[:1])|0x80), n_str[1:]])
-    return n_str
+# FIXME: VarInt and CompactSize are two totally different types!! This is just
+# temporary code that should be removed ASAP, as soon as the unit tests are
+# re-written to use the actual VarInt format.
+class VarInt(CompactSize):
+    pass
 
-def deserialize_bignum(file_, len_, *args, **kwargs):
-    n = deserialize_beint(file_, len_, *args, **kwargs)
-    e = 2**(len_*8 - 1)
-    if n >= e:
-        n = e - n
-    return n
+class FlatData(six.binary_type):
+    "Wrapper for serializing arrays and POD."
+    def serialize(self):
+        return self
 
-def serialize_list(list_, serializer=lambda i:i.serialize()):
-    result = serialize_varint(len(list_))
-    for item in list_:
-        result += serializer(item)
-    return result
+    @classmethod
+    def deserialize(cls, file_, len_):
+        return len_ and _force_read(file_, len_) or b''
 
-def deserialize_list(file_, deserializer):
-    for _ in xrange(deserialize_varint(file_)):
-        yield deserializer(file_)
+def serialize_iterator(iter_, serializer=lambda i:i.serialize(),
+        prefix = lambda n:CompactSize(n).serialize(), *args, **kwargs):
+    len_, result = 0, b''
+    for item in iter_:
+        result += serializer(item, *args, **kwargs); len_ += 1
+    return prefix(len_) + result
+
+def deserialize_iterator(file_, deserializer, prefix=CompactSize.deserialize, *args, **kwargs):
+    for _ in xrange(prefix(file_)):
+        yield deserializer(file_, *args, **kwargs)
     raise StopIteration

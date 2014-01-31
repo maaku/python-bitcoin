@@ -8,10 +8,7 @@ import six
 
 from .hash import hash256
 from .mixins import HashableMixin, SerializableMixin
-from .serialize import (
-    serialize_varint,  deserialize_varint,
-    serialize_varchar, deserialize_varchar,
-    serialize_list,    deserialize_list)
+from .serialize import FlatData, VarInt
 
 from .tools import Bits, StringIO, icmp, lookahead, list, tuple
 
@@ -245,7 +242,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                          link.prefix[:0:-1]).uint))
             elif 9 <= len_:
                 skiplist = link.prefix[1:] + Bits((False,) * ((1-len_)%8))
-                parts.append(serialize_varint(len_-9))
+                parts.append(VarInt(len_-9).serialize())
                 parts.append(skiplist[::-1].tobytes()[::-1])
             if digest and not getattr(self, 'level_compress', False):
                 hash_ = hash256.serialize(link.hash)
@@ -263,9 +260,11 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         if digest:
             flags &= self.HASH_MASK
         parts.append(pack('B', flags))
-        parts.append(serialize_varchar(self.extra))
+        parts.append(VarInt(len(self.extra)).serialize())
+        parts.append(FlatData(self.extra).serialize())
         if self.value is not None:
-            parts.append(serialize_varchar(self.value))
+            parts.append(VarInt(len(self.value)).serialize())
+            parts.append(FlatData(self.value).serialize())
         if self.left is not None:
             _serialize_branch(self.left)
         if self.right is not None:
@@ -274,11 +273,13 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
-        flags = deserialize_varint(file_)
+        flags = VarInt.deserialize(file_)
         initargs['children'] = {}
-        initargs['extra'] = deserialize_varchar(file_)
+        len_ = VarInt.deserialize(file_)
+        initargs['extra'] = FlatData.deserialize(file_, len_)
         if flags & (1 << cls.HAS_VALUE):
-            initargs['value'] = deserialize_varchar(file_)
+            len_ = VarInt.deserialize(file_)
+            initargs['value'] = FlatData.deserialize(file_, len_)
             initargs['prune_value'] = bool(flags & (1 << cls.PRUNE_VALUE))
         def _deserialize_branch(attr, prefix, bitlength, prune):
             if not bitlength:
@@ -289,7 +290,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 bitlength = ord(skiplist).bit_length()
                 prefix += Bits(bytes=skiplist)[:-bitlength:-1]
             elif bitlength == 3:
-                bitlength = deserialize_varint(file_) + 9
+                bitlength = VarInt.deserialize(file_) + 9
                 bytelength = (bitlength + 6) // 8
                 bytes_ = file_.read(bytelength)
                 assert len(bytes_) == bytelength

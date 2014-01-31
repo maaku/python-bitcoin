@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 from .errors import InvalidBase58Error, HashChecksumError, VersionedPayloadError
-from .serialize import serialize_beint, deserialize_beint
+from .serialize import BigInteger
 from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
@@ -26,7 +26,7 @@ def b58_encode(b, errors='strict'):
     len_ = len(b)
 
     # Convert big-endian bytes to integer
-    n = deserialize_beint(StringIO(b), len_)
+    n = BigInteger.deserialize(StringIO(b), len_)
 
     # Divide that integer into base58
     res = []
@@ -58,7 +58,7 @@ def b58_decode(s, errors='strict'):
         n += digit
 
     # Convert the integer to bytes
-    res = serialize_beint(n, (n.bit_length()+7)//8 or 1)
+    res = BigInteger(n).serialize((n.bit_length()+7)//8 or 1)
 
     # Add padding back.
     pad = 0

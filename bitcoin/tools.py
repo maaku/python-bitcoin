@@ -78,7 +78,7 @@ def decompress_amount(x):
 
 # ===----------------------------------------------------------------------===
 
-from .serialize import serialize_beint
+from .serialize import BigInteger as _BigInteger
 def compact_from_target(target):
     """\
     The “compact” format is a representation of a whole number N using an
@@ -104,7 +104,7 @@ def compact_from_target(target):
 
     This implementation directly uses shifts instead of going
     through an intermediate MPI representation."""
-    bn = serialize_beint(target)
+    bn = _BigInteger(target).serialize()
     size = len(bn)
     if size <= 3:
         word = target << 8 * (3 - size)

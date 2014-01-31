@@ -3,10 +3,6 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from .serialize import (
-    serialize_varchar, deserialize_varchar,
-    serialize_list, deserialize_list)
-
 __all__ = [
     'ChainParameters',
     'Output',
@@ -45,10 +41,11 @@ class Output(SerializableMixin):
     def get_script_class(cls):
         return getattr(cls, 'script_class', Script)
 
-    def serialize(self):
-        result  = pack('<Q', self.amount)
-        result += self.contract.serialize()
-        return result
+    def serialize(self, type_, version, chain, height):
+        parts = list()
+        parts.append(pack('<Q', self.amount))
+        parts.append(self.contract.serialize())
+        return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
@@ -84,27 +81,28 @@ class Input(SerializableMixin):
         return getattr(cls, 'script_class', Script)
 
     def serialize(self):
-        result  = hash256.serialize(self.hash)
-        result += pack('<I', self.index)
+        parts = list()
+        parts.append(hash256.serialize(self.hash))
+        parts.append(pack('<I', self.index))
         if hasattr(self.endorsement, 'serialize'):
-            result += self.endorsement.serialize()
+            parts.append(self.endorsement.serialize())
         else:
-            result += serialize_varchar(self.endorsement) # <-- coinbase
-        result += pack('<I', self.sequence)
-        return result
+            parts.append(CompactSize(len(self.endorsement)).serialize())
+            parts.append(self.endorsement)
+        parts.append(pack('<I', self.sequence))
+        return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
         initargs['hash'] = hash256.deserialize(file_)
         initargs['index'] = unpack('<I', file_.read(4))[0]
-        str_ = deserialize_varchar(file_) # <-- might be coinbase!
-        initargs['sequence'] = unpack('<I', file_.read(4))[0]
         if not all((initargs['hash']  == 0,
                     initargs['index'] == 0xffffffff)):
-            initargs['coinbase'] = str_
+            len_ = CompactSize.deserialize(file_)
+            initargs['coinbase'] = FlatData.deserialize(file_, len_)
         else:
-            initargs['endorsement'] = cls.get_script_class().deserialize(
-                StringIO(serialize_varchar(str_)))
+            initargs['endorsement'] = cls.get_script_class().deserialize(file_)
+        initargs['sequence'] = unpack('<I', file_.read(4))[0]
         return cls(**initargs)
 
     @property
@@ -160,8 +158,8 @@ class Transaction(SerializableMixin, HashableMixin):
         if self.version not in (1,2):
             raise NotImplementedError()
         result  = pack('<I', self.version)
-        result += serialize_list(self.inputs, lambda i:i.serialize())
-        result += serialize_list(self.outputs, lambda o:o.serialize())
+        result += serialize_iterator(self.inputs, lambda i:i.serialize())
+        result += serialize_iterator(self.outputs, lambda o:o.serialize())
         result += pack('<I', self.lock_time)
         if self.version==2:
             result += pack('<I', self.reference_height)
@@ -178,8 +176,8 @@ class Transaction(SerializableMixin, HashableMixin):
         initargs['version'] = unpack('<I', file_.read(4))[0]
         if initargs['version'] not in (1,2):
             raise NotImplementedError()
-        initargs['inputs'] = list(deserialize_list(file_, lambda f:cls.deserialize_input(f)))
-        initargs['outputs'] = list(deserialize_list(file_, lambda f:cls.deserialize_output(f)))
+        initargs['inputs'] = list(deserialize_iterator(file_, lambda f:cls.deserialize_input(f)))
+        initargs['outputs'] = list(deserialize_iterator(file_, lambda f:cls.deserialize_output(f)))
         initargs['lock_time'] = unpack('<I', file_.read(4))[0]
         if initargs['version'] in (2,):
             initargs['reference_height'] = unpack('<I', file_.read(4))[0]
@@ -315,4 +313,5 @@ ConnectedBlockInfo = recordtype('ConnectedBlockInfo',
 from .hash import hash256
 from .numeric import mpq
 from .script import Script
+from .serialize import CompactSize, FlatData, serialize_iterator, deserialize_iterator
 from .tools import StringIO, icmp, list, target_from_compact, tuple

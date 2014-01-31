@@ -9,7 +9,7 @@ import six
 from struct import unpack
 
 from .mixins import SerializableMixin
-from .serialize import serialize_beint, deserialize_beint, serialize_bignum
+from .serialize import BigInteger, BigNum
 from .tools import StringIO
 
 from .ecdsa__common import *
@@ -68,7 +68,7 @@ class Secret(VersionedPayload):
 
             # The exponent is always stored as 32 bytes, even if some of the
             # leading bits are zero.
-            exponent = serialize_beint(exponent, 32)
+            exponent = BigInteger(exponent).serialize(32)
 
             # As a rather hackish extension of the Bitcoin secret format, a compressed
             # key is indicated by suffixing a '\x01' byte to the secret exponent. Note
@@ -126,7 +126,7 @@ class Secret(VersionedPayload):
 
     # The exponent is stored as a 256-bit big endian integer, the first field
     # of the payload:
-    exponent = property(lambda self:deserialize_beint(StringIO(self.payload[:32]), 32))
+    exponent = property(lambda self:BigInteger.deserialize(StringIO(self.payload[:32]), 32))
     # A compressed key is requested by suffixing 0x01 to the payload field. Note
     # that the following comparison only returns true if payload is exactly 33
     # bytes in length and the final byte is '\x01'.
@@ -138,7 +138,7 @@ BaseSignature = recordtype('BaseSignature', 'r s'.split())
 class Signature(SerializableMixin, BaseSignature):
     def serialize(self):
         def _serialize_derint(n):
-            n_str = serialize_bignum(n)
+            n_str = BigNum(n).serialize()
             return b''.join([
                 six.int2byte(0x02),
                 six.int2byte(len(n_str)),
@@ -167,8 +167,8 @@ class Signature(SerializableMixin, BaseSignature):
         s_len, seq = unpack('>B', seq[:1])[0], seq[1:]
         s_str = seq[:s_len]
         assert 2+r_len+2+s_len == seq_len, (2+r_len+2+s_len, seq_len)
-        return cls(deserialize_beint(StringIO(r_str), len(r_str)),
-                   deserialize_beint(StringIO(s_str), len(s_str)))
+        return cls(BigNum.deserialize(StringIO(r_str), len(r_str)),
+                   BigNum.deserialize(StringIO(s_str), len(s_str)))
 
 class CompactSignature(Signature):
     def __init__(self, v, r, s, *args, **kwargs):
@@ -178,14 +178,14 @@ class CompactSignature(Signature):
     def serialize(self):
         return b''.join([
             six.int2byte(self.v),
-            serialize_beint(self.r, 32),
-            serialize_beint(self.s, 32),
+            BigInteger(self.r).serialize(32),
+            BigInteger(self.s).serialize(32),
         ])
     @classmethod
     def deserialize(cls, file_):
         v = unpack('>B', file_.read(1))[0]
-        r = deserialize_beint(file_, 32)
-        s = deserialize_beint(file_, 32)
+        r = BigInteger.deserialize(file_, 32)
+        s = BigInteger.deserialize(file_, 32)
         return cls(v, r, s)
 
 class SigningKey(object):

@@ -8,7 +8,7 @@ import six
 from struct import pack, unpack
 
 from .mixins import SerializableMixin
-from .serialize import serialize_varchar, deserialize_varchar
+from .serialize import CompactSize, FlatData
 from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
@@ -537,7 +537,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
             return self.opcode - OP_1 + 1
         elif self.opcode in xrange(1,OP_PUSHDATA4+1):
             data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
-            return deserialize_bignum(StringIO(data), len(data))
+            return BigNum.deserialize(StringIO(data), len(data))
         else:
             raise ValueError(u"non-data script-op cannot be interpreted as integer")
 
@@ -551,7 +551,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
         elif 1 <= value <= 16:
             self.opcode = OP_1 + value - 1
         else:
-            data = serialize_bignum(value)
+            data = BigNum(value).serialize()
             datalen = len(data)
             if datalen < OP_PUSHDATA1:
                 self.opcode = datalen
@@ -593,10 +593,11 @@ class Script(SerializableMixin, six.binary_type):
             yield script_op_class.deserialize(file_)
 
     def serialize(self):
-        return serialize_varchar(self)
+        return CompactSize(len(self)).serialize() + FlatData(self).serialize()
     @classmethod
     def deserialize(cls, file_):
-        return cls(deserialize_varchar(file_))
+        len_ = CompactSize.deserialize(file_)
+        return cls(FlatData.deserialize(file_, len_))
 
     def join(self, *args, **kwargs):
         return self.__class__(super(Script, self).join(*args, **kwargs))
@@ -610,7 +611,7 @@ class Script(SerializableMixin, six.binary_type):
 # ===----------------------------------------------------------------------===
 
 from .defaults import CLIENT_VERSION
-from .serialize import SER_DISK, serialize_varint
+from .serialize import SER_DISK
 
 class ScriptPickler(object):
     """Compact serializer for scripts.
@@ -634,8 +635,9 @@ class ScriptPickler(object):
     @staticmethod
     def _dump(script, file_, protocol, version):
         if hasattr(script, 'serialize'):
-            script = script.serialize()
-            script = deserialize_varchar(StringIO(script))
+            tmp_ = StringIO(script.serialize())
+            len_ = CompactSize.deserialize(tmp_)
+            script = FlatData.deserialize(tmp_, len_)
         script_len = len(script)
         if 23 == script_len and all(
             script[k:k+1] == six.int2byte(v)
@@ -667,7 +669,7 @@ class ScriptPickler(object):
                         66: OP_CHECKSIG})):
             str_ = b''.join([six.int2byte(0x04 | ord(script[65:66])&0x01), script[2:34]])
         else:
-            str_ = b''.join([serialize_varint(script_len + 0x06), script])
+            str_ = b''.join([CompactSize(script_len + 0x06).serialize(), script])
         file_.write(str_)
 
     @staticmethod
@@ -717,8 +719,7 @@ class ScriptPickler(object):
         elif size == 0xff:
             size = unpack("<Q", file_.read(8))[0]
         size = size - 6
-        script = file_.read(size)
-        return serialize_varchar(script)
+        return CompactSize(size).serialize() + FlatData.deserialize(file_, size)
 
     def get_script_class(self):
         return getattr(self, 'script_class', Script)

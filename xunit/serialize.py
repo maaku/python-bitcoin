@@ -15,61 +15,64 @@ from scenariotest import ScenarioMeta, ScenarioTest
 # Python patterns, base encoding
 from bitcoin.serialize import *
 
+from bitcoin.defaults import CHAIN_PARAMETERS, CLIENT_VERSION
+
 try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
 
-VARINT = [
-    dict(long_=0, result='\x00'),
-    dict(long_=1, result='\x01'),
-    dict(long_=2, result='\x02'),
-    dict(long_=3, result='\x03'),
-    dict(long_=250, result='\xfa'),
-    dict(long_=251, result='\xfb'),
-    dict(long_=252, result='\xfc'),
-    dict(long_=253, result='\xfd\xfd\x00'),
-    dict(long_=254, result='\xfd\xfe\x00'),
-    dict(long_=255, result='\xfd\xff\x00'),
-    dict(long_=256, result='\xfd\x00\x01'),
-    dict(long_=2**16-2, result='\xfd\xfe\xff'),
-    dict(long_=2**16-1, result='\xfd\xff\xff'),
-    dict(long_=2**16,   result='\xfe\x00\x00\x01\x00'),
-    dict(long_=2**16+1, result='\xfe\x01\x00\x01\x00'),
-    dict(long_=2**32-2, result='\xfe\xfe\xff\xff\xff'),
-    dict(long_=2**32-1, result='\xfe\xff\xff\xff\xff'),
-    dict(long_=2**32,   result='\xff\x00\x00\x00\x00\x01\x00\x00\x00'),
-    dict(long_=2**32+1, result='\xff\x01\x00\x00\x00\x01\x00\x00\x00'),
-    dict(long_=2**64-2, result='\xff\xfe\xff\xff\xff\xff\xff\xff\xff'),
-    dict(long_=2**64-1, result='\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
+COMPACT_SIZE = [
+    dict(size=0, result='\x00'),
+    dict(size=1, result='\x01'),
+    dict(size=2, result='\x02'),
+    dict(size=3, result='\x03'),
+    dict(size=250, result='\xfa'),
+    dict(size=251, result='\xfb'),
+    dict(size=252, result='\xfc'),
+    dict(size=253, result='\xfd\xfd\x00'),
+    dict(size=254, result='\xfd\xfe\x00'),
+    dict(size=255, result='\xfd\xff\x00'),
+    dict(size=256, result='\xfd\x00\x01'),
+    dict(size=2**16-2, result='\xfd\xfe\xff'),
+    dict(size=2**16-1, result='\xfd\xff\xff'),
+    dict(size=2**16,   result='\xfe\x00\x00\x01\x00'),
+    dict(size=2**16+1, result='\xfe\x01\x00\x01\x00'),
+    dict(size=2**32-2, result='\xfe\xfe\xff\xff\xff'),
+    dict(size=2**32-1, result='\xfe\xff\xff\xff\xff'),
+    dict(size=2**32,   result='\xff\x00\x00\x00\x00\x01\x00\x00\x00'),
+    dict(size=2**32+1, result='\xff\x01\x00\x00\x00\x01\x00\x00\x00'),
+    dict(size=2**64-2, result='\xff\xfe\xff\xff\xff\xff\xff\xff\xff'),
+    dict(size=2**64-1, result='\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
 ]
 
-class TestSerializeVarint(unittest2.TestCase):
-    """Test serialization and deserialization of varints under a variety of
-    standard scenarios."""
+class TestSerializeCompactSize(unittest2.TestCase):
+    """Test serialization and deserialization of CompactSize under a variety
+    of standard scenarios."""
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = VARINT
-        def __test__(self, long_, result):
-            self.assertEqual(serialize_varint(long_), result)
+        scenarios = COMPACT_SIZE
+        def __test__(self, size, result):
+            self.assertEqual(CompactSize(size).serialize(), result)
     class test_deserialize(ScenarioTest):
-        scenarios = VARINT
-        def __test__(self, long_, result):
+        scenarios = COMPACT_SIZE
+        def __test__(self, size, result):
             file_ = StringIO(result)
-            self.assertEqual(deserialize_varint(file_), long_)
+            self.assertEqual(CompactSize.deserialize(file_), size)
 
-class TestNegativeNumberEncode(unittest2.TestCase):
+class TestNegativeNumberCompactSize(unittest2.TestCase):
     "Test that encoding a negative number results in a value error."
     def test_negative_number(self):
-        self.assertRaises(ValueError, serialize_varint, -1)
+        self.assertRaises(ValueError,
+            lambda n:CompactSize(n).serialize(), -1)
 
-class TestLargeValueEncode(unittest2.TestCase):
-    """Test that encoding a number greater than 2**64-1 results in a value
-    error."""
+class TestLargeValueCompactSize(unittest2.TestCase):
+    "Test that encoding a number greater than 2**64-1 results in a value error."
     def test_large_number(self):
-        self.assertRaises(ValueError, serialize_varint, 2**64)
+        self.assertRaises(ValueError,
+            lambda n:CompactSize(n).serialize(), 2**64)
 
-INVALID_VARINT = [
+INVALID_COMPACT_SIZE = [
     dict(invalid='\xfd'),
     dict(invalid='\xfd\x00'),
     dict(invalid='\xfe'),
@@ -86,68 +89,53 @@ INVALID_VARINT = [
     dict(invalid='\xff\x00\x00\x00\x00\x00\x00\x00'),
 ]
 
-class TestInvalidVarintSerialization(unittest2.TestCase):
-    """Test that deserialization of an incomplete varint structure results in
-    a value error."""
+class TestInvalidCompactSizeSerialization(unittest2.TestCase):
+    """Test that deserialization of an incomplete CompactSize structure
+    results in a value error."""
     __metaclass__ = ScenarioMeta
     class test_invalid_serialization(ScenarioTest):
-        scenarios = INVALID_VARINT
+        scenarios = INVALID_COMPACT_SIZE
         def __test__(self, invalid):
             file_ = StringIO(invalid)
-            self.assertRaises(EOFError, deserialize_varint, file_)
+            self.assertRaises(EOFError,
+                CompactSize.deserialize, file_)
 
 # ===----------------------------------------------------------------------===
 
-VARCHAR = [
-    dict(str_='', result='\x00'),
-    dict(str_='a', result='\x01a'),
-    dict(str_='bc', result='\x02bc'),
-    dict(str_='123', result='\x03123'),
-    dict(str_='\x01\x02', result='\x02\x01\x02'),
-    dict(str_='Ping\x00Pong\n', result='\x0aPing\x00Pong\n'),
-    dict(str_='\x7f\x80\x00\xff', result='\x04\x7f\x80\x00\xff'),
-    dict(str_='a'*0xfc, result='\xfc'+'a'*0xfc),
-    dict(str_='a'*0xfd, result='\xfd\xfd\x00'+'a'*0xfd),
-    dict(str_='a'*0xffff, result='\xfd\xff\xff'+'a'*0xffff),
-    dict(str_='a'*0x10000, result='\xfe\x00\x00\x01\x00'+'a'*0x10000),
+FLAT_DATA = [
+    dict(data=''),
+    dict(data='a'),
+    dict(data='bc'),
+    dict(data='123'),
+    dict(data='\x01\x02'),
+    dict(data='Ping\x00Pong\n'),
+    dict(data='\x7f\x80\x00\xff'),
+    dict(data='a'*0xfc),
+    dict(data='a'*0xfd),
+    dict(data='a'*0xffff),
+    dict(data='a'*0x10000),
 ]
 
-class TestSerializeVarchar(unittest2.TestCase):
-    """Test serialization and deserialization of varchars (strings) under a
+class TestSerializeFlatData(unittest2.TestCase):
+    """Test serialization and deserialization of FlatData (strings) under a
     variety of standard scenarios."""
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = VARCHAR
-        def __test__(self, str_, result):
-            self.assertEqual(serialize_varchar(str_), result)
+        scenarios = FLAT_DATA
+        def __test__(self, data):
+            self.assertEqual(
+                FlatData(data).serialize(),
+                data)
     class test_deserialize(ScenarioTest):
-        scenarios = VARCHAR
-        def __test__(self, str_, result):
-            file_ = StringIO(result)
-            self.assertEqual(deserialize_varchar(file_), str_)
-
-INVALID_VARCHAR = [
-    dict(invalid='\x01'),
-    dict(invalid='\x02'),
-    dict(invalid='\x02a'),
-    dict(invalid='\x03a'),
-    dict(invalid='\x03ab'),
-    dict(invalid='\xfd\xfd\x00'+'a'*0xfc),
-]
-
-class TestInvalidVarcharSerialization(unittest2.TestCase):
-    """Test that deserialization of an incomplete varint structure results in
-    a value error."""
-    __metaclass__ = ScenarioMeta
-    class test_invalid_serialization(ScenarioTest):
-        scenarios = INVALID_VARCHAR
-        def __test__(self, invalid):
-            file_ = StringIO(invalid)
-            self.assertRaises(EOFError, deserialize_varchar, file_)
+        scenarios = FLAT_DATA
+        def __test__(self, data):
+            self.assertEqual(
+                FlatData.deserialize(StringIO(data), len(data)),
+                data)
 
 # ===----------------------------------------------------------------------===
 
-BEINT = [
+BIG_INTEGER = [
     dict(hash_=0L, len_=1, result='\x00'),
     dict(hash_=0L, len_=2, result='\x00'*2),
     dict(hash_=0L, len_=20, result='\x00'*20),
@@ -163,61 +151,69 @@ BEINT = [
          result='000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'.decode('hex')),
 ]
 
-class TestSerializeBeint(unittest2.TestCase):
+class TestSerializeBigInteger(unittest2.TestCase):
     """Test serialization and deserialization of big integer values under a
     variety of standard scenarios."""
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = BEINT
+        scenarios = BIG_INTEGER
         def __test__(self, hash_, len_, result):
-            self.assertEqual(serialize_beint(hash_, len_), result)
-            self.assertEqual(serialize_beint(hash_), result.lstrip(six.int2byte(0)))
+            self.assertEqual(BigInteger(hash_).serialize(len_), result)
+            self.assertEqual(
+                BigInteger(hash_).serialize(),
+                result.lstrip(six.int2byte(0)))
     class test_deserialize(ScenarioTest):
-        scenarios = BEINT
+        scenarios = BIG_INTEGER
         def __test__(self, hash_, len_, result):
             file_ = StringIO(result)
-            self.assertEqual(deserialize_beint(file_, len_), hash_)
+            self.assertEqual(BigInteger.deserialize(file_, len_), hash_)
 
-class TestNegativeBeintValue(unittest2.TestCase):
+class TestNegativeBigIntegerValue(unittest2.TestCase):
     "Test that serializing a negative big integer value results in an exception."
-    def test_negative_beint(self):
-        self.assertRaises(ValueError, serialize_beint, -1, 32)
+    def test_negative_big_integer(self):
+        self.assertRaises(ValueError,
+            lambda n,l:BigInteger(n).serialize(l), -1, 32)
 
-class TestLargeBeintValue(unittest2.TestCase):
+class TestLargeBigIntegerValue(unittest2.TestCase):
     """Test that encoding a big integer value greater than is representable
     results in an exception."""
-    def test_large_beint(self):
-        self.assertRaises(ValueError, serialize_beint, 2**256, 32)
+    def test_large_big_integer(self):
+        self.assertRaises(ValueError,
+            lambda n,l:BigInteger(n).serialize(l), 2**256, 32)
 
-class TestSerializeLeint(unittest2.TestCase):
+class TestSerializeLittleInteger(unittest2.TestCase):
     """Test serialization and deserialization of little integer values under a
     variety of standard scenarios."""
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = BEINT
+        scenarios = BIG_INTEGER
         def __test__(self, hash_, len_, result):
             result = result[::-1]
-            self.assertEqual(serialize_leint(hash_, len_), result)
-            self.assertEqual(serialize_leint(hash_), result.rstrip(six.int2byte(0)))
+            self.assertEqual(LittleInteger(hash_).serialize(len_), result)
+            self.assertEqual(
+                LittleInteger(hash_).serialize(),
+                result.rstrip(six.int2byte(0)))
     class test_deserialize(ScenarioTest):
-        scenarios = BEINT
+        scenarios = BIG_INTEGER
         def __test__(self, hash_, len_, result):
             result = result[::-1]
             file_ = StringIO(result)
-            self.assertEqual(deserialize_leint(file_, len_), hash_)
+            self.assertEqual(LittleInteger.deserialize(file_, len_), hash_)
 
-class TestNegativeLeintValue(unittest2.TestCase):
+class TestNegativeLittleIntegerValue(unittest2.TestCase):
     "Test that serializing a negative little integer value results in an exception."
-    def test_negative_leint(self):
-        self.assertRaises(ValueError, serialize_leint, -1, 32)
+    def test_negative_little_integer(self):
+        self.assertRaises(ValueError,
+            lambda n,l:LittleInteger(n).serialize(l), -1, 32)
 
-class TestLargeLeintValue(unittest2.TestCase):
+class TestLargeLittleIntegerValue(unittest2.TestCase):
     """Test that encoding a little integer value greater than is representable
     results in an exception."""
-    def test_large_leint(self):
-        self.assertRaises(ValueError, serialize_leint, 2**256, 32)
+    def test_large_little_integer(self):
+        self.assertRaises(ValueError,
+            lambda n,l:LittleInteger(n).serialize(l), 2**256, 32)
 
-INVALID_BEINT = [
+INVALID_BIG_INTEGER = [
     dict(len_=1, invalid=''),
     dict(len_=2, invalid='\x00'),
     dict(len_=20, invalid=''),
@@ -226,29 +222,29 @@ INVALID_BEINT = [
     dict(len_=32, invalid='\x00'*31),
 ]
 
-class TestInvalidBeintSerialization(unittest2.TestCase):
+class TestInvalidBigIntegerSerialization(unittest2.TestCase):
     """Test deserialization of an invalid big integer representation results
     in an exception."""
     __metaclass__ = ScenarioMeta
     class test_invalid_serialization(ScenarioTest):
-        scenarios = INVALID_BEINT
+        scenarios = INVALID_BIG_INTEGER
         def __test__(self, len_, invalid):
             file_ = StringIO(invalid)
-            self.assertRaises(EOFError, deserialize_beint, file_, len_)
+            self.assertRaises(EOFError, BigInteger.deserialize, file_, len_)
 
-class TestInvalidLeintSerialization(unittest2.TestCase):
+class TestInvalidLittleIntegerSerialization(unittest2.TestCase):
     """Test deserialization of an invalid little integer representation results
     in an exception."""
     __metaclass__ = ScenarioMeta
     class test_invalid_serialization(ScenarioTest):
-        scenarios = INVALID_BEINT
+        scenarios = INVALID_BIG_INTEGER
         def __test__(self, len_, invalid):
             file_ = StringIO(invalid[::-1])
-            self.assertRaises(EOFError, deserialize_beint, file_, len_)
+            self.assertRaises(EOFError, LittleInteger.deserialize, file_, len_)
 
 # ===----------------------------------------------------------------------===
 
-VARINT_LIST = [
+COMPACT_SIZE_LIST = [
     dict(list_=[], result='\x00'),
     dict(list_=[0], result='\x01' '\x00'),
     dict(list_=[1,2,3], result='\x03' '\x01' '\x02' '\x03'),
@@ -257,42 +253,21 @@ VARINT_LIST = [
                 '\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
 ]
 
-class TestSerializeVarintList(unittest2.TestCase):
+class TestSerializeCompactSizeList(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = VARINT_LIST
+        scenarios = COMPACT_SIZE_LIST
         def __test__(self, list_, result):
-            self.assertEqual(serialize_list(list_, serialize_varint), result)
+            self.assertEqual(
+                serialize_iterator(list_, lambda n:CompactSize(n).serialize()),
+                result)
     class test_deserialize(ScenarioTest):
-        scenarios = VARINT_LIST
+        scenarios = COMPACT_SIZE_LIST
         def __test__(self, list_, result):
             file_ = StringIO(result)
-            self.assertEqual(list(deserialize_list(file_, deserialize_varint)), list_)
-
-VARCHAR_LIST = [
-    dict(list_=[], result='\x00'),
-    dict(list_=['abc'], result='\x01' '\x03abc'),
-    dict(list_=['a','b','c'], result='\x03' '\x01a' '\x01b' '\x01c'),
-    dict(list_=['9c2e4d8fe97d881430de4e754b4205b9c27ce96715231cffc4337340cb110280'.decode('hex'),
-                '0c08173828583fc6ecd6ecdbcca7b6939c49c242ad5107e39deb7b0a5996b903'.decode('hex'),
-                '80903da4e6bbdf96e8ff6fc3966b0cfd355c7e860bdd1caa8e4722d9230e40ac'.decode('hex')],
-         result=''.join(['\x03',
-                '209c2e4d8fe97d881430de4e754b4205b9c27ce96715231cffc4337340cb110280'.decode('hex'),
-                '200c08173828583fc6ecd6ecdbcca7b6939c49c242ad5107e39deb7b0a5996b903'.decode('hex'),
-                '2080903da4e6bbdf96e8ff6fc3966b0cfd355c7e860bdd1caa8e4722d9230e40ac'.decode('hex')]))
-]
-
-class TestSerializeVarcharList(unittest2.TestCase):
-    __metaclass__ = ScenarioMeta
-    class test_serialize(ScenarioTest):
-        scenarios = VARCHAR_LIST
-        def __test__(self, list_, result):
-            self.assertEqual(serialize_list(list_, serialize_varchar), result)
-    class test_deserialize(ScenarioTest):
-        scenarios = VARCHAR_LIST
-        def __test__(self, list_, result):
-            file_ = StringIO(result)
-            self.assertEqual(list(deserialize_list(file_, deserialize_varchar)), list_)
+            self.assertEqual(
+                list(deserialize_iterator(file_, CompactSize.deserialize)),
+                list_)
 
 from bitcoin.hash import hash160, hash256
 
@@ -322,20 +297,19 @@ class TestSerializeHashList(unittest2.TestCase):
     class test_serialize(ScenarioTest):
         scenarios = HASH_LIST
         def __test__(self, list_, compressor, result):
-            self.assertEqual(serialize_list(list_, lambda h:compressor.serialize(h)), result)
+            self.assertEqual(serialize_iterator(list_, lambda h:compressor.serialize(h)), result)
     class test_deserialize(ScenarioTest):
         scenarios = HASH_LIST
         def __test__(self, list_, compressor, result):
             file_ = StringIO(result)
-            self.assertEqual(list(deserialize_list(file_, lambda f:compressor.deserialize(f))), list_)
+            self.assertEqual(list(deserialize_iterator(file_, lambda f:compressor.deserialize(f))), list_)
 
 # FIXME: test serialization of a list of inputs, outputs, transactions,
 #     blocks, etc.
 
 INVALID_LIST = [
-    dict(invalid='030102'.decode('hex'), deserializer=deserialize_varint),
-    dict(invalid='040002aabb03ccddee'.decode('hex'), deserializer=deserialize_varchar),
-    dict(invalid='05aabbccdd'.decode('hex'), deserializer=lambda f:deserialize_leint(f,1)),
+    dict(invalid='030102'.decode('hex'), deserializer=CompactSize.deserialize),
+    dict(invalid='05aabbccdd'.decode('hex'), deserializer=lambda f:LittleInteger.deserialize(f,1)),
 ]
 
 class TestInvalidListSerialization(unittest2.TestCase):
@@ -344,4 +318,4 @@ class TestInvalidListSerialization(unittest2.TestCase):
         scenarios = INVALID_LIST
         def __test__(self, invalid, deserializer):
             file_ = StringIO(invalid)
-            self.assertRaises(EOFError, lambda f,d:list(deserialize_list(f,d)), file_, deserializer)
+            self.assertRaises(EOFError, lambda f,d:list(deserialize_iterator(f,d)), file_, deserializer)

@@ -11,13 +11,13 @@ __all__ = (
 import hashlib
 
 from copy import deepcopy
-from .serialize import serialize_leint, deserialize_leint
+from .serialize import LittleInteger
 from .tools import StringIO
 
 class _HashAlgorithm(object):
     def intdigest(self):
         "Returns the accumulated input interpreted as a little-endian integer."
-        return deserialize_leint(StringIO(self.digest()), self.digest_size)
+        return LittleInteger.deserialize(StringIO(self.digest()), self.digest_size)
 
 class _NopHashAlgorithm(_HashAlgorithm):
     """This class implements the special case of `_ChainedHashAlgorithm([])`,
@@ -174,9 +174,9 @@ class _HashAlgorithmInterface(tuple):
         return ':'.join(map(lambda n:n.encode('utf-8'), self))
 
     def serialize(self, hash_):
-        return serialize_leint(hash_, self.digest_size)
+        return LittleInteger(hash_).serialize(self.digest_size)
     def deserialize(self, file_):
-        return deserialize_leint(file_, self.digest_size)
+        return LittleInteger.deserialize(file_, self.digest_size)
 
 # (sha256 . ripemd160) is used for Bitcoin addresses, as the 20-byte ripemd160
 # hash can save significant space.
