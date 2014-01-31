@@ -593,10 +593,9 @@ class Script(SerializableMixin, six.binary_type):
             yield script_op_class.deserialize(file_)
 
     def serialize(self):
-        return CompactSize(len(self)).serialize() + FlatData(self).serialize()
+        return b''.join((self,))
     @classmethod
-    def deserialize(cls, file_):
-        len_ = CompactSize.deserialize(file_)
+    def deserialize(cls, file_, len_):
         return cls(FlatData.deserialize(file_, len_))
 
     def join(self, *args, **kwargs):
@@ -635,9 +634,7 @@ class ScriptPickler(object):
     @staticmethod
     def _dump(script, file_, protocol, version):
         if hasattr(script, 'serialize'):
-            tmp_ = StringIO(script.serialize())
-            len_ = CompactSize.deserialize(tmp_)
-            script = FlatData.deserialize(tmp_, len_)
+            script = script.serialize()
         script_len = len(script)
         if 23 == script_len and all(
             script[k:k+1] == six.int2byte(v)
@@ -678,7 +675,6 @@ class ScriptPickler(object):
         if size == 0:
             hash_ = file_.read(20)
             return b''.join([
-                six.int2byte(25),
                 six.int2byte(OP_DUP),
                 six.int2byte(OP_HASH160),
                 six.int2byte(20), hash_,
@@ -688,7 +684,6 @@ class ScriptPickler(object):
         elif size == 1:
             hash_ = file_.read(20)
             return b''.join([
-                six.int2byte(23),
                 six.int2byte(OP_HASH160),
                 six.int2byte(20), hash_,
                 six.int2byte(OP_EQUAL),
@@ -696,7 +691,6 @@ class ScriptPickler(object):
         elif size in (2, 3):
             compressed_key = file_.read(32)
             return b''.join([
-                six.int2byte(35),
                 six.int2byte(33),
                 six.int2byte(size),
                 compressed_key,
@@ -707,7 +701,6 @@ class ScriptPickler(object):
                 b''.join([six.int2byte(size-2), file_.read(32)])))
             verifying_key.compressed = False
             return b''.join([
-                six.int2byte(67),
                 six.int2byte(65),
                 verifying_key.serialize(),
                 six.int2byte(OP_CHECKSIG),
@@ -719,7 +712,7 @@ class ScriptPickler(object):
         elif size == 0xff:
             size = unpack("<Q", file_.read(8))[0]
         size = size - 6
-        return CompactSize(size).serialize() + FlatData.deserialize(file_, size)
+        return FlatData.deserialize(file_, size)
 
     def get_script_class(self):
         return getattr(self, 'script_class', Script)
@@ -742,13 +735,13 @@ class ScriptPickler(object):
             file = self._file
         script_class = self.get_script_class()
         script = self._load(file, self._protocol, self._version)
-        return script_class.deserialize(StringIO(script))
+        return script_class(script)
 
     def loads(self, string):
         "Decompress the passed-in compact script and return the result."
         script_class = self.get_script_class()
         script = self._load(StringIO(string), self._protocol, self._version)
-        return script_class.deserialize(StringIO(script))
+        return script_class(script)
 
 ScriptUnpickler = ScriptPickler
 

@@ -44,13 +44,16 @@ class Output(SerializableMixin):
     def serialize(self, type_, version, chain, height):
         parts = list()
         parts.append(pack('<Q', self.amount))
-        parts.append(self.contract.serialize())
+        script = self.contract.serialize()
+        parts.append(CompactSize(len(script)).serialize())
+        parts.append(FlatData(script).serialize())
         return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
         initargs['amount'] = unpack('<Q', file_.read(8))[0]
-        initargs['contract'] = cls.get_script_class().deserialize(file_)
+        script_len = CompactSize.deserialize(file_)
+        initargs['contract'] = cls.get_script_class().deserialize(file_, script_len)
         return cls(**initargs)
 
     def __eq__(self, other):
@@ -84,11 +87,11 @@ class Input(SerializableMixin):
         parts = list()
         parts.append(hash256.serialize(self.hash))
         parts.append(pack('<I', self.index))
-        if hasattr(self.endorsement, 'serialize'):
-            parts.append(self.endorsement.serialize())
-        else:
-            parts.append(CompactSize(len(self.endorsement)).serialize())
-            parts.append(self.endorsement)
+        script = self.endorsement
+        if hasattr(script, 'serialize'):
+            script = script.serialize()
+        parts.append(CompactSize(len(script)).serialize())
+        parts.append(FlatData(script).serialize())
         parts.append(pack('<I', self.sequence))
         return b''.join(parts)
     @classmethod
@@ -96,12 +99,12 @@ class Input(SerializableMixin):
         initargs = {}
         initargs['hash'] = hash256.deserialize(file_)
         initargs['index'] = unpack('<I', file_.read(4))[0]
+        len_ = CompactSize.deserialize(file_)
         if not all((initargs['hash']  == 0,
                     initargs['index'] == 0xffffffff)):
-            len_ = CompactSize.deserialize(file_)
             initargs['coinbase'] = FlatData.deserialize(file_, len_)
         else:
-            initargs['endorsement'] = cls.get_script_class().deserialize(file_)
+            initargs['endorsement'] = cls.get_script_class().deserialize(file_, len_)
         initargs['sequence'] = unpack('<I', file_.read(4))[0]
         return cls(**initargs)
 
