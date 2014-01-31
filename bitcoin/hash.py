@@ -3,6 +3,11 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+__all__ = (
+    'hash160',
+    'hash256',
+)
+
 import hashlib
 
 from copy import deepcopy
@@ -181,8 +186,3 @@ hash160 = _HashAlgorithmInterface(('sha256', 'ripemd160'))
 # the Merkle-tree compressor, and to generate transaction hash values for
 # identification.
 hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
-
-__all__ = (
-    'hash160',
-    'hash256',
-)

@@ -309,5 +309,7 @@ class Block(SerializableMixin, HashableMixin):
             return 0
         return (1<<256) // (target+1)
 
+# ===----------------------------------------------------------------------===
+
 ConnectedBlockInfo = recordtype('ConnectedBlockInfo',
     ['parent', 'height', 'aggregate_work'])

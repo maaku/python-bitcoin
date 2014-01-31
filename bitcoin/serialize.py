@@ -6,7 +6,6 @@
 "Utility functions used in implementing the block chain serialization format."
 
 import six
-
 from struct import pack, unpack
 
 __all__ = [

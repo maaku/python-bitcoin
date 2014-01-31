@@ -202,7 +202,6 @@ class SigningKey(object):
         return cls(self._ecdsa_signing_key.privkey.secret_multiplier,
                    compressed=self.compressed)
 
-    # Private / signing keys can be serialized in two ways: using the industry standard DER/ASN.1 notation, or by recording the 
     def serialize(self):
         return self._ecdsa_signing_key.to_der()
     @classmethod
