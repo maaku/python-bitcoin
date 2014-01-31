@@ -47,7 +47,7 @@ class _NopHashAlgorithm(_HashAlgorithm):
 
     def update(self, *args):
         "Appends any passed in byte arrays to the “digest”."
-        self._input = ''.join([self._input]+map(str,list(args)))
+        self._input += b''.join(args)
 
     @property
     def block_size(self):
