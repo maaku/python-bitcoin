@@ -477,7 +477,7 @@ class ScriptOp(SerializableMixin, six.binary_type):
             return None
 
     def serialize(self):
-        return self
+        return b''.join((self,))
     @classmethod
     def deserialize(cls, file_):
         opcode = file_.read(1)
