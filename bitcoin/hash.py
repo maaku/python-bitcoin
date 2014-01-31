@@ -12,7 +12,7 @@ import hashlib
 
 from copy import deepcopy
 from .serialize import LittleInteger
-from .tools import StringIO
+from .tools import StringIO, tuple
 
 class _HashAlgorithm(object):
     def intdigest(self):
