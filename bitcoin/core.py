@@ -3,20 +3,9 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-import calendar
-import numbers
-from struct import pack, unpack
-
-from recordtype import recordtype
-
-from .hash import hash256
-from .mixins import HashableMixin, SerializableMixin
-from .numeric import mpq
-from .script import Script
 from .serialize import (
     serialize_varchar, deserialize_varchar,
     serialize_list, deserialize_list)
-from .tools import StringIO, icmp, list, target_from_compact, tuple
 
 __all__ = [
     'ChainParameters',
@@ -26,6 +15,13 @@ __all__ = [
     'Block',
     'ConnectedBlockInfo',
 ]
+
+import calendar
+import numbers
+from struct import pack, unpack
+from recordtype import recordtype
+
+from .mixins import HashableMixin, SerializableMixin
 
 # ===----------------------------------------------------------------------===
 
@@ -313,3 +309,10 @@ class Block(SerializableMixin, HashableMixin):
 
 ConnectedBlockInfo = recordtype('ConnectedBlockInfo',
     ['parent', 'height', 'aggregate_work'])
+
+# ===----------------------------------------------------------------------===
+
+from .hash import hash256
+from .numeric import mpq
+from .script import Script
+from .tools import StringIO, icmp, list, target_from_compact, tuple
