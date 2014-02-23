@@ -19,7 +19,7 @@ except:
 
 from .tools import StringIO
 from .numeric import mpd
-from .serialize import serialize_leint, deserialize_leint
+from .serialize import LittleInteger
 
 __all__ = [
     'ResponseError',
@@ -147,9 +147,9 @@ class Proxy(object):
         self._ctr = (self._ctr+1) & 0xffffffff
         hash_ = sha1(b''.join([
             self.uri, self.service, self.username,
-            serialize_leint(self._ctr, 4), time.ctime(),
-            serialize_leint(randrange(2**32), 4)])).digest()
-        id_ = deserialize_leint(StringIO(hash_[:4]), 4)
+            LittleInteger(self._ctr).serialize(4), time.ctime(),
+            LittleInteger(randrange(2**32)).serialize(4)])).digest()
+        id_ = LittleInteger.deserialize(StringIO(hash_[:4]), 4)
 
         # Execute the JSON-RPC call:
         payload = dumps(id_, self.service, kwargs or args)
