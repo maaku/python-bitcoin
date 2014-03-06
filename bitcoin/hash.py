@@ -6,6 +6,7 @@
 __all__ = (
     'hash160',
     'hash256',
+    'sha256',
 )
 
 import hashlib
@@ -186,3 +187,6 @@ hash160 = _HashAlgorithmInterface(('sha256', 'ripemd160'))
 # the Merkle-tree compressor, and to generate transaction hash values for
 # identification.
 hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
+
+# (sha256), “single-SHA256” is used by the authenticated prefix trees
+sha256 = _HashAlgorithmInterface(('sha256',))

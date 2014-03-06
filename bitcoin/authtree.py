@@ -6,7 +6,7 @@
 # Python 2 and 3 compatibility utilities
 import six
 
-from .hash import hash256
+from .hash import sha256
 from .mixins import HashableMixin, SerializableMixin
 from .serialize import FlatData, VarInt
 
@@ -251,9 +251,9 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 parts.append(skiplist[::-1].tobytes()[::-1])
             if digest or link.pruned:
                 if getattr(self, 'level_compress', True):
-                    parts.append(hash256.serialize(link.hash))
+                    parts.append(sha256.serialize(link.hash))
                 else:
-                    hash_ = hash256.serialize(link.hash)
+                    hash_ = sha256.serialize(link.hash)
                     for bit in link.prefix[:-len_:-1]:
                         hash_ = self.compressor(''.join([
                                 bit and '\x04' or '\x01', '\x00', hash_
@@ -307,7 +307,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 prefix += Bits(bytes=bytes_[::-1])[:-bitlength:-1]
             if prune:
                 initargs['children'].append(link_class(prefix,
-                    hash  = hash256.deserialize(file_),
+                    hash  = sha256.deserialize(file_),
                     count = VarInt.deserialize(file_),
                     size  = VarInt.deserialize(file_)))
             else:
