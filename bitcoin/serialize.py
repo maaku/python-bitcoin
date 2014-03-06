@@ -12,7 +12,8 @@ __all__ = [
     'SER_NETWORK',
     'SER_DISK',
     'SER_HASH',
-    'CompactSize',
+    'BigCompactSize',
+    'LittleCompactSize',
     'BigInteger',
     'LittleInteger',
     'BigNum',
@@ -32,7 +33,7 @@ def _force_read(file_, len_):
         raise EOFError(u"unexpected end-of-file")
     return data
 
-class CompactSize(long):
+class _BaseCompactSize(long):
     """\
     Compact size
       size <  253        -- 1 byte
@@ -44,23 +45,33 @@ class CompactSize(long):
             if self < 253:
                 return chr(self)
             elif self <= 0xffff:
-                return '\xfd' + pack("<H", self)
+                return '\xfd' + pack(self.SHORT_FMT, self)
             elif self <= 0xffffffff:
-                return '\xfe' + pack("<I", self)
+                return '\xfe' + pack(self.INT_FMT, self)
             elif self <= 0xffffffffffffffff:
-                return '\xff' + pack("<Q", self)
+                return '\xff' + pack(self.LONG_FMT, self)
         raise ValueError(u"out of bounds: %d" % self)
 
     @classmethod
     def deserialize(cls, file_):
         result = unpack("<B", _force_read(file_, 1))[0]
         if result == 253:
-            result = unpack("<H", _force_read(file_, 2))[0]
+            result = unpack(cls.SHORT_FMT, _force_read(file_, 2))[0]
         elif result == 254:
-            result = unpack("<I", _force_read(file_, 4))[0]
+            result = unpack(cls.INT_FMT, _force_read(file_, 4))[0]
         elif result == 255:
-            result = unpack("<Q", _force_read(file_, 8))[0]
+            result = unpack(cls.LONG_FMT, _force_read(file_, 8))[0]
         return cls(result)
+
+class BigCompactSize(_BaseCompactSize):
+    SHORT_FMT = ">H"
+    INT_FMT   = ">I"
+    LONG_FMT  = ">Q"
+
+class LittleCompactSize(_BaseCompactSize):
+    SHORT_FMT = "<H"
+    INT_FMT   = "<I"
+    LONG_FMT  = "<Q"
 
 class LittleInteger(long):
     "Little-endian serialized integer representation."
@@ -141,11 +152,31 @@ class BigNum(long):
             n = e - n
         return cls(n)
 
-# FIXME: VarInt and CompactSize are two totally different types!! This is just
-# temporary code that should be removed ASAP, as soon as the unit tests are
-# re-written to use the actual VarInt format.
-class VarInt(CompactSize):
-    pass
+class VarInt(long):
+    def serialize(self):
+        if not self:
+            return six.int2byte(0)
+        parts = list()
+        while self:
+            parts.append(six.int2byte((self&0x7f) | (parts and 0x80 or 0x00)))
+            if self <= 0x7f:
+                break
+            self >>= 7
+            self  -= 1
+        return b''.join(reversed(parts))
+
+    @classmethod
+    def deserialize(cls, file_):
+        result = 0
+        while True:
+            limb = unpack(">B", _force_read(file_, 1))[0]
+            result <<= 7
+            result  |= limb & 0x7f
+            if limb & 0x80:
+                result += 1
+            else:
+                break
+        return result
 
 class FlatData(six.binary_type):
     "Wrapper for serializing arrays and POD."
@@ -157,13 +188,13 @@ class FlatData(six.binary_type):
         return len_ and _force_read(file_, len_) or b''
 
 def serialize_iterator(iter_, serializer=lambda i:i.serialize(),
-        prefix = lambda n:CompactSize(n).serialize(), *args, **kwargs):
+        prefix = lambda n:LittleCompactSize(n).serialize(), *args, **kwargs):
     len_, result = 0, b''
     for item in iter_:
         result += serializer(item, *args, **kwargs); len_ += 1
     return prefix(len_) + result
 
-def deserialize_iterator(file_, deserializer, prefix=CompactSize.deserialize, *args, **kwargs):
+def deserialize_iterator(file_, deserializer, prefix=LittleCompactSize.deserialize, *args, **kwargs):
     for _ in xrange(prefix(file_)):
         yield deserializer(file_, *args, **kwargs)
     raise StopIteration

@@ -22,7 +22,45 @@ try:
 except:
     from StringIO import StringIO
 
-COMPACT_SIZE = [
+BIG_COMPACT_SIZE = [
+    dict(size=0, result='\x00'),
+    dict(size=1, result='\x01'),
+    dict(size=2, result='\x02'),
+    dict(size=3, result='\x03'),
+    dict(size=250, result='\xfa'),
+    dict(size=251, result='\xfb'),
+    dict(size=252, result='\xfc'),
+    dict(size=253, result='\xfd\x00\xfd'),
+    dict(size=254, result='\xfd\x00\xfe'),
+    dict(size=255, result='\xfd\x00\xff'),
+    dict(size=256, result='\xfd\x01\x00'),
+    dict(size=2**16-2, result='\xfd\xff\xfe'),
+    dict(size=2**16-1, result='\xfd\xff\xff'),
+    dict(size=2**16,   result='\xfe\x00\x01\x00\x00'),
+    dict(size=2**16+1, result='\xfe\x00\x01\x00\x01'),
+    dict(size=2**32-2, result='\xfe\xff\xff\xff\xfe'),
+    dict(size=2**32-1, result='\xfe\xff\xff\xff\xff'),
+    dict(size=2**32,   result='\xff\x00\x00\x00\x01\x00\x00\x00\x00'),
+    dict(size=2**32+1, result='\xff\x00\x00\x00\x01\x00\x00\x00\x01'),
+    dict(size=2**64-2, result='\xff\xff\xff\xff\xff\xff\xff\xff\xfe'),
+    dict(size=2**64-1, result='\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
+]
+
+class TestSerializeBigCompactSize(unittest2.TestCase):
+    """Test serialization and deserialization of CompactSize under a variety
+    of standard scenarios."""
+    __metaclass__ = ScenarioMeta
+    class test_serialize(ScenarioTest):
+        scenarios = BIG_COMPACT_SIZE
+        def __test__(self, size, result):
+            self.assertEqual(BigCompactSize(size).serialize(), result)
+    class test_deserialize(ScenarioTest):
+        scenarios = BIG_COMPACT_SIZE
+        def __test__(self, size, result):
+            file_ = StringIO(result)
+            self.assertEqual(BigCompactSize.deserialize(file_), size)
+
+LITTLE_COMPACT_SIZE = [
     dict(size=0, result='\x00'),
     dict(size=1, result='\x01'),
     dict(size=2, result='\x02'),
@@ -46,31 +84,19 @@ COMPACT_SIZE = [
     dict(size=2**64-1, result='\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
 ]
 
-class TestSerializeCompactSize(unittest2.TestCase):
+class TestSerializeLittleCompactSize(unittest2.TestCase):
     """Test serialization and deserialization of CompactSize under a variety
     of standard scenarios."""
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = COMPACT_SIZE
+        scenarios = LITTLE_COMPACT_SIZE
         def __test__(self, size, result):
-            self.assertEqual(CompactSize(size).serialize(), result)
+            self.assertEqual(LittleCompactSize(size).serialize(), result)
     class test_deserialize(ScenarioTest):
-        scenarios = COMPACT_SIZE
+        scenarios = LITTLE_COMPACT_SIZE
         def __test__(self, size, result):
             file_ = StringIO(result)
-            self.assertEqual(CompactSize.deserialize(file_), size)
-
-class TestNegativeNumberCompactSize(unittest2.TestCase):
-    "Test that encoding a negative number results in a value error."
-    def test_negative_number(self):
-        self.assertRaises(ValueError,
-            lambda n:CompactSize(n).serialize(), -1)
-
-class TestLargeValueCompactSize(unittest2.TestCase):
-    "Test that encoding a number greater than 2**64-1 results in a value error."
-    def test_large_number(self):
-        self.assertRaises(ValueError,
-            lambda n:CompactSize(n).serialize(), 2**64)
+            self.assertEqual(LittleCompactSize.deserialize(file_), size)
 
 INVALID_COMPACT_SIZE = [
     dict(invalid='\xfd'),
@@ -98,7 +124,25 @@ class TestInvalidCompactSizeSerialization(unittest2.TestCase):
         def __test__(self, invalid):
             file_ = StringIO(invalid)
             self.assertRaises(EOFError,
-                CompactSize.deserialize, file_)
+                BigCompactSize.deserialize, file_)
+            self.assertRaises(EOFError,
+                LittleCompactSize.deserialize, file_)
+
+class TestNegativeNumberCompactSize(unittest2.TestCase):
+    "Test that encoding a negative number results in a value error."
+    def test_negative_number(self):
+        self.assertRaises(ValueError,
+            lambda n:BigCompactSize(n).serialize(), -1)
+        self.assertRaises(ValueError,
+            lambda n:LittleCompactSize(n).serialize(), -1)
+
+class TestLargeValueCompactSize(unittest2.TestCase):
+    "Test that encoding a number greater than 2**64-1 results in a value error."
+    def test_large_number(self):
+        self.assertRaises(ValueError,
+            lambda n:BigCompactSize(n).serialize(), 2**64)
+        self.assertRaises(ValueError,
+            lambda n:LittleCompactSize(n).serialize(), 2**64)
 
 # ===----------------------------------------------------------------------===
 
@@ -244,7 +288,7 @@ class TestInvalidLittleIntegerSerialization(unittest2.TestCase):
 
 # ===----------------------------------------------------------------------===
 
-COMPACT_SIZE_LIST = [
+LITTLE_COMPACT_SIZE_LIST = [
     dict(list_=[], result='\x00'),
     dict(list_=[0], result='\x01' '\x00'),
     dict(list_=[1,2,3], result='\x03' '\x01' '\x02' '\x03'),
@@ -253,20 +297,20 @@ COMPACT_SIZE_LIST = [
                 '\xff\xff\xff\xff\xff\xff\xff\xff\xff'),
 ]
 
-class TestSerializeCompactSizeList(unittest2.TestCase):
+class TestSerializeLittleCompactSizeList(unittest2.TestCase):
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
-        scenarios = COMPACT_SIZE_LIST
+        scenarios = LITTLE_COMPACT_SIZE_LIST
         def __test__(self, list_, result):
             self.assertEqual(
-                serialize_iterator(list_, lambda n:CompactSize(n).serialize()),
+                serialize_iterator(list_, lambda n:LittleCompactSize(n).serialize()),
                 result)
     class test_deserialize(ScenarioTest):
-        scenarios = COMPACT_SIZE_LIST
+        scenarios = LITTLE_COMPACT_SIZE_LIST
         def __test__(self, list_, result):
             file_ = StringIO(result)
             self.assertEqual(
-                list(deserialize_iterator(file_, CompactSize.deserialize)),
+                list(deserialize_iterator(file_, LittleCompactSize.deserialize)),
                 list_)
 
 from bitcoin.hash import hash160, hash256
@@ -308,7 +352,7 @@ class TestSerializeHashList(unittest2.TestCase):
 #     blocks, etc.
 
 INVALID_LIST = [
-    dict(invalid='030102'.decode('hex'), deserializer=CompactSize.deserialize),
+    dict(invalid='030102'.decode('hex'), deserializer=LittleCompactSize.deserialize),
     dict(invalid='05aabbccdd'.decode('hex'), deserializer=lambda f:LittleInteger.deserialize(f,1)),
 ]
 

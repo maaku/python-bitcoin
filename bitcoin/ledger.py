@@ -7,20 +7,23 @@
 import six
 
 from blist import sorteddict
+from recordtype import recordtype
 
 from .authtree import MemoryPatriciaAuthTree
 from .core import Output
 from .hash import hash256
 from .mixins import SerializableMixin
-from .serialize import LittleInteger, VarInt
+from .serialize import BigCompactSize, LittleInteger, VarInt
 from .tools import compress_amount, decompress_amount
 
 __all__ = (
     'UnspentTransaction',
-    'BaseTxIdIndex',
-    'MemoryTxIdIndex',
+    'OutPoint',
+    'Coin',
+    'BaseValidationIndex',
+    'MemoryValidationIndex',
     'ContractOutPoint',
-    'OutputData',
+    'ContractCoin',
     'BaseContractIndex',
     'MemoryContractIndex',
 )
@@ -65,15 +68,15 @@ class UnspentTransaction(SerializableMixin, sorteddict):
             * 816115944e077fe7c803cfa57f29b36bf87c1d35: address uint160
         - height = 203998
     
-     Example: 02080440fe792b067e0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee...
+     Example: 0208044086ef97d5790061b01caab50f1b8e9c50a5057eb43c2d9563a4ee...
               <><><--><-------------------------------------------------->
              /  |   \                     |
       version  code  unspentness     outputs[4]
 
-              ...fe23290f00008c988f1a4a4de2161e0f50aac7f17e7f9555caa4fe3bd80100fde803
-                 <--------------------------------------------------><--------><---->
-                                             |                         /          |
-                                        outputs[16]               height  reference_height
+              ...bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa486af3b8668
+                 <----------------------------------------------><----><-->
+                                         |                        /      |
+                                    outputs[16]              height  reference_height
     
       - version = 2
       - code = 8: neither outputs[0], outputs[1], nor outputs[2] are unspent, 2
@@ -81,12 +84,12 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         follow.
       - unspentness bitvector: bits 1 (0x02) and 13 (0x2000) are set, so
         outputs[1+3] and outputs[13+3] are unspent
-      - outputs[4]: fe792b067e0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee
-                    * fe792b067e: compact amount representation for 234925952 (2.35 BTC)
+      - outputs[4]: 86ef97d5790061b01caab50f1b8e9c50a5057eb43c2d9563a4ee
+                    * 86ef97d579: compact amount representation for 234925952 (2.35 BTC)
                     * 00: special txout type pay-to-pubkey-hash
                     * 61b01caab50f1b8e9c50a5057eb43c2d9563a4ee: address uint160
-      - outputs[16]: fe23290f00008c988f1a4a4de2161e0f50aac7f17e7f9555caa4
-                     * fe23290f00: compact amount representation for 110397 (0.001 BTC)
+      - outputs[16]: bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4
+                     * bbd123: compact amount representation for 110397 (0.001 BTC)
                      * 00: special txout type pay-to-pubkey-hash
                      * 8c988f1a4a4de2161e0f50aac7f17e7f9555caa4: address uint160
       - height = 120891
@@ -224,29 +227,82 @@ class UnspentTransaction(SerializableMixin, sorteddict):
 
 # ===----------------------------------------------------------------------===
 
-class BaseTxIdIndex(object):
-    key_class = hash256
-    value_class = UnspentTransaction
+OutPoint = recordtype('OutPoint', ['hash', 'index'])
+def _serialize_outpoint(self):
+    parts = list()
+    parts.append(hash256.serialize(self.hash))
+    if self.index == -1:
+        parts.append(b'\xfe\xff\xff\xff\xff')
+    else:
+        parts.append(BigCompactSize(self.index).serialize())
+    return b''.join(parts)
+OutPoint.serialize = _serialize_outpoint
+def _deserialize_outpoint(cls, file_):
+    kwargs = dict()
+    kwargs['hash'] = hash256.deserialize(file_)
+    kwargs['index'] = BigCompactSize.deserialize(file_)
+    return cls(**kwargs)
+OutPoint.deserialize = classmethod(_deserialize_outpoint)
+def _repr_outpoint(self):
+    return '%s(hash=%064x, index=%d)' % (
+        self.__class__.__name__, self.hash, self.index==2**32-1 and -1 or self.index)
+OutPoint.__repr__ = _repr_outpoint
 
-class MemoryTxIdIndex(BaseTxIdIndex, MemoryPatriciaAuthTree):
+Coin = recordtype('Coin',
+    ['version', 'amount', 'contract', 'height', 'reference_height'])
+Coin._pickler = ScriptPickler()
+def _serialize_coin(self):
+    parts = list()
+    parts.append(VarInt(self.version).serialize())
+    parts.append(VarInt(compress_amount(self.amount)).serialize())
+    parts.append(self._pickler.dumps(self.contract.serialize()))
+    parts.append(VarInt(self.height).serialize())
+    if self.version in (2,):
+        parts.append(VarInt(self.reference_height).serialize())
+    return b''.join(parts)
+Coin.serialize = _serialize_coin
+def _deserialize_coin(cls, file_):
+    kwargs = dict()
+    kwargs['version'] = VarInt.deserialize(file_)
+    kwargs['amount'] = decompress_amount(VarInt.deserialize(file_))
+    kwargs['contract'] = cls._pickler.load(file_)
+    kwargs['height'] = VarInt.deserialize(file_)
+    if kwargs['version'] in (2,):
+        kwargs['reference_height'] = VarInt.deserialize(file_)
+    return cls(**kwargs)
+Coin.deserialize = classmethod(_deserialize_coin)
+def _repr_coin(self):
+    parts = list()
+    parts.append('version=%d'  % self.version)
+    parts.append('amount=%d'   % self.amount)
+    parts.append('contract=%s' % repr(self.contract))
+    parts.append('height=%d'   % self.height)
+    if self.version in (2,):
+        parts.append('reference_height=%d' % self.reference_height)
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(parts))
+Coin.__repr__ = _repr_coin
+
+class BaseValidationIndex(object):
+    key_class = OutPoint
+    value_class = Coin
+
+class MemoryValidationIndex(BaseValidationIndex, MemoryPatriciaAuthTree):
     pass
 
 # ===----------------------------------------------------------------------===
-
-from recordtype import recordtype
 
 ContractOutPoint = recordtype('ContractOutPoint', ['contract', 'hash', 'index'])
 ContractOutPoint._pickler = ScriptPickler()
 def _serialize_contract_outpoint(self):
     return b''.join([self._pickler.dumps(self.contract.serialize()),
                      hash256.serialize(self.hash),
-                     VarInt(self.index).serialize()])
+                     BigCompactSize(self.index).serialize()])
 ContractOutPoint.serialize = _serialize_contract_outpoint
 def _deserialize_contract_outpoint(cls, file_):
-    kwargs = {}
+    kwargs = dict()
     kwargs['contract'] = cls._pickler.load(file_)
     kwargs['hash'] = hash256.deserialize(file_)
-    kwargs['index'] = VarInt.deserialize(file_)
+    kwargs['index'] = BigCompactSize.deserialize(file_)
     return cls(**kwargs)
 ContractOutPoint.deserialize = classmethod(_deserialize_contract_outpoint)
 def _repr_contract_outpoint(self):
@@ -254,30 +310,39 @@ def _repr_contract_outpoint(self):
         self.__class__.__name__, repr(self.contract), self.hash, self.index)
 ContractOutPoint.__repr__ = _repr_contract_outpoint
 
-OutputData = recordtype('OutputData',
+ContractCoin = recordtype('ContractCoin',
     ['version', 'amount', 'height', 'reference_height'])
-def _serialize_output_data(self):
-    parts = []
+def _serialize_contract_coin(self):
+    parts = list()
     parts.append(VarInt(self.version).serialize())
-    parts.append(VarInt(self.height).serialize())
     parts.append(VarInt(compress_amount(self.amount)).serialize())
+    parts.append(VarInt(self.height).serialize())
     if self.version in (2,):
-        parts.append(VarInt((self.height<<1)|self.reference_height).serialize())
+        parts.append(VarInt(self.reference_height).serialize())
     return b''.join(parts)
-OutputData.serialize = _serialize_output_data
-def _deserialize_output_data(cls, file_):
-    kwargs = {}
+ContractCoin.serialize = _serialize_contract_coin
+def _deserialize_contract_coin(cls, file_):
+    kwargs = dict()
     kwargs['version'] = VarInt.deserialize(file_)
     kwargs['height'] = VarInt.deserialize(file_)
     kwargs['amount'] = decompress_amount(VarInt.deserialize(file_))
     if kwargs['version'] in (2,):
         kwargs['reference_height'] = VarInt.deserialize(file_)
     return cls(**kwargs)
-OutputData.deserialize = classmethod(_deserialize_output_data)
+ContractCoin.deserialize = classmethod(_deserialize_contract_coin)
+def _repr_contract_coin(self):
+    parts = list()
+    parts.append('version=%d' % self.version)
+    parts.append('amount=%d'  % self.amount)
+    parts.append('height=%d'  % self.height)
+    if self.version in (2,):
+        parts.append('reference_height=%d' % self.reference_height)
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(parts))
+ContractCoin.__repr__ = _repr_contract_coin
 
 class BaseContractIndex(object):
     key_class = ContractOutPoint
-    value_class = OutputData
+    value_class = ContractCoin
 
 class MemoryContractIndex(BaseContractIndex, MemoryPatriciaAuthTree):
     pass

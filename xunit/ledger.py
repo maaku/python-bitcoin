@@ -34,15 +34,15 @@ class TestUnspentTransaction(unittest2.TestCase):
         utx[16] = Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script)
         self.assertEqual(utx.serialize(),
             ('01' '08' '0020'
-             'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-             'fe3bd80100').decode('hex'))
+             'bbd123' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+             '86af3b').decode('hex'))
 
         utx[4] = Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)
         self.assertEqual(utx.serialize(),
             ('01' '08' '0220'
-             'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-             'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-             'fe3bd80100').decode('hex'))
+             '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+             'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+             '86af3b').decode('hex'))
 
     def test_remove_outputs(self):
         utx = UnspentTransaction((
@@ -51,14 +51,14 @@ class TestUnspentTransaction(unittest2.TestCase):
             ), version=1, height=120891)
         self.assertEqual(utx.serialize(),
             ('01' '08' '0220'
-             'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-             'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-             'fe3bd80100').decode('hex'))
+             '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+             'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+             '86af3b').decode('hex'))
         del utx[4]
         self.assertEqual(utx.serialize(),
             ('01' '08' '0020'
-             'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-             'fe3bd80100').decode('hex'))
+             'bbd123' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+             '86af3b').decode('hex'))
         del utx[16]
         with self.assertRaises(TypeError):
             utx.serialize()
@@ -69,14 +69,14 @@ class TestUnspentTransaction(unittest2.TestCase):
             ), version=1, height=120891)
         self.assertEqual(utx.serialize(),
             ('01' '08' '0220'
-             'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-             'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-             'fe3bd80100').decode('hex'))
+             '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+             'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+             '86af3b').decode('hex'))
         del utx[16]
         self.assertEqual(utx.serialize(),
             ('01' '00' '02'
-             'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-             'fe3bd80100').decode('hex'))
+             '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+             '86af3b').decode('hex'))
         del utx[4]
         with self.assertRaises(TypeError):
             utx.serialize()
@@ -85,32 +85,32 @@ UNSPENT_TRANSACTION = [
     dict(version=1, height=203998,
          items = ((1, Output(60000000000, PubKeyHashId(0x351d7cf86bb3297fa5cf03c8e77f074e94156181).script)),),
          string = ('01' '02'
-                   'fd5802' '00816115944e077fe7c803cfa57f29b36bf87c1d35'
-                   'fede1c0300').decode('hex')),
+                   '8358' '00816115944e077fe7c803cfa57f29b36bf87c1d35'
+                   '8bb85e').decode('hex')),
     dict(version=1, height=120891,
          items = (
              (4, Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)),
              (16, Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script))),
          string = ('01' '08' '0220'
-                   'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-                   'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-                   'fe3bd80100').decode('hex')),
+                   '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+                   'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+                   '86af3b').decode('hex')),
     dict(version=2, height=120891,
          items = (
              (4, Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)),
              (16, Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script))),
          string = ('02' '08' '0220'
-                   'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-                   'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-                   'fe3bd80100' '00').decode('hex')),
+                   '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+                   'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+                   '86af3b' '00').decode('hex')),
     dict(version=2, height=120891, reference_height=1000,
          items = (
              (4, Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)),
              (16, Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script))),
          string = ('02' '08' '0220'
-                   'fe792b067e' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
-                   'fe23290f00' '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-                   'fe3bd80100' 'fde803').decode('hex')),
+                   '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
+                   'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
+                   '86af3b' '8668').decode('hex')),
 ]
 
 class TestUnspentTransactionScenarios(unittest2.TestCase):

@@ -124,7 +124,7 @@ class TestPatriciaAuthTree(object):
         0xe138846eab6d3debd1be0b6fe54aec976aa67a09812d2a64194e317c7374d8a6,
     )
 
-LeafValue = BaseAuthTreeNode(b'123')
+leaf_value = BaseAuthTreeNode(b'123')
 SCENARIOS = [
     dict(value = None, children = [],
          str_  = b'\x00\x00',
@@ -134,70 +134,70 @@ SCENARIOS = [
          str_  = b'\x10' b'\x00' b'\x03abc',
          composable = 0xeef6ab09ad94027c945d4b1a8639fbd8121dc011f9b760266dbc1cdaf264c6f0,
          patricia   = 0xeef6ab09ad94027c945d4b1a8639fbd8121dc011f9b760266dbc1cdaf264c6f0),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0'), LeafValue)],
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0'), leaf_value)],
          str_  = b'\x11' b'\x00' b'\x03abc' b'\x10\x00\x03123',
-         composable = 0x975633aae083de21088dbf8a7dbe3aa8168328cc5a0a73d23f7cb322c7b71285,
-         patricia   = 0x975633aae083de21088dbf8a7dbe3aa8168328cc5a0a73d23f7cb322c7b71285),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b00'), LeafValue)],
+         composable = 0x2de27c2b22e22ed819a2529e5e85bf5d6c22a82f6538cc18b8e132b2613c7a8c,
+         patricia   = 0x2de27c2b22e22ed819a2529e5e85bf5d6c22a82f6538cc18b8e132b2613c7a8c),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b00'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\x02' b'\x10\x00\x03123',
-         composable = 0x1c2ac0ed8411a8f417a5bb71df8056897881a711c7165852edbe030952044517,
-         patricia   = 0xc4838b989b4fcc143f80ca84939fdfabe52341331b0ac453525e2088d1a836e7),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b010'), LeafValue)],
+         composable = 0x9224bded71ceb9f6465bbb7815cd8c16b1e14372b4b071786dbf165dfdfba846,
+         patricia   = 0x55ac8af8a66b1e0225a0478c5cf740cf9150bc5727536553a0b35ef26ca62680),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b010'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\x05' b'\x10\x00\x03123',
-         composable = 0x71676b3e767277e60dde5e581b4a0122084ded6e9fef63a1094308049f0d65ee,
-         patricia   = 0x65b30d1f8f8a0177bf12999bf1c3a707ca12d0f5422bd02efb66660f142fc404),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0110'), LeafValue)],
+         composable = 0x8933af0fece6cbc838e3e9eee1541ba5c0bb8ee649d9401713946a0972c477f8,
+         patricia   = 0x52c07a38409849d11fbc4360d5782ed535138c9119b7e9e902fa8ce5c5b357eeL),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0110'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\x0b' b'\x10\x00\x03123',
-         composable = 0xa5568b87400878cb39c7dbffd3480423f30fedcda96f15a04450fe4782c9618a,
-         patricia   = 0xe3a2dc7f3fe90134cf511e2e4414c0e746f8ed019bd78c2327b8425c9f3b646f),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b00110'), LeafValue)],
+         composable = 0xe56397a7e9dd56bfc7ff4d60238a56a4e9b24dbcccd84aada29ffb1223f83283,
+         patricia   = 0xed658e1b90cc93ce6a8b43e8d8107fc07572f3330b72ca0e78f915a265256f53),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b00110'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\x16' b'\x10\x00\x03123',
-         composable = 0x26d16966b86ee46d2864fdad339c7786010045149792a873325a3596aaa1dbfd,
-         patricia   = 0x032bcc41c344af64ffe5fc60e77d2bdfa576c3652e7a91223f4f35582e6ff164),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b000110'), LeafValue)],
+         composable = 0x2cb6333537a47209536cb49f23896de195bdbe65cbaa5663cacea73dcce8706d,
+         patricia   = 0xd5b27799e24e78c1fc5eae04826d306f6d028ba8131455e20d588d317ccc9e25),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b000110'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\x2c' b'\x10\x00\x03123',
-         composable = 0xf1ba2c131c41f76d6a5436352fbd061e53ac599b580fa07a5e93ff1ca7109aa2,
-         patricia   = 0x51dc23cf1b296dcfc9146953aaea08287ba9d0ef6ce1e4e9358f100ff152e629),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0000110'), LeafValue)],
+         composable = 0xe12e8313eb5b70c719ca29cc560e94ac4052a41579dd465fc841e6dc88cd402f,
+         patricia   = 0xe096400c775f344925830d1f2c081e74657fbb0b2ff3e2890e18408189859d54),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0000110'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\x58' b'\x10\x00\x03123',
-         composable = 0x431a48b6a22a833c7ad493d252dbedbd32ff67039bb32eec4c20ec0c96809a0b,
-         patricia   = 0x64732dc431b19dd69e3a28e1abf7068674b97358e706f8d5319e8b08972ca9e4),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b01000110'), LeafValue)],
+         composable = 0xe32c8f118131648b1aea09f6b8296ceccb6a50e224f64a0658f366b474ac00ea,
+         patricia   = 0x0cdc1b89c8198a8410362553fe93baa6b5b37e23cbbd89bd4ff2273bf59eb760),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b01000110'), leaf_value)],
          str_  = b'\x12' b'\x00' b'\x03abc' b'\xb1' b'\x10\x00\x03123',
-         composable = 0x303895b634a9f8d403b3b13e4354d9e6cd611c6b0032aec99ffee59667c09709,
-         patricia   = 0x6e866502d8e4107487eefbd2c9a136dc9d90a19c62cffc1966ff758e20e1c3fc),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b011000110'), LeafValue)],
+         composable = 0x69c54564804ec98b6429c1eb67ad8c4b8d1a2a45979b701f19431233328dd078,
+         patricia   = 0xc97515754ee3eeae2e3363dd776bc1a60fe119c32795d9b00c2c874fa9d96e90),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b011000110'), leaf_value)],
          str_  = b'\x13' b'\x00' b'\x03abc' b'\x00\x63' b'\x10\x00\x03123',
-         composable = 0xbe821e7b0a795c4aed3b50ead015dd39a8107fd3cc009e90acf50c97f1a65ea8,
-         patricia   = 0x54f927927fe7bc393a094e721afe61626d1cd89205a86f7ac12b69153e6d9eb9),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0111000110'), LeafValue)],
+         composable = 0x6e44e08e81053f37e7469d48052eae814a19923749c386578662152f65fe2700,
+         patricia   = 0xa99550e50076d293f00ce51f64fa406602a3ff79c748bdc9328a913ec4f603dd),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b0111000110'), leaf_value)],
          str_  = b'\x13' b'\x00' b'\x03abc' b'\x01\xc7\x00' b'\x10\x00\x03123',
-         composable = 0x64950f66a9f4d03fb87d3450a40c14de767ebd2d3bd7d7c4088ab3527e26594a,
-         patricia   = 0xd3f607542a36b461bca50cb9d8ce98d1e8dcb5bb2685aa45f142050038a1f387),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b01111000110'), LeafValue)],
+         composable = 0x49beda66746d36f67e8e3b5e8d0defa3241a4ee91d4a0924a6e9ef30d74a4b6d,
+         patricia   = 0xa9988c44ba6c433e42a8f841a138e227c9b50f8bd47a7404a1d45c3c62ed5c19),
+    dict(value = b'abc', children = [AuthTreeLink(Bits('0b01111000110'), leaf_value)],
          str_  = b'\x13' b'\x00' b'\x03abc' b'\x02\x8f\x01' b'\x10\x00\x03123',
-         composable = 0xc226bc302f329f271d68d86ce06a51f18e841cf2e516e629a7435da85d1307b1,
-         patricia   = 0xeec7b766a358e926ae4e9d2399c5751d9e2c1f6be5a4777cfdd202a899e91f78),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b00000011110001101111'
-             '1110000000111111000001111000110111111100000001111110000011110001'
-             '1011111110000000111111000001111000110111111100000001111110000011'
-             '1100011011111110000000111111000001111000110111111100000001111110'
-             '0000111100011011111110000000111111000001111000110'), LeafValue)],
-         str_  = ''.join([b'\x13', b'\x00', b'\x03abc', b'\xfc', ('e0b13fe007'
-                          '8ffd013f78ec0ff8c1637fc00f1efb037ef0d81ff083c7fe80'
-                          '1f3c06').decode('hex'), b'\x10\x00\x03123']),
-         composable = 0x01253f713e8cc758fd91af0afd3e70db02403c434acd499937b72f5147bb8539,
-         patricia   = 0x16fb5f0c6a7fd9433b54c5d785530e48290a411689c2bde03462c3c4acfe3f00),
-    dict(value = b'abc', children = [AuthTreeLink(Bits('0b01000001111000110111'
-             '1111000000011111100000111100011011111110000000111111000001111000'
-             '1101111111000000011111100000111100011011111110000000111111000001'
-             '1110001101111111000000011111100000111100011011111110000000111111'
-             '00000111100011011111110000000111111000001111000110'), LeafValue)],
-         str_  = ''.join([b'\x13', b'\x00', b'\x03abc', b'\xfd\xfd\x00', ('c1'
-                          '637fc00f1efb037ef0d81ff083c7fe801f3cf607fce0b13fe0'
-                          '078ffd013f780c').decode('hex'), b'\x10\x00\x03123']),
-         composable = 0x4fd900c25468458091d01be352fbabf08038648e549786a4cfff4faa9bc1e277,
-         patricia   = 0x273448b6c7830e881a4c599ba9ede939bca7c613800a242b4986a9d6939bf3ec),
+         composable = 0xe98e9650fbf4952f0d902fac577014a0a7c3b40cb150b913fda1ab215ed374d4,
+         patricia   = 0x5bb1036c96459140ee2fa4bb39986c060afed0e2667bf795a5977b5d0186d784),
+#    dict(value = b'abc', children = [AuthTreeLink(Bits('0b00000011110001101111'
+#             '1110000000111111000001111000110111111100000001111110000011110001'
+#             '1011111110000000111111000001111000110111111100000001111110000011'
+#             '1100011011111110000000111111000001111000110111111100000001111110'
+#             '0000111100011011111110000000111111000001111000110'), leaf_value)],
+#         str_  = ''.join([b'\x13', b'\x00', b'\x03abc', b'\x7d', ('e0b13fe007'
+#                          '8ffd013f78ec0ff8c1637fc00f1efb037ef0d81ff083c7fe80'
+#                          '1f3c06').decode('hex'), b'\x10\x00\x03123']),
+#         composable = 0x01253f713e8cc758fd91af0afd3e70db02403c434acd499937b72f5147bb8539,
+#         patricia   = 0x16fb5f0c6a7fd9433b54c5d785530e48290a411689c2bde03462c3c4acfe3f00),
+#    dict(value = b'abc', children = [AuthTreeLink(Bits('0b01000001111000110111'
+#             '1111000000011111100000111100011011111110000000111111000001111000'
+#             '1101111111000000011111100000111100011011111110000000111111000001'
+#             '1110001101111111000000011111100000111100011011111110000000111111'
+#             '00000111100011011111110000000111111000001111000110'), leaf_value)],
+#        str_  = ''.join([b'\x13', b'\x00', b'\x03abc', b'\x7d', ('c1'
+#                          '637fc00f1efb037ef0d81ff083c7fe801f3cf607fce0b13fe0'
+#                          '078ffd013f780c').decode('hex'), b'\x10\x00\x03123']),
+#         composable = 0x4fd900c25468458091d01be352fbabf08038648e549786a4cfff4faa9bc1e277,
+#         patricia   = 0x273448b6c7830e881a4c599ba9ede939bca7c613800a242b4986a9d6939bf3ec),
 ]
 
 class TestAuthTreeSerialization(unittest2.TestCase):
@@ -247,91 +247,91 @@ SCENARIOS = [
     },
     {
         b'abc':       six.int2byte(2),
-        'composable': 0x97fc634f49cba0e661a944c2557587140d2d00e88af1668ede4361a1d99b780b,
-        'patricia':   0x666e0f256e50ddc013d734c3908d264b47e04ac293cbf37457d6aae52a83972c,
+        'composable': 0x7423966829f7667518468c3ec2fab595a6e3f19df71dd1ff7a09a702eecd5ac1,
+        'patricia':   0x1bfb76e7b62866a9f784b9df34f6849250a4d36c86cdb9fc105e1328213ae285,
     },
     {
         b'':          six.int2byte(1),
         b'abc':       six.int2byte(2),
-        'composable': 0x6710c6f285c895c85c57b027430345292fa058449bd65b33abfaeb82b35103cd,
-        'patricia':   0xdac74fe879dd9dbea12d75841c2c017eab0cd4fe586744a0cf8b8593a08ce4a8,
+        'composable': 0x9c63e1779fea474dac4af43474e2584037f0d55bd9502eff7e2de2a5767230a0,
+        'patricia':   0x24ec71997cfeefab42a55e88701263010ff9f3f096af0437d735a9a6b9cacb21,
     },
     {
         b'abcdef':    six.int2byte(4),
-        'composable': 0xba928ccd92956bfd1aecc1a5df275d149e560c3496f3a156689ab12809c78450,
-        'patricia':   0xd8bececa2be9dad56901f4142cf93dc075261c8cb11b0ab474b1ca25d8a64864,
+        'composable': 0xbf18452c7c607af93adbe43c8e744370b734a92d821ae4a5fa4d1913f604c502,
+        'patricia':   0xbbd291152279791f85e15c6e1b858039495899c724a73220c25f2fd72a99de2f,
     },
     {
         b'':          six.int2byte(1),
         b'abcdef':    six.int2byte(4),
-        'composable': 0x674f77b8aec846105c9ccae62ad66735592831e39c26b3442ed51b3335ac5d04,
-        'patricia':   0x9fa9b07ed1a1b1300cd81e901ab07710b3d59d5d964abfe232d50ee6e3578a75,
+        'composable': 0x8ead775666349d198ee351ca7ae3f8611f4dab245e2cd6e5d9dc4904679a3f47,
+        'patricia':   0xd7a0b54767763cf66a5294f3dda67d029e8847acfa40c789f2d8ef4d38f48117,
     },
 
     {
         b'abc':       six.int2byte(2),
         b'abcdef':    six.int2byte(4),
-        'composable': 0x8feaee237765272b565d4fa28de5afeccd9df7b5ca997e886034930de8f619b0,
-        'patricia':   0xdae04c3c1c68d51c305af003feae7d157594fc014614d867bf5e96014f213ff4,
+        'composable': 0x8466f60df5348ba0a7f231ebcb12d5f79d3da7d5cc48f31814a592d672bf19ab,
+        'patricia':   0x4d1963d96a9da4ddd30142f608e3ddc78472df04be69ac51c01bca0922010c8f,
     },
     {
         b'':          six.int2byte(1),
         b'abc':       six.int2byte(2),
         b'abcdef':    six.int2byte(4),
-        'composable': 0xc2f4b0754b45d93a8a142432f1a498f517f39cfdd8ed505ad91387d27df5a679,
-        'patricia':   0xb0c2d52ab45f307319a2791b66cf8b857621f698b5aaef2547777e36988d104f,
+        'composable': 0x5c6636db2a644ca001b89a2baba14e001882498bd8286cc20ce8bd95883c8b39,
+        'patricia':   0x7f5959b64e412f279f3cfbae4b32369db0efea5c8bb74d9471b0760730aeb788,
     },
     {
         b'abcxyz':    six.int2byte(8),
-        'composable': 0xe131d907f228a3d82cd23f1be85bfaaf33075b853162915b28ac281a5d53bcfb,
-        'patricia':   0x3bcc66c9adf2a3725f3c45eec4ce5b62c4665a1cbc3edfa6cb2867cf42353fcc,
+        'composable': 0x2f9064e19b69d9595b0029a0ab74a0709f9de2b7d425f47484d72974624c8afc,
+        'patricia':   0xb2fea1b9cc600997cc3dbbf8b4c2a1af83857eefc472294d18dadb8b764d392b,
     },
     {
         b'':          six.int2byte(1),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0x35a8e10156c756ea051545636ce976c95565f58402f540bc5ade6aa0a931b09a,
-        'patricia':   0x36a08abadf735db2462c2749113782db3de3d177e2d757ec124a12b9bd8f78aa,
+        'composable': 0x77e520c968cf71569ddf6b3341efae43979c1a03ca43874e85b2a2299728678c,
+        'patricia':   0x930026f51f2f0d2bd8edd4c8bf012b724e9391530a0133ea41471e456c6eaaf0,
     },
     {
         b'abc':       six.int2byte(2),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0x2490584a8f8d6acf61351e7d71d685f1296826de1e5c7876bc68ea5bd49cf351,
-        'patricia':   0x6bb0c99aabe40983718f8552894fd3714b1d6a5fc980affa51ba5ba5f901a5c7,
+        'composable': 0xa4c405c724a59a6a2991f938473e8402ed79cbe6a601a21a6b9729572355ade0,
+        'patricia':   0x3603ce839a34a29b00e99f3e7552ed69455289b3b898a869d83fa547f61c5891,
     },
     {
         b'':          six.int2byte(1),
         b'abc':       six.int2byte(2),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0x310c2ffc92caf8e0a5ab753c1e1279302fcc15d021b176176c8670b95a425cb0,
-        'patricia':   0x40888b247c02da3ad782861531164c4ae950f82031bd90fbff24743caab3d096,
+        'composable': 0x246596d170928b312743d48d5490a52e32b256d02a80200cd8a239aefd10dd82,
+        'patricia':   0xf21c6f60039cecdbaa8a9dea8ac07881818ace376c059729ad1277c46f4942be,
     },
     {
         b'abcdef':    six.int2byte(4),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0x6ebf0563121325772552ca548e9dc4012b5285ae08fb0b7cde1d32f51c12bec1,
-        'patricia':   0x0baa6bdc542587f8da71b3c891fb66a02dd2665a4b214dad7fbcbad3e6762830,
+        'composable': 0x6ae4c45260bea63d2b9c164b44f3ce9420806921b614f33da0575e18fa1d6480,
+        'patricia':   0xf14eb00f679391d08090d764aefc30cc8c571062fce7e955ee8844716319d961,
     },
     {
         b'':          six.int2byte(1),
         b'abcdef':    six.int2byte(4),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0xe0d3cc65a15ef5c5ba7f74e9e91d80b9289b33684de72e558287a3f2fd28b1ef,
-        'patricia':   0xa013f6fd8cf919d5692bc2b9931669bcd32496ee6243bee479201535b79e1cf4,
+        'composable': 0xc08bc4ff0524f09f72f77956217e81f218bf98f3627bb5e153999b62e8584b5b,
+        'patricia':   0xcb372c57024b250201df096da2bddfd2f5bd1c08c7a6e41a662356315437c1b1,
     },
     {
         b'abc':       six.int2byte(2),
         b'abcdef':    six.int2byte(4),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0x0f35591747a6f947e3bda4ec0d2d440bbdf9b6563982c7f291f8df68c2286da9,
-        'patricia':   0xeb0f222af5d9fa880e77e4c141e14cda2236f9f7cc860dde9b0e928340d8d0eb,
+        'composable': 0x21374e1e1d1b6e140b64e78f5264f2a9316679b06ba003a15562e02a2ede283e,
+        'patricia':   0x78783ba6e76ca4313c5db2007df76fd0225318c90491975b737a40a6bdc4dab0,
     },
     {
         b'':          six.int2byte(1),
         b'abc':       six.int2byte(2),
         b'abcdef':    six.int2byte(4),
         b'abcxyz':    six.int2byte(8),
-        'composable': 0x0cccd2b2e314cbad6570e449960a86fd183f91a402874f77ad5e8dd6e3027b42,
-        'patricia':   0xcbd0f059e42abe2c1a2e930ee939ebb84299b2e81f279692fba617d8c655847c,
+        'composable': 0xc2a2b24313b41e340b5010d623822ae1dc0dbf2f398ad9ad16ab3d2720c2d46f,
+        'patricia':   0x48623cc83da0e05c30878058d657c06242d122efd778ff6dca48af67a2c9d263,
     },
 ]
 

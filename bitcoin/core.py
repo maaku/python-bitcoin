@@ -45,14 +45,14 @@ class Output(SerializableMixin):
         parts = list()
         parts.append(pack('<Q', self.amount))
         script = self.contract.serialize()
-        parts.append(CompactSize(len(script)).serialize())
+        parts.append(LittleCompactSize(len(script)).serialize())
         parts.append(FlatData(script).serialize())
         return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
         initargs = {}
         initargs['amount'] = unpack('<Q', file_.read(8))[0]
-        script_len = CompactSize.deserialize(file_)
+        script_len = LittleCompactSize.deserialize(file_)
         initargs['contract'] = cls.get_script_class().deserialize(file_, script_len)
         return cls(**initargs)
 
@@ -90,7 +90,7 @@ class Input(SerializableMixin):
         script = self.endorsement
         if hasattr(script, 'serialize'):
             script = script.serialize()
-        parts.append(CompactSize(len(script)).serialize())
+        parts.append(LittleCompactSize(len(script)).serialize())
         parts.append(FlatData(script).serialize())
         parts.append(pack('<I', self.sequence))
         return b''.join(parts)
@@ -99,7 +99,7 @@ class Input(SerializableMixin):
         initargs = {}
         initargs['hash'] = hash256.deserialize(file_)
         initargs['index'] = unpack('<I', file_.read(4))[0]
-        len_ = CompactSize.deserialize(file_)
+        len_ = LittleCompactSize.deserialize(file_)
         if not all((initargs['hash']  == 0,
                     initargs['index'] == 0xffffffff)):
             initargs['coinbase'] = FlatData.deserialize(file_, len_)
@@ -316,5 +316,5 @@ ConnectedBlockInfo = recordtype('ConnectedBlockInfo',
 from .hash import hash256
 from .numeric import mpq
 from .script import Script
-from .serialize import CompactSize, FlatData, serialize_iterator, deserialize_iterator
+from .serialize import LittleCompactSize, FlatData, serialize_iterator, deserialize_iterator
 from .tools import StringIO, icmp, list, target_from_compact, tuple

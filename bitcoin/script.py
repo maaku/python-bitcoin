@@ -8,7 +8,7 @@ import six
 from struct import pack, unpack
 
 from .mixins import SerializableMixin
-from .serialize import CompactSize, FlatData
+from .serialize import LittleCompactSize, FlatData
 from .tools import StringIO
 
 # ===----------------------------------------------------------------------===
@@ -666,7 +666,7 @@ class ScriptPickler(object):
                         66: OP_CHECKSIG})):
             str_ = b''.join([six.int2byte(0x04 | ord(script[65:66])&0x01), script[2:34]])
         else:
-            str_ = b''.join([CompactSize(script_len + 0x06).serialize(), script])
+            str_ = b''.join([LittleCompactSize(script_len + 0x06).serialize(), script])
         file_.write(str_)
 
     @staticmethod
