@@ -28,9 +28,9 @@ SENTINAL = object()
 import numbers
 
 class AuthTreeLink(HashableMixin):
-    __slots__ = 'prefix node _hash _size'.split()
+    __slots__ = 'prefix node _hash _count _size'.split()
 
-    def __init__(self, prefix, node=None, hash=None, size=0, *args, **kwargs):
+    def __init__(self, prefix, node=None, hash=None, count=None, size=None, *args, **kwargs):
         if not isinstance(prefix, Bits):
             if isinstance(prefix, six.binary_type):
                 prefix = Bits(bytes=prefix)
@@ -38,14 +38,21 @@ class AuthTreeLink(HashableMixin):
                 prefix = Bits(prefix)
         if isinstance(node, numbers.Integral):
             node, hash = hash, node
-        if hasattr(node, 'size'):
-            size = node.size
+        if hasattr(node, 'count'): count = node.count
+        if hasattr(node, 'size'):  size  = node.size
         super(AuthTreeLink, self).__init__(*args, **kwargs)
-        self.prefix, self.node, self._hash, self._size = prefix, node, hash, size
+        self.prefix, self.node, self._hash, self._count, self._size = (
+             prefix,      node,       hash,       count,       size)
 
     @property
     def pruned(self):
         return self.node is None
+
+    @property
+    def count(self):
+        if getattr(self, '_count', None) is None:
+            self._count = getattr(self.node, 'count', 0)
+        return self._count
 
     @property
     def size(self):
@@ -162,42 +169,40 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
 
         if children is None:
             children = tuple()
-        link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', AuthTreeLink))()
-        if hasattr(children, 'keys'):
-            _children = list()
-            for prefix in children:
-                if not isinstance(children[prefix], numbers.Integral):
-                    _children.append(link_class(prefix=prefix, node=children[prefix]))
-                else:
-                    _children.append(link_class(prefix=prefix, hash=children[prefix]))
-            children = _children
-        else:
-            _children = list()
-            for child in children:
-                if not all(hasattr(child, x) for x in ('prefix', 'node', 'hash')):
-                    child = link_class(*child)
-                _children.append(child)
-            children = _children
         children = sorted(children)
 
         assert 0 <= len(children) <= 2
         for link in children:
-            assert 0 < len(link.prefix) < 2**64
+            assert 0 < len(link.prefix)
         assert len(children) == len(set(l.prefix[0] for l in children))
+
+        count = int(value is not None)
+        length = count - int(prune_value is True)
+
+        size = 1 # flags
+        size += len(VarInt(len(extra)).serialize())
+        size += len(FlatData(extra).serialize())
+        if value is not None:
+            size += len(VarInt(len(value)).serialize())
+            size += len(FlatData(value).serialize())
+
+        for link in children:
+            count += link.count
+            length += link.length
+            len_ = len(link.prefix)
+            if 2 <= len_ <= 8:
+                size += 1
+            elif 9 <= len_:
+                size += len(VarInt(len_-9).serialize())
+                size += int((len_ + 6) // 8)
+            size += link.size
 
         super(BaseAuthTreeNode, self).__init__(*args, **kwargs)
 
-        self.value, self.prune_value, self.extra = value, prune_value, extra
+        self.value, self.prune_value, self.extra, self.count, self.length, self.size = (
+             value,      prune_value,      extra,      count,      length,      size)
         getattr(self, 'children_create', lambda:setattr(self, 'children', list()))()
         self.children.extend(sorted(children))
-
-        size = int(value is not None)
-        length = size - int(prune_value is True)
-        for link in children:
-            size += link.size
-            length += link.length
-        self.size, self.length = size, length
 
     @property
     def left(self):
@@ -244,15 +249,18 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 skiplist = link.prefix[1:] + Bits((False,) * ((1-len_)%8))
                 parts.append(VarInt(len_-9).serialize())
                 parts.append(skiplist[::-1].tobytes()[::-1])
-            if digest and not getattr(self, 'level_compress', False):
-                hash_ = hash256.serialize(link.hash)
-                for bit in link.prefix[:-len_:-1]:
-                    hash_ = self.compressor(''.join([
-                            bit and '\x04' or '\x01', '\x00', hash_
-                        ])).digest()
-                parts.append(hash_)
-            elif digest or link.pruned:
-                parts.append(hash256.serialize(link.hash))
+            if digest or link.pruned:
+                if getattr(self, 'level_compress', True):
+                    parts.append(hash256.serialize(link.hash))
+                else:
+                    hash_ = hash256.serialize(link.hash)
+                    for bit in link.prefix[:-len_:-1]:
+                        hash_ = self.compressor(''.join([
+                                bit and '\x04' or '\x01', '\x00', hash_
+                            ])).digest()
+                    parts.append(hash_)
+                parts.append(VarInt(link.count).serialize())
+                parts.append(VarInt(link.size).serialize())
             else:
                 parts.append(link.node.serialize(digest=digest))
         parts = []
@@ -272,9 +280,11 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
+        link_class = getattr(cls, 'get_link_class',
+            lambda: getattr(cls, 'link_class', AuthTreeLink))()
         initargs = {}
         flags = VarInt.deserialize(file_)
-        initargs['children'] = {}
+        initargs['children'] = list()
         len_ = VarInt.deserialize(file_)
         initargs['extra'] = FlatData.deserialize(file_, len_)
         if flags & (1 << cls.HAS_VALUE):
@@ -296,9 +306,13 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 assert len(bytes_) == bytelength
                 prefix += Bits(bytes=bytes_[::-1])[:-bitlength:-1]
             if prune:
-                initargs['children'][prefix] = hash256.deserialize(file_)
+                initargs['children'].append(link_class(prefix,
+                    hash  = hash256.deserialize(file_),
+                    count = VarInt.deserialize(file_),
+                    size  = VarInt.deserialize(file_)))
             else:
-                initargs['children'][prefix] = cls.deserialize(file_)
+                initargs['children'].append(link_class(prefix,
+                    node  = cls.deserialize(file_)))
         _deserialize_branch('left', Bits('0b0'),
             (flags >> cls.OFFSET_LEFT)  & 3, bool(flags & (1 << cls.PRUNE_LEFT)),)
         _deserialize_branch('right', Bits('0b1'),
@@ -511,7 +525,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
             if node.length:
                 link = link_class(prefix=prefix, node=node)
             else:
-                link = link_class(prefix=prefix, hash=node.hash, size=node.size)
+                link = link_class(prefix=prefix, hash=node.hash, count=node.count, size=node.size)
             node = node_class(
                 value       = parent.value,
                 children    = (list(x for x in parent.children[:idx]) + list((link,)) +
@@ -564,7 +578,9 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                     children = (link_class(
                         prefix = old_node.children[idx].prefix[len(common_prefix):],
                         node   = old_node.children[idx].node,
-                        hash   = old_node.children[idx]._hash),))
+                        hash   = old_node.children[idx]._hash,
+                        count  = old_node.children[idx].count,
+                        size   = old_node.children[idx].size),))
                 new_node = node_class(
                     value       = old_node.value,
                     children    = (list(x for x in old_node.children[:idx]) +
@@ -575,14 +591,19 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
             elif len(common_prefix):
                 leaf_node = node_class(
                     value    = value,
-                    children = {})
+                    children = ())
                 inner_node = node_class(
                     value    = None,
-                    children = {
-                        remaining_key[len(common_prefix):]:
-                            leaf_node,
-                        old_node.children[idx].prefix[len(common_prefix):]:
-                            old_node.children[idx].node})
+                    children = (
+                        link_class(
+                            prefix = remaining_key[len(common_prefix):],
+                            node   = leaf_node),
+                        link_class(
+                            prefix = old_node.children[idx].prefix[len(common_prefix):],
+                            node   = old_node.children[idx].node,
+                            hash   = old_node.children[idx]._hash,
+                            count  = old_node.children[idx].count,
+                            size   = old_node.children[idx].size),))
                 new_node = node_class(
                     value       = old_node.value,
                     children    = (list(x for x in old_node.children[:idx]) +
@@ -644,7 +665,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         if key == prefix:
             new_node = node_class(
                 value       = old_node.value,
-                children    = (link_class(prefix=link.prefix, hash=link.hash, size=link.size)
+                children    = (link_class(prefix=link.prefix, hash=link.hash, count=link.count, size=link.size)
                                for link in old_node.children),
                 prune_value = old_node.value is not None and True or None)
 
@@ -652,8 +673,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
 
         else:
             remaining_key = key[len(prefix):]
-            idx = bisect_left(old_node.children, link_class(
-                prefix=remaining_key[:1], hash=0, size=0))
+            idx = bisect_left(old_node.children, link_class(prefix=remaining_key[:1]))
             if idx not in xrange(len(old_node.children)):
                 return 0
 
@@ -670,6 +690,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 children    = (list(x for x in old_node.children[:idx]) +
                                list((link_class(prefix = link.prefix,
                                                 hash   = link.hash,
+                                                count  = link.count,
                                                 size   = link.size),)) +
                                list(x for x in old_node.children[idx+1:])),
                 prune_value = old_node.prune_value)
@@ -748,7 +769,9 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                                list((link_class(
                                    prefix = prefix + new_node.children[0].prefix,
                                    node   = new_node.children[0].node,
-                                   hash   = new_node.children[0]._hash),)) +
+                                   hash   = new_node.children[0]._hash,
+                                   count  = new_node.children[0].count,
+                                   size   = new_node.children[0].size),)) +
                                list(x for x in parent.children[idx+1:])),
                 prune_value = parent.prune_value)
 
