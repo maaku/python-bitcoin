@@ -41,7 +41,7 @@ class Output(SerializableMixin):
     def get_script_class(cls):
         return getattr(cls, 'script_class', Script)
 
-    def serialize(self, type_, version, chain, height):
+    def serialize(self):
         parts = list()
         parts.append(pack('<Q', self.amount))
         script = self.contract.serialize()
