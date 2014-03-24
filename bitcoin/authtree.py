@@ -67,7 +67,7 @@ class BaseAuthTreeLink(HashableMixin):
             return 0
         return self.node.length
 
-    from .hash import sha256 as compressor
+    from .hash import hash256 as compressor
     def hash__getter(self):
         if getattr(self, '_hash', None) is not None:
             return self._hash
@@ -321,7 +321,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 prefix += Bits(bytes=bytes_[::-1])[:-bitlength:-1]
             if prune:
                 initargs['children'].append(link_class(prefix,
-                    hash  = sha256.deserialize(file_),
+                    hash  = self.compressor.deserialize(file_),
                     count = VarInt.deserialize(file_),
                     size  = VarInt.deserialize(file_)))
             else:
@@ -333,10 +333,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
             (flags >> cls.OFFSET_RIGHT) & 3, bool(flags & (1 << cls.PRUNE_RIGHT)),)
         return cls(**initargs)
 
-    # The single-application SHA-256 function is used over the usual double-
-    # SHA-256 construction for performance reasons. *A lot* of hash operations
-    # are required, and hash extension attacks are not possible anyway.
-    from .hash import sha256 as compressor
+    from .hash import hash256 as compressor
     def __bytes__(self):
         parts = []
         parts.append(self.compressor.new(self.serialize(digest=True)).digest())
