@@ -6,14 +6,15 @@
 # Python 2 and 3 compatibility utilities
 import six
 
-from .hash import sha256
 from .mixins import HashableMixin, SerializableMixin
 from .serialize import FlatData, VarInt
 
 from .tools import Bits, StringIO, icmp, lookahead, list, tuple
 
 __all__ = (
-    'AuthTreeLink',
+    'BaseAuthTreeLink',
+    'ComposableAuthTreeLink',
+    'PatriciaAuthTreeLink',
     'BaseAuthTreeNode',
     'BaseComposableAuthTree',
     'MemoryComposableAuthTree',
@@ -27,7 +28,7 @@ SENTINAL = object()
 
 import numbers
 
-class AuthTreeLink(HashableMixin):
+class BaseAuthTreeLink(HashableMixin):
     __slots__ = 'prefix node _hash _count _size'.split()
 
     def __init__(self, prefix, node=None, hash=None, count=None, size=None, *args, **kwargs):
@@ -40,7 +41,7 @@ class AuthTreeLink(HashableMixin):
             node, hash = hash, node
         if hasattr(node, 'count'): count = node.count
         if hasattr(node, 'size'):  size  = node.size
-        super(AuthTreeLink, self).__init__(*args, **kwargs)
+        super(BaseAuthTreeLink, self).__init__(*args, **kwargs)
         self.prefix, self.node, self._hash, self._count, self._size = (
              prefix,      node,       hash,       count,       size)
 
@@ -66,10 +67,11 @@ class AuthTreeLink(HashableMixin):
             return 0
         return self.node.length
 
+    from .hash import sha256 as compressor
     def hash__getter(self):
         if getattr(self, '_hash', None) is not None:
             return self._hash
-        value = getattr(self.node, 'hash', None)
+        value = self._compute_hash()
         self.hash__setter(value)
         return value
 
@@ -99,6 +101,22 @@ class AuthTreeLink(HashableMixin):
         parts.append('prefix=%s' % repr(self.prefix))
         parts.append((self.pruned and 'hash' or 'node') + '=0x%064x' % (self.hash or 0))
         return '%s(%s)' % (self.__class__.__name__, ', '.join(parts))
+
+class ComposableAuthTreeLink(BaseAuthTreeLink):
+    def _compute_hash(self):
+        hash_ = getattr(self.node, 'hash', None)
+        if hash_ is not None:
+            hash_ = self.compressor.serialize(hash_)
+            for bit in self.prefix[:-len(self.prefix):-1]:
+                hash_ = self.compressor(b''.join([
+                    self.compressor(bit and b'\x04\x00' or b'\x01\x00').digest(),
+                    hash_])).digest()
+            hash_ = self.compressor.deserialize(StringIO(hash_))
+        return hash_
+
+class PatriciaAuthTreeLink(BaseAuthTreeLink):
+    def _compute_hash(self):
+        return getattr(self.node, 'hash', None)
 
 # ===----------------------------------------------------------------------===
 
@@ -239,6 +257,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
 
     def serialize(self, digest=False):
         def _serialize_branch(link):
+            # Prefix
             len_ = len(link.prefix)
             if 2 <= len_ <= 8:
                 parts.append(
@@ -281,7 +300,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
     @classmethod
     def deserialize(cls, file_):
         link_class = getattr(cls, 'get_link_class',
-            lambda: getattr(cls, 'link_class', AuthTreeLink))()
+            lambda: getattr(cls, 'link_class'))()
         initargs = {}
         flags = VarInt.deserialize(file_)
         initargs['children'] = list()
@@ -517,7 +536,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
 
     def _propogate(self, node, path):
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', AuthTreeLink))()
+            lambda: getattr(self, 'link_class'))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
         while path:
@@ -539,7 +558,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         value = self._prepare_value(value)
 
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', AuthTreeLink))()
+            lambda: getattr(self, 'link_class'))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -655,7 +674,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         key, key_ = self._prepare_key(key), key
 
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', AuthTreeLink))()
+            lambda: getattr(self, 'link_class'))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -715,7 +734,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
 
     def _prune(self, key):
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', AuthTreeLink))()
+            lambda: getattr(self, 'link_class'))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -739,7 +758,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         key, key_ = self._prepare_key(key), key
 
         link_class = getattr(self, 'get_link_class',
-            lambda: getattr(self, 'link_class', AuthTreeLink))()
+            lambda: getattr(self, 'link_class'))()
         node_class = getattr(self, 'get_node_class',
             lambda: getattr(self, 'node_class', self.__class__))()
 
@@ -796,11 +815,11 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
             prune_value = self.prune_value)
 
 class BaseComposableAuthTree(BaseAuthTreeNode):
-    level_compress = False
+    link_class = ComposableAuthTreeLink
 class MemoryComposableAuthTree(BaseComposableAuthTree):
     pass
 
 class BasePatriciaAuthTree(BaseAuthTreeNode):
-    level_compress = True
+    link_class = PatriciaAuthTreeLink
 class MemoryPatriciaAuthTree(BasePatriciaAuthTree):
     pass
