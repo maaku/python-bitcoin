@@ -268,20 +268,16 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
                 skiplist = link.prefix[1:] + Bits((False,) * ((1-len_)%8))
                 parts.append(VarInt(len_-9).serialize())
                 parts.append(skiplist[::-1].tobytes()[::-1])
-            if digest or link.pruned:
-                if getattr(self, 'level_compress', True):
-                    parts.append(sha256.serialize(link.hash))
+            # Branch
+            if not digest:
+                if link.pruned:
+                    parts.append(self.compressor.serialize(link.hash))
                 else:
-                    hash_ = sha256.serialize(link.hash)
-                    for bit in link.prefix[:-len_:-1]:
-                        hash_ = self.compressor(''.join([
-                                bit and '\x04' or '\x01', '\x00', hash_
-                            ])).digest()
-                    parts.append(hash_)
+                    parts.append(link.node.serialize(digest=digest))
+            # Metadata
+            if digest or link.pruned:
                 parts.append(VarInt(link.count).serialize())
                 parts.append(VarInt(link.size).serialize())
-            else:
-                parts.append(link.node.serialize(digest=digest))
         parts = []
         flags = self.flags
         if digest:
@@ -292,10 +288,9 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         if self.value is not None:
             parts.append(VarInt(len(self.value)).serialize())
             parts.append(FlatData(self.value).serialize())
-        if self.left is not None:
-            _serialize_branch(self.left)
-        if self.right is not None:
-            _serialize_branch(self.right)
+        for link in (self.left, self.right):
+            if link is not None:
+                _serialize_branch(link)
         return b''.join(parts)
     @classmethod
     def deserialize(cls, file_):
@@ -342,8 +337,19 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
     # SHA-256 construction for performance reasons. *A lot* of hash operations
     # are required, and hash extension attacks are not possible anyway.
     from .hash import sha256 as compressor
-    def hash__getter(self):
-        return super(BaseAuthTreeNode, self).hash__getter(digest=True)
+    def __bytes__(self):
+        parts = []
+        parts.append(self.compressor.new(self.serialize(digest=True)).digest())
+        left_hash  = getattr(self.left,  'hash', 0)
+        right_hash = getattr(self.right, 'hash', 0)
+        if 0 not in (left_hash, right_hash):
+            parts.append(self.compressor.new(
+                self.compressor.serialize(left_hash) +
+                self.compressor.serialize(right_hash)).digest())
+        else:
+            parts.append(
+                self.compressor.serialize(left_hash or right_hash))
+        return b''.join(parts)
 
     def __hash__(self):
         "x.__hash__() <==> hash(x)"
