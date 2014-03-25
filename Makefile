@@ -113,7 +113,6 @@ ${CACHE}/pyenv/pyenv-1.10.1-base.tar.gz: ${CACHE}/pyenv/virtualenv-1.10.1.tar.gz
 	    -xf "${CACHE}"/pyenv/virtualenv-1.10.1.tar.gz
 	python "${CACHE}"/pyenv/virtualenv-1.10.1/virtualenv.py \
 	    --clear \
-	    --distribute \
 	    --never-download \
 	    --prompt="(${APP_NAME}) " \
 	    "${PYENV}"
@@ -131,6 +130,11 @@ ${CACHE}/pyenv/pyenv-1.10.1-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.10.1-base.tar.
 	# Uncompress saved Python environment
 	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.10.1-base.tar.gz
 	find "${PYENV}" -not -type d -print0 >"${ROOT}"/.pkglist
+
+	# Upgrade the version of setuptools we are using, since blist requires
+	# a modern copy and the virtualenv setup above doesn't pull from the
+	# internet.
+	"${PYENV}"/bin/pip install --upgrade setuptools
 
 	# readline is installed here to get around a bug on Mac OS X
 	# which is causing readline to not build properly if installed
