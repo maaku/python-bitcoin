@@ -98,11 +98,11 @@ dist:
 
 # ===--------------------------------------------------------------------===
 
-${CACHE}/pyenv/virtualenv-1.10.1.tar.gz:
+${CACHE}/pyenv/virtualenv-1.11.6.tar.gz:
 	mkdir -p "${CACHE}"/pyenv
-	curl -L 'https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.1.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
+	curl -L 'https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
 
-${CACHE}/pyenv/pyenv-1.10.1-base.tar.gz: ${CACHE}/pyenv/virtualenv-1.10.1.tar.gz
+${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz: ${CACHE}/pyenv/virtualenv-1.11.6.tar.gz
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 
@@ -110,25 +110,25 @@ ${CACHE}/pyenv/pyenv-1.10.1-base.tar.gz: ${CACHE}/pyenv/virtualenv-1.10.1.tar.gz
 	# for this project in ${PYENV}.
 	tar \
 	    -C "${CACHE}"/pyenv --gzip \
-	    -xf "${CACHE}"/pyenv/virtualenv-1.10.1.tar.gz
-	python "${CACHE}"/pyenv/virtualenv-1.10.1/virtualenv.py \
+	    -xf "${CACHE}"/pyenv/virtualenv-1.11.6.tar.gz
+	python "${CACHE}"/pyenv/virtualenv-1.11.6/virtualenv.py \
 	    --clear \
 	    --never-download \
 	    --prompt="(${APP_NAME}) " \
 	    "${PYENV}"
-	-rm -rf "${CACHE}"/pyenv/virtualenv-1.10.1
+	-rm -rf "${CACHE}"/pyenv/virtualenv-1.11.6
 
 	# Snapshot the Python environment
 	tar -C "${PYENV}" --gzip -cf "$@" .
 	rm -rf "${PYENV}"
 
-${CACHE}/pyenv/pyenv-1.10.1-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.10.1-base.tar.gz ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${SYSROOT}/.stamp-gmp-h ${SYSROOT}/.stamp-mpfr-h ${SYSROOT}/.stamp-mpc-h
+${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${SYSROOT}/.stamp-gmp-h ${SYSROOT}/.stamp-mpfr-h ${SYSROOT}/.stamp-mpc-h
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 	mkdir -p "${CACHE}"/pypi
 
 	# Uncompress saved Python environment
-	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.10.1-base.tar.gz
+	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.11.6-base.tar.gz
 	find "${PYENV}" -not -type d -print0 >"${ROOT}"/.pkglist
 
 	# Upgrade the version of setuptools we are using, since blist requires
@@ -164,13 +164,13 @@ ${CACHE}/pyenv/pyenv-1.10.1-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.10.1-base.tar.
 .PHONY:
 python-env: ${PYENV}/.stamp-h
 
-${PYENV}/.stamp-h: ${CACHE}/pyenv/pyenv-1.10.1-base.tar.gz ${CACHE}/pyenv/pyenv-1.10.1-extras.tar.gz ${ROOT}/setup.py
+${PYENV}/.stamp-h: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz ${ROOT}/setup.py
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 
 	# Uncompress saved Python environment
-	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.10.1-base.tar.gz
-	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.10.1-extras.tar.gz
+	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.11.6-base.tar.gz
+	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.11.6-extras.tar.gz
 
 	# Install the project package as a Python egg:
 	"${PYENV}"/bin/python "${ROOT}"/setup.py develop
