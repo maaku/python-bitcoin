@@ -32,13 +32,20 @@ class BaseAuthTreeLink(HashableMixin):
     __slots__ = 'prefix node _hash _count _size'.split()
 
     def __init__(self, prefix, node=None, hash=None, count=None, size=None, *args, **kwargs):
+        # Coerce the prefix from whatever type it is into a Bits
+        # field. This allows passing binary strings or any type
+        # understood by the Bits constructor.
         if not isinstance(prefix, Bits):
             if isinstance(prefix, six.binary_type):
                 prefix = Bits(bytes=prefix)
             else:
                 prefix = Bits(prefix)
+        # It is permissible to provide just a node or its hash as the
+        # 2nd positional argument.
         if isinstance(node, numbers.Integral):
             node, hash = hash, node
+        # Count and size must be provided for pruned links, otherwise
+        # it can of course be extracted from the node object.
         if hasattr(node, 'count'): count = node.count
         if hasattr(node, 'size'):  size  = node.size
         super(BaseAuthTreeLink, self).__init__(*args, **kwargs)
@@ -47,22 +54,26 @@ class BaseAuthTreeLink(HashableMixin):
 
     @property
     def pruned(self):
+        "Returns True if the link does not point to a node object."
         return self.node is None
 
     @property
     def count(self):
+        "The number of items, pruned or otherwise, contained by this branch."
         if getattr(self, '_count', None) is None:
             self._count = getattr(self.node, 'count', 0)
         return self._count
 
     @property
     def size(self):
+        "The canonical serialized size of this branch."
         if getattr(self, '_size', None) is None:
             self._size = getattr(self.node, 'size', 0)
         return self._size
 
     @property
     def length(self):
+        "The number of non-pruned items in this branch."
         if self.pruned:
             return 0
         return self.node.length
