@@ -14,22 +14,22 @@ try:
 except ImportError:
     from decimal import Decimal as mpd, Context as mpd_context
 
-from bigfloat import BigFloat as mpf, Context as mpf_context
+from gmpy2 import mpfr as mpf, context as mpf_context
 
 # ===----------------------------------------------------------------------===
 
-from bigfloat import ROUND_TIES_TO_EVEN
-from bigfloat import ROUND_TOWARD_ZERO
-from bigfloat import ROUND_AWAY_FROM_ZERO
-from bigfloat import ROUND_TOWARD_POSITIVE
-from bigfloat import ROUND_TOWARD_NEGATIVE
+from gmpy2 import RoundToNearest as RoundNearest
+from gmpy2 import RoundToZero    as RoundTowardZero
+from gmpy2 import RoundAwayZero  as RoundAwayFromZero
+from gmpy2 import RoundUp        as RoundTowardPositive
+from gmpy2 import RoundDown      as RoundTowardNegative
 
 # ===----------------------------------------------------------------------===
 
-def round_absolute(value, mode=ROUND_TIES_TO_EVEN, magnitude=0, base=10):
+def round_absolute(value, mode=RoundNearest, magnitude=0, base=10):
     raise NotImplementedError
 
-def round_relative(value, mode=ROUND_TIES_TO_EVEN, precision=0, base=10):
+def round_relative(value, mode=RoundNearest, precision=0, base=10):
     raise NotImplementedError
 
 # ===----------------------------------------------------------------------===
@@ -44,3 +44,5 @@ def mpq_from_mpd(value):
 
 def mpf_from_mpz(value):
     return mpf(int(value))
+
+# End of File

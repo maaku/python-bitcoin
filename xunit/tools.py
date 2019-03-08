@@ -4,7 +4,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
@@ -29,7 +29,7 @@ COMPRESS_AMOUNT_INTERVALS = [
     dict(start = 5000000000, stop = 2100000000000000, step = 5000000000),
 ]
 
-class TestCompressAmount(unittest2.TestCase):
+class TestCompressAmount(unittest.TestCase):
     "Test compression and decompression of amounts."
     __metaclass__ = ScenarioMeta
     class test_compress_point(ScenarioTest):
@@ -43,19 +43,19 @@ class TestCompressAmount(unittest2.TestCase):
     class test_interval(ScenarioTest):
         scenarios = COMPRESS_AMOUNT_INTERVALS
         def __test__(self, start, stop, step):
-            for n in xrange(start, stop, step):
+            for n in range(start, stop, step):
                 self.assertEqual(decompress_amount(compress_amount(n)), n, u"n=%d"%n)
 
 # ===----------------------------------------------------------------------===
 
 TARGET_FROM_COMPACT = [
     dict(bits=0x1d00ffff,
-         target=0x00000000FFFF0000000000000000000000000000000000000000000000000000L),
+         target=0x00000000FFFF0000000000000000000000000000000000000000000000000000),
     dict(bits=0x1b0404cb,
-         target=0x00000000000404CB000000000000000000000000000000000000000000000000L),
+         target=0x00000000000404CB000000000000000000000000000000000000000000000000),
 ]
 
-class TestCompactTarget(unittest2.TestCase):
+class TestCompactTarget(unittest.TestCase):
     "Test target_from_compact API under a variety of scenarios."
     __metaclass__ = ScenarioMeta
     class test_hash_from_compact(ScenarioTest):
@@ -69,15 +69,15 @@ POSITIVE = lambda x:x>0
 NEGATIVE = lambda x:x<0
 ZERO = lambda x:not x
 SCENARIOS = [
-    dict(i1=iter([]),        i2=iter([]),        check=ZERO),
-    dict(i1=iter(xrange(1)), i2=iter([]),        check=POSITIVE),
-    dict(i1=iter([]),        i2=iter(xrange(1)), check=NEGATIVE),
-    dict(i1=iter(xrange(1)), i2=iter(xrange(1)), check=ZERO),
-    dict(i1=iter(xrange(1)), i2=iter(xrange(3)), check=NEGATIVE),
-    dict(i1=iter(xrange(3)), i2=iter(xrange(1)), check=POSITIVE),
+    dict(i1=iter([]),       i2=iter([]),        check=ZERO),
+    dict(i1=iter(range(1)), i2=iter([]),        check=POSITIVE),
+    dict(i1=iter([]),       i2=iter(range(1)), check=NEGATIVE),
+    dict(i1=iter(range(1)), i2=iter(range(1)), check=ZERO),
+    dict(i1=iter(range(1)), i2=iter(range(3)), check=NEGATIVE),
+    dict(i1=iter(range(3)), i2=iter(range(1)), check=POSITIVE),
 ]
 
-class Test_icmp(unittest2.TestCase):
+class Test_icmp(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_scenarios(ScenarioTest):
         scenarios = SCENARIOS

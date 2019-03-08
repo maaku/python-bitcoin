@@ -34,3 +34,5 @@ class InvalidSecretError(BaseSerializationError):
 class ValidationError(Exception):
     "An error while validating data."
     pass
+
+# End of File

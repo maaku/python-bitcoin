@@ -14,8 +14,8 @@ from types import MethodType
 
 class SerializableMixin(object):
     def __init__(self, *args, **kwargs):
-        super(SerializableMixin, self).__init__(*args, **kwargs)
-        self.deserialize = MethodType(self.deserialize, self, self.__class__)
+        super(SerializableMixin, self).__init__()
+        self.deserialize = MethodType(self.deserialize, self)
 
     def __bytes__(self, *args, **kwargs):
         return self.serialize(*args, **kwargs)
@@ -67,3 +67,5 @@ class HashableMixin(object):
     @hash.deleter
     def hash(self):
         self.hash__deleter()
+
+# End of File

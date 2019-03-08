@@ -7,7 +7,7 @@ import six
 import numbers
 
 from .hash import hash160
-from .tools import StringIO
+from .tools import BytesIO
 
 # ===----------------------------------------------------------------------===
 
@@ -61,16 +61,16 @@ class BitcoinAddress(VersionedPayload):
     # Re-interpret the hash value from the serialized payload:
     @property
     def hash(self):
-        return hash160.deserialize(StringIO(self.payload))
+        return hash160.deserialize(BytesIO(self.payload))
 
     @property
     def destination(self):
         # The original pay-to-pubkey-hash bitcoin address:
         if self.version == self.PUBKEY_HASH:
-            return PubKeyHashId(hash=hash160.deserialize(StringIO(self.payload)))
+            return PubKeyHashId(hash=hash160.deserialize(BytesIO(self.payload)))
         # The new BIP-0016 pay-to-script-hash address:
         if self.version == self.SCRIPT_HASH:
-            return ScriptHashId(hash=hash160.deserialize(StringIO(self.payload)))
+            return ScriptHashId(hash=hash160.deserialize(BytesIO(self.payload)))
         # Any futue defined address format is not understood:
         raise InvalidAddressError(u"unknown address version: %s" % repr(self.version))
 
@@ -79,3 +79,5 @@ class BitcoinAddress(VersionedPayload):
         # Use payload over hash because there's no need to incur deserialization
         # costs if we can compare directly:
         return self.payload != '\x00'*20
+
+# End of File

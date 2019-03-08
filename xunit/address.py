@@ -4,7 +4,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
@@ -19,21 +19,21 @@ from bitcoin.script import *
 BITCOIN_ADDRESS = [
     # Valid addresses
     dict(version  = BitcoinAddress.PUBKEY_HASH,
-         hash     = 533613946177287109634438767478602490652520581919L,
+         hash     = 533613946177287109634438767478602490652520581919,
          base58   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP",
          script   = Script().join([
                         ScriptOp(OP_DUP),
                         ScriptOp(OP_HASH160),
-                        ScriptOp(data='1f8b1340c286881bcc449c37569ae320b013785d'.decode('hex')),
+                        ScriptOp(data=bytes.fromhex('1f8b1340c286881bcc449c37569ae320b013785d')),
                         ScriptOp(OP_EQUALVERIFY),
                         ScriptOp(OP_CHECKSIG),
                     ])),
     dict(version  = BitcoinAddress.SCRIPT_HASH,
-         hash     = 1439889050650639417403043439503616658465773899358L,
+         hash     = 1439889050650639417403043439503616658465773899358,
          base58   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G",
          script   = Script().join([
                         ScriptOp(OP_HASH160),
-                        ScriptOp(data='5ece0cadddc415b1980f001785947120acdb36fc'.decode('hex')),
+                        ScriptOp(data=bytes.fromhex('5ece0cadddc415b1980f001785947120acdb36fc')),
                         ScriptOp(OP_EQUAL),
                     ])),
     # Null addresses
@@ -43,7 +43,7 @@ BITCOIN_ADDRESS = [
          script   = Script().join([
                         ScriptOp(OP_DUP),
                         ScriptOp(OP_HASH160),
-                        ScriptOp(data='\x00'*20),
+                        ScriptOp(data=b'\x00'*20),
                         ScriptOp(OP_EQUALVERIFY),
                         ScriptOp(OP_CHECKSIG),
                     ])),
@@ -52,12 +52,12 @@ BITCOIN_ADDRESS = [
          base58   = u"31h1vYVSYuKP6AhS86fbRdMw9XHieotbST",
          script   = Script().join([
                         ScriptOp(OP_HASH160),
-                        ScriptOp(data='\x00'*20),
+                        ScriptOp(data=b'\x00'*20),
                         ScriptOp(OP_EQUAL),
                     ])),
 ]
 
-class TestBitcoinAddress(unittest2.TestCase):
+class TestBitcoinAddress(unittest.TestCase):
     "Test base58 bitcoin addresses"
     __metaclass__ = ScenarioMeta
     class test_init_from_base58(ScenarioTest):
@@ -146,7 +146,7 @@ INVALID_ADDRESSES = [
     dict(address=u"2A1q1YsMZowabbvta7kTy2Fd6qN4r5ZCeG3qLpvZBMzCixMUdkN2Y4dHB1wPsZAeVXUGD83MfRED"),
 ]
 
-class TestInvalidAddresses(unittest2.TestCase):
+class TestInvalidAddresses(unittest.TestCase):
     "Test invalid bitcoin addresses"
     __metaclass__ = ScenarioMeta
     class test_invalid_address(ScenarioTest):

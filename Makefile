@@ -1,4 +1,4 @@
-# Copyright © 2012-2014 by its contributors. See AUTHORS for details.
+# Copyright © 2012-2019 by its contributors. See AUTHORS for details.
 # Distributed under the MIT/X11 software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,26 +18,33 @@ all: python-env
 .PHONY: check
 check: all
 	mkdir -p build/report/xunit
-	@echo  >.pytest.py "import unittest2"
+	@echo  >.pytest.py "import unittest"
 	@echo >>.pytest.py "import xmlrunner"
-	@echo >>.pytest.py "unittest2.main("
+	@echo >>.pytest.py "unittest.main("
 	@echo >>.pytest.py "    testRunner=xmlrunner.XMLTestRunner("
 	@echo >>.pytest.py "        output='build/report/xunit'),"
-	@echo >>.pytest.py "    argv=['unit2', 'discover',"
-	@echo >>.pytest.py "        '-s','xunit',"
-	@echo >>.pytest.py "        '-p','*.py',"
-	@echo >>.pytest.py "        '-t','.',"
+	@echo >>.pytest.py "    argv=['pytest',"
+	@echo >>.pytest.py "        'xunit/address.py',"
+	@echo >>.pytest.py "        'xunit/base58.py',"
+	@echo >>.pytest.py "        'xunit/core.py',"
+	@echo >>.pytest.py "        'xunit/crypto.py',"
+	@echo >>.pytest.py "        'xunit/destination.py',"
+	@echo >>.pytest.py "        'xunit/hash.py',"
+	@echo >>.pytest.py "        'xunit/merkle.py',"
+	@echo >>.pytest.py "        'xunit/script.py',"
+	@echo >>.pytest.py "        'xunit/serialize.py',"
+	@echo >>.pytest.py "        'xunit/tools.py',"
 	@echo >>.pytest.py "    ]"
 	@echo >>.pytest.py ")"
 	chmod +x .pytest.py
 	"${PYENV}"/bin/coverage run .pytest.py || { rm -f .pytest.py; exit 1; }
 	"${PYENV}"/bin/coverage xml --omit=".pytest.py" -o build/report/coverage.xml
-	rm -f .pytest.py
+	-rm -f .pytest.py
 
 .PHONY: debugcheck
 debugcheck: all
 	mkdir -p build/report/xunit
-	@echo  >.pytest.py "import unittest2"
+	@echo  >.pytest.py "import unittest"
 	@echo >>.pytest.py "import xmlrunner"
 	@echo >>.pytest.py "import exceptions, ipdb, sys"
 	@echo >>.pytest.py "class PDBAssertionError(exceptions.AssertionError):"
@@ -48,14 +55,21 @@ debugcheck: all
 	@echo >>.pytest.py "            ipdb.set_trace(sys._getframe().f_back.f_back.f_back)"
 	@echo >>.pytest.py "        else:"
 	@echo >>.pytest.py "            ipdb.set_trace()"
-	@echo >>.pytest.py "unittest2.TestCase.failureException = PDBAssertionError"
-	@echo >>.pytest.py "unittest2.main("
+	@echo >>.pytest.py "unittest.TestCase.failureException = PDBAssertionError"
+	@echo >>.pytest.py "unittest.main("
 	@echo >>.pytest.py "    testRunner=xmlrunner.XMLTestRunner("
 	@echo >>.pytest.py "        output='build/report/xunit'),"
-	@echo >>.pytest.py "    argv=['unit2', 'discover',"
-	@echo >>.pytest.py "        '-s','xunit',"
-	@echo >>.pytest.py "        '-p','*.py',"
-	@echo >>.pytest.py "        '-t','.',"
+	@echo >>.pytest.py "    argv=['unit2',"
+	@echo >>.pytest.py "        'xunit/address.py',"
+	@echo >>.pytest.py "        'xunit/base58.py',"
+	@echo >>.pytest.py "        'xunit/core.py',"
+	@echo >>.pytest.py "        'xunit/crypto.py',"
+	@echo >>.pytest.py "        'xunit/destination.py',"
+	@echo >>.pytest.py "        'xunit/hash.py',"
+	@echo >>.pytest.py "        'xunit/merkle.py',"
+	@echo >>.pytest.py "        'xunit/script.py',"
+	@echo >>.pytest.py "        'xunit/serialize.py',"
+	@echo >>.pytest.py "        'xunit/tools.py',"
 	@echo >>.pytest.py "    ]"
 	@echo >>.pytest.py ")"
 	@chmod +x .pytest.py
@@ -98,43 +112,39 @@ dist:
 
 # ===--------------------------------------------------------------------===
 
-${CACHE}/pyenv/virtualenv-1.11.6.tar.gz:
-	mkdir -p "${CACHE}"/pyenv
-	curl -L 'https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
+${CACHE}/virtualenv/virtualenv-16.4.3.tar.gz:
+	mkdir -p "${CACHE}"/virtualenv
+	curl -L 'https://files.pythonhosted.org/packages/37/db/89d6b043b22052109da35416abc3c397655e4bd3cff031446ba02b9654fa/virtualenv-16.4.3.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
 
-${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz: ${CACHE}/pyenv/virtualenv-1.11.6.tar.gz
+${CACHE}/pyenv-16.4.3-base.tar.gz: ${CACHE}/virtualenv/virtualenv-16.4.3.tar.gz
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 
 	# virtualenv is used to create a separate Python installation
 	# for this project in ${PYENV}.
 	tar \
-	    -C "${CACHE}"/pyenv --gzip \
-	    -xf "${CACHE}"/pyenv/virtualenv-1.11.6.tar.gz
-	python "${CACHE}"/pyenv/virtualenv-1.11.6/virtualenv.py \
+	    -C "${CACHE}"/virtualenv --gzip \
+	    -xf "${CACHE}"/virtualenv/virtualenv-16.4.3.tar.gz
+	python3 "${CACHE}"/virtualenv/virtualenv-16.4.3/virtualenv.py \
 	    --clear \
+	    --distribute \
 	    --never-download \
 	    --prompt="(${APP_NAME}) " \
 	    "${PYENV}"
-	-rm -rf "${CACHE}"/pyenv/virtualenv-1.11.6
+	-rm -rf "${CACHE}"/virtualenv/virtualenv-16.4.3
 
 	# Snapshot the Python environment
 	tar -C "${PYENV}" --gzip -cf "$@" .
 	rm -rf "${PYENV}"
 
-${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${SYSROOT}/.stamp-gmp-h ${SYSROOT}/.stamp-mpfr-h ${SYSROOT}/.stamp-mpc-h
+${CACHE}/pyenv-16.4.3-extras.tar.gz: ${CACHE}/pyenv-16.4.3-base.tar.gz ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${SYSROOT}/.stamp-gmp-h ${SYSROOT}/.stamp-mpfr-h ${SYSROOT}/.stamp-mpc-h
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 	mkdir -p "${CACHE}"/pypi
 
 	# Uncompress saved Python environment
-	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.11.6-base.tar.gz
+	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv-16.4.3-base.tar.gz
 	find "${PYENV}" -not -type d -print0 >"${ROOT}"/.pkglist
-
-	# Upgrade the version of setuptools we are using, since blist requires
-	# a modern copy and the virtualenv setup above doesn't pull from the
-	# internet.
-	"${PYENV}"/bin/pip install --upgrade setuptools
 
 	# readline is installed here to get around a bug on Mac OS X
 	# which is causing readline to not build properly if installed
@@ -152,7 +162,7 @@ ${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.
 	    CFLAGS="-I'${SYSROOT}'/include" \
 	    LDFLAGS="-L'${SYSROOT}'/lib" \
 	    "${PYENV}"/bin/python "${PYENV}"/bin/pip install \
-	        --download-cache="${CACHE}"/pypi \
+	        --cache-dir="${CACHE}"/pypi \
 	        -r "$$reqfile" || exit 1; \
 	done
 
@@ -164,13 +174,13 @@ ${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.
 .PHONY:
 python-env: ${PYENV}/.stamp-h
 
-${PYENV}/.stamp-h: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz ${ROOT}/setup.py
+${PYENV}/.stamp-h: ${CACHE}/pyenv-16.4.3-base.tar.gz ${CACHE}/pyenv-16.4.3-extras.tar.gz
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 
 	# Uncompress saved Python environment
-	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.11.6-base.tar.gz
-	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv/pyenv-1.11.6-extras.tar.gz
+	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv-16.4.3-base.tar.gz
+	tar -C "${PYENV}" --gzip -xf "${CACHE}"/pyenv-16.4.3-extras.tar.gz
 
 	# Install the project package as a Python egg:
 	"${PYENV}"/bin/python "${ROOT}"/setup.py develop
@@ -180,11 +190,11 @@ ${PYENV}/.stamp-h: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${CACHE}/pyenv/pyenv-
 
 # ===--------------------------------------------------------------------===
 
-${CACHE}/gmp/gmp-5.1.3.tar.xz:
+${CACHE}/gmp/gmp-6.1.2.tar.xz:
 	mkdir -p ${CACHE}/gmp
-	curl -L 'https://ftp.gnu.org/gnu/gmp/gmp-5.1.3.tar.xz' >'$@' || { rm -f '$@'; exit 1; }
+	curl -L 'https://ftp.gnu.org/gnu/gmp/gmp-6.1.2.tar.xz' >'$@' || { rm -f '$@'; exit 1; }
 
-${CACHE}/gmp-5.1.3-pkg.tar.gz: ${CACHE}/gmp/gmp-5.1.3.tar.xz
+${CACHE}/gmp-6.1.2-pkg.tar.gz: ${CACHE}/gmp/gmp-6.1.2.tar.xz
 	if [ -d "${SYSROOT}" ]; then \
 	    mv "${SYSROOT}" "${SYSROOT}"-bak; \
 	fi
@@ -207,7 +217,7 @@ ${CACHE}/gmp-5.1.3-pkg.tar.gz: ${CACHE}/gmp/gmp-5.1.3.tar.xz
 .PHONY: gmp-pkg
 gmp-pkg: ${SYSROOT}/.stamp-gmp-h
 
-${SYSROOT}/.stamp-gmp-h: ${CACHE}/gmp-5.1.3-pkg.tar.gz
+${SYSROOT}/.stamp-gmp-h: ${CACHE}/gmp-6.1.2-pkg.tar.gz
 	mkdir -p "${SYSROOT}"
 
 	# Uncompress the package snapshots
@@ -218,16 +228,16 @@ ${SYSROOT}/.stamp-gmp-h: ${CACHE}/gmp-5.1.3-pkg.tar.gz
 
 # ===--------------------------------------------------------------------===
 
-${CACHE}/mpfr/mpfr-3.1.2.tar.xz:
+${CACHE}/mpfr/mpfr-4.0.2.tar.xz:
 	mkdir -p ${CACHE}/mpfr
-	curl -L 'http://ftp.gnu.org/gnu/mpfr/mpfr-3.1.2.tar.xz' >'$@' || { rm -f '$@'; exit 1; }
+	curl -L 'http://ftp.gnu.org/gnu/mpfr/mpfr-4.0.2.tar.xz' >'$@' || { rm -f '$@'; exit 1; }
 
-${CACHE}/mpfr-3.1.2-pkg.tar.gz: ${CACHE}/mpfr/mpfr-3.1.2.tar.xz ${CACHE}/gmp-5.1.3-pkg.tar.gz
+${CACHE}/mpfr-4.0.2-pkg.tar.gz: ${CACHE}/mpfr/mpfr-4.0.2.tar.xz ${CACHE}/gmp-6.1.2-pkg.tar.gz
 	if [ -d "${SYSROOT}" ]; then \
 	    mv "${SYSROOT}" "${SYSROOT}"-bak; \
 	fi
 	mkdir -p "${SYSROOT}"
-	tar -C "${SYSROOT}" --gzip -xf ${CACHE}/gmp-5.1.3-pkg.tar.gz
+	tar -C "${SYSROOT}" --gzip -xf ${CACHE}/gmp-6.1.2-pkg.tar.gz
 	find "${SYSROOT}" -not -type d -print0 >"${ROOT}"/.pkglist
 
 	rm -rf "${ROOT}"/.build/mpfr
@@ -250,7 +260,7 @@ ${CACHE}/mpfr-3.1.2-pkg.tar.gz: ${CACHE}/mpfr/mpfr-3.1.2.tar.xz ${CACHE}/gmp-5.1
 .PHONY: mpfr-pkg
 mpfr-pkg: ${SYSROOT}/.stamp-mpfr-h
 
-${SYSROOT}/.stamp-mpfr-h: ${CACHE}/mpfr-3.1.2-pkg.tar.gz ${SYSROOT}/.stamp-gmp-h
+${SYSROOT}/.stamp-mpfr-h: ${CACHE}/mpfr-4.0.2-pkg.tar.gz ${SYSROOT}/.stamp-gmp-h
 	# Uncompress the package snapshots
 	tar -C "${SYSROOT}" --gzip -xf "$<"
 
@@ -259,17 +269,17 @@ ${SYSROOT}/.stamp-mpfr-h: ${CACHE}/mpfr-3.1.2-pkg.tar.gz ${SYSROOT}/.stamp-gmp-h
 
 # ===--------------------------------------------------------------------===
 
-${CACHE}/mpc/mpc-1.0.1.tar.gz:
+${CACHE}/mpc/mpc-1.1.0.tar.gz:
 	mkdir -p ${CACHE}/mpc
-	curl -L 'http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
+	curl -L 'https://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
 
-${CACHE}/mpc-1.0.1-pkg.tar.gz: ${CACHE}/mpc/mpc-1.0.1.tar.gz ${CACHE}/gmp-5.1.3-pkg.tar.gz ${CACHE}/mpfr-3.1.2-pkg.tar.gz
+${CACHE}/mpc-1.1.0-pkg.tar.gz: ${CACHE}/mpc/mpc-1.1.0.tar.gz ${CACHE}/gmp-6.1.2-pkg.tar.gz ${CACHE}/mpfr-4.0.2-pkg.tar.gz
 	if [ -d "${SYSROOT}" ]; then \
 	    mv "${SYSROOT}" "${SYSROOT}"-bak; \
 	fi
 	mkdir -p "${SYSROOT}"
-	tar -C "${SYSROOT}" --gzip -xf ${CACHE}/gmp-5.1.3-pkg.tar.gz
-	tar -C "${SYSROOT}" --gzip -xf ${CACHE}/mpfr-3.1.2-pkg.tar.gz
+	tar -C "${SYSROOT}" --gzip -xf ${CACHE}/gmp-6.1.2-pkg.tar.gz
+	tar -C "${SYSROOT}" --gzip -xf ${CACHE}/mpfr-4.0.2-pkg.tar.gz
 	find "${SYSROOT}" -not -type d -print0 >"${ROOT}"/.pkglist
 
 	rm -rf "${ROOT}"/.build/mpc
@@ -293,7 +303,7 @@ ${CACHE}/mpc-1.0.1-pkg.tar.gz: ${CACHE}/mpc/mpc-1.0.1.tar.gz ${CACHE}/gmp-5.1.3-
 .PHONY: mpc-pkg
 mpc-pkg: ${SYSROOT}/.stamp-mpc-h
 
-${SYSROOT}/.stamp-mpc-h: ${CACHE}/mpc-1.0.1-pkg.tar.gz ${SYSROOT}/.stamp-gmp-h ${SYSROOT}/.stamp-mpfr-h
+${SYSROOT}/.stamp-mpc-h: ${CACHE}/mpc-1.1.0-pkg.tar.gz ${SYSROOT}/.stamp-gmp-h ${SYSROOT}/.stamp-mpfr-h
 	# Uncompress the package snapshots
 	tar -C "${SYSROOT}" --gzip -xf "$<"
 

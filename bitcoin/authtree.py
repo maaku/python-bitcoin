@@ -9,7 +9,7 @@ import six
 from .mixins import HashableMixin, SerializableMixin
 from .serialize import FlatData, VarInt
 
-from .tools import Bits, StringIO, icmp, lookahead, list, tuple
+from .tools import Bits, BytesIO, icmp, lookahead, list, tuple
 
 __all__ = (
     'BaseAuthTreeLink',
@@ -122,7 +122,7 @@ class ComposableAuthTreeLink(BaseAuthTreeLink):
                 hash_ = self.compressor(b''.join([
                     self.compressor(bit and b'\x04\x00' or b'\x01\x00').digest(),
                     hash_])).digest()
-            hash_ = self.compressor.deserialize(StringIO(hash_))
+            hash_ = self.compressor.deserialize(BytesIO(hash_))
         return hash_
 
 class PatriciaAuthTreeLink(BaseAuthTreeLink):
@@ -177,7 +177,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         attr_class = cls._get_attr_class(attr)
         deserialize = getattr(attr_class, 'deserialize', None)
         if six.callable(deserialize):
-            return deserialize(StringIO(string))
+            return deserialize(BytesIO(string))
         else:
             return attr_class(string)
     @classmethod
@@ -600,7 +600,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
             remaining_key = key[len(prefix):]
             idx = bisect_left(old_node.children, link_class(prefix=remaining_key[:1]))
 
-            if idx in xrange(len(old_node.children)):
+            if idx in range(len(old_node.children)):
                 common_prefix = commonprefix([old_node.children[idx].prefix, remaining_key])
             else:
                 common_prefix = Bits()
@@ -707,7 +707,7 @@ class BaseAuthTreeNode(SerializableMixin, HashableMixin):
         else:
             remaining_key = key[len(prefix):]
             idx = bisect_left(old_node.children, link_class(prefix=remaining_key[:1]))
-            if idx not in xrange(len(old_node.children)):
+            if idx not in range(len(old_node.children)):
                 return 0
 
             link = old_node.children[idx]
@@ -837,3 +837,5 @@ class BasePatriciaAuthTree(BaseAuthTreeNode):
     link_class = PatriciaAuthTreeLink
 class MemoryPatriciaAuthTree(BasePatriciaAuthTree):
     pass
+
+# End of File

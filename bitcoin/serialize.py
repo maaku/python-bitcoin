@@ -33,7 +33,7 @@ def _force_read(file_, len_):
         raise EOFError(u"unexpected end-of-file")
     return data
 
-class _BaseCompactSize(long):
+class _BaseCompactSize(int):
     """\
     Compact size
       size <  253        -- 1 byte
@@ -73,7 +73,7 @@ class LittleCompactSize(_BaseCompactSize):
     INT_FMT   = "<I"
     LONG_FMT  = "<Q"
 
-class LittleInteger(long):
+class LittleInteger(int):
     "Little-endian serialized integer representation."
     def serialize(self, len_=None):
         if self < 0:
@@ -81,10 +81,10 @@ class LittleInteger(long):
 
         result = []
         while self:
-            result.append(pack("<Q", self & 0xffffffffffffffffL))
+            result.append(pack("<Q", self & 0xffffffffffffffff))
             self >>= 64
         result = b''.join(result)
-        result = result.rstrip('\x00')
+        result = result.rstrip(b'\x00')
 
         if len_ > 0:
             result_len = len(result)
@@ -98,7 +98,7 @@ class LittleInteger(long):
     @classmethod
     def deserialize(cls, file_, len_):
         result = 0
-        for idx in xrange(len_//8):
+        for idx in range(len_//8):
             limb = unpack("<Q", _force_read(file_, 8))[0]
             result += limb << (idx * 64)
         if len_ & 4:
@@ -112,7 +112,7 @@ class LittleInteger(long):
             result += limb << ((len_ & ~1) * 8)
         return cls(result)
 
-class BigInteger(long):
+class BigInteger(int):
     "Big-endian serialized integer representation."
     def serialize(self, *args, **kwargs):
         return LittleInteger(self).serialize(*args, **kwargs)[::-1]
@@ -120,7 +120,7 @@ class BigInteger(long):
     @classmethod
     def deserialize(cls, file_, len_):
         result = 0
-        for idx in xrange(len_//8):
+        for idx in range(len_//8):
             limb = unpack(">Q", _force_read(file_, 8))[0]
             result = (result << 64) + limb
         if len_ & 4:
@@ -134,7 +134,7 @@ class BigInteger(long):
             result = (result << 8) + limb
         return cls(result)
 
-class BigNum(long):
+class BigNum(int):
     def serialize(self, *args, **kwargs):
         neg = self < 0
         bytes_ = BigInteger(self).serialize(*args, **kwargs)
@@ -152,7 +152,7 @@ class BigNum(long):
             n = e - n
         return cls(n)
 
-class VarInt(long):
+class VarInt(int):
     def serialize(self):
         if not self:
             return six.int2byte(0)
@@ -195,6 +195,8 @@ def serialize_iterator(iter_, serializer=lambda i:i.serialize(),
     return prefix(len_) + result
 
 def deserialize_iterator(file_, deserializer, prefix=LittleCompactSize.deserialize, *args, **kwargs):
-    for _ in xrange(prefix(file_)):
+    for _ in range(prefix(file_)):
         yield deserializer(file_, *args, **kwargs)
     raise StopIteration
+
+# End of File

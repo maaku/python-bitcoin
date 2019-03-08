@@ -7,7 +7,7 @@
 import six
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
@@ -15,11 +15,11 @@ from scenariotest import ScenarioMeta, ScenarioTest
 from bitcoin.ledger import *
 from bitcoin.core import Output
 from bitcoin.destination import PubKeyHashId
-from bitcoin.tools import StringIO
+from bitcoin.tools import BytesIO
 
 # ===----------------------------------------------------------------------===
 
-class TestUnspentTransaction(unittest2.TestCase):
+class TestUnspentTransaction(unittest.TestCase):
     def test_default_init(self):
         utx = UnspentTransaction()
         self.assertEqual(utx.version, 1)
@@ -84,36 +84,36 @@ class TestUnspentTransaction(unittest2.TestCase):
 UNSPENT_TRANSACTION = [
     dict(version=1, height=203998,
          items = ((1, Output(60000000000, PubKeyHashId(0x351d7cf86bb3297fa5cf03c8e77f074e94156181).script)),),
-         string = ('01' '02'
+         string = bytes.fromhex('01' '02'
                    '8358' '00816115944e077fe7c803cfa57f29b36bf87c1d35'
-                   '8bb85e').decode('hex')),
+                   '8bb85e')),
     dict(version=1, height=120891,
          items = (
              (4, Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)),
              (16, Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script))),
-         string = ('01' '08' '0220'
+         string = bytes.fromhex('01' '08' '0220'
                    '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
                    'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-                   '86af3b').decode('hex')),
+                   '86af3b')),
     dict(version=2, height=120891,
          items = (
              (4, Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)),
              (16, Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script))),
-         string = ('02' '08' '0220'
+         string = bytes.fromhex('02' '08' '0220'
                    '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
                    'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-                   '86af3b' '00').decode('hex')),
+                   '86af3b' '00')),
     dict(version=2, height=120891, reference_height=1000,
          items = (
              (4, Output(234925952, PubKeyHashId(0xeea463952d3cb47e05a5509c8e1b0fb5aa1cb061).script)),
              (16, Output(110397, PubKeyHashId(0xa4ca55957f7ef1c7aa500f1e16e24d4a1a8f988c).script))),
-         string = ('02' '08' '0220'
+         string = bytes.fromhex('02' '08' '0220'
                    '86ef97d579' '0061b01caab50f1b8e9c50a5057eb43c2d9563a4ee'
                    'bbd123'     '008c988f1a4a4de2161e0f50aac7f17e7f9555caa4'
-                   '86af3b' '8668').decode('hex')),
+                   '86af3b' '8668')),
 ]
 
-class TestUnspentTransactionScenarios(unittest2.TestCase):
+class TestUnspentTransactionScenarios(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_init_from_items(ScenarioTest):
         scenarios = UNSPENT_TRANSACTION
@@ -178,7 +178,7 @@ class TestUnspentTransactionScenarios(unittest2.TestCase):
     class test_init_from_serialization(ScenarioTest):
         scenarios = UNSPENT_TRANSACTION
         def __test__(self, version, height, items, string, **kwargs):
-            utx = UnspentTransaction.deserialize(StringIO(string))
+            utx = UnspentTransaction.deserialize(BytesIO(string))
             self.assertEqual(utx.version, version)
             self.assertEqual(utx.height, height)
             if 'reference_height' in kwargs:
@@ -191,8 +191,8 @@ class TestUnspentTransactionScenarios(unittest2.TestCase):
     class test_equality(ScenarioTest):
         scenarios = UNSPENT_TRANSACTION
         def __test__(self, version, height, items, string, **kwargs):
-            utx1 = UnspentTransaction.deserialize(StringIO(string))
-            utx2 = UnspentTransaction.deserialize(StringIO(string))
+            utx1 = UnspentTransaction.deserialize(BytesIO(string))
+            utx2 = UnspentTransaction.deserialize(BytesIO(string))
             self.assertTrue(utx1 == utx2)
             self.assertFalse(utx1 != utx2)
             self.assertEqual(utx1.serialize(), utx2.serialize())

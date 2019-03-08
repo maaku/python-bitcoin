@@ -12,12 +12,12 @@ import hashlib
 
 from copy import deepcopy
 from .serialize import LittleInteger
-from .tools import StringIO, tuple
+from .tools import BytesIO, tuple
 
 class _HashAlgorithm(object):
     def intdigest(self):
         "Returns the accumulated input interpreted as a little-endian integer."
-        return LittleInteger.deserialize(StringIO(self.digest()), self.digest_size)
+        return LittleInteger.deserialize(BytesIO(self.digest()), self.digest_size)
 
 class _NopHashAlgorithm(_HashAlgorithm):
     """This class implements the special case of `_ChainedHashAlgorithm([])`,
@@ -28,7 +28,7 @@ class _NopHashAlgorithm(_HashAlgorithm):
         """Takes one optional parameter, `string`, providing the initial input
         as a convenient shorthand."""
         if string is None:
-            string = ''
+            string = b''
         super(_NopHashAlgorithm, self).__init__(*args, **kwargs)
         self._input = string
 
@@ -80,7 +80,7 @@ class _ChainedHashAlgorithm(_HashAlgorithm):
     def __init__(self, algorithms, string=None, *args, **kwargs):
         """Takes one optional parameter, `string`, providing the initial input
         as a convenient shorthand."""
-        if string is None: string = ''
+        if string is None: string = b''
         super(_ChainedHashAlgorithm, self).__init__(*args, **kwargs)
         self._algorithms = algorithms
         self._hobj = hashlib.new(algorithms[0], string)
@@ -186,3 +186,5 @@ hash160 = _HashAlgorithmInterface(('sha256', 'ripemd160'))
 # the Merkle-tree compressor, and to generate transaction hash values for
 # identification.
 hash256 = _HashAlgorithmInterface(('sha256', 'sha256'))
+
+# End of File

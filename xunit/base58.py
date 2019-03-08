@@ -7,7 +7,7 @@
 import six
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
@@ -19,27 +19,27 @@ from bitcoin.base58 import *
 BASE58_CODEC = [
     dict(data='', result=u""),
     dict(data=chr(0), result=u"1"),
-    dict(data     = chr(0)+('1f8b1340c286881bcc449c37569ae320b013785d'+'48427760').decode('hex'),
+    dict(data     = b'\x00'+bytes.fromhex('1f8b1340c286881bcc449c37569ae320b013785d'+'48427760'),
          result   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP"),
-    dict(data     = chr(5)+('5ece0cadddc415b1980f001785947120acdb36fc'+'b43c48af').decode('hex'),
+    dict(data     = b'\x05'+bytes.fromhex('5ece0cadddc415b1980f001785947120acdb36fc'+'b43c48af'),
          result   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G"),
     # src/test/data/base58_encode_decode.json:
-    dict(data='61'.decode('hex'), result=u"2g"),
-    dict(data='626262'.decode('hex'), result=u"a3gV"),
-    dict(data='636363'.decode('hex'), result=u"aPEr"),
-    dict(data='516b6fcd0f'.decode('hex'), result=u"ABnLTmg"),
-    dict(data='bf4f89001e670274dd'.decode('hex'), result=u"3SEo3LWLoPntC"),
-    dict(data='572e4794'.decode('hex'), result=u"3EFU7m"),
-    dict(data='ecac89cad93923c02321'.decode('hex'), result=u"EJDM8drfXA6uyA"),
-    dict(data='10c8511e'.decode('hex'), result=u"Rt5zm"),
-    dict(data='00000000000000000000'.decode('hex'), result=u"1111111111"),
-    dict(data   = '73696d706c792061206c6f6e6720737472696e67'.decode('hex'),
+    dict(data=bytes.fromhex('61'), result=u"2g"),
+    dict(data=bytes.fromhex('626262'), result=u"a3gV"),
+    dict(data=bytes.fromhex('636363'), result=u"aPEr"),
+    dict(data=bytes.fromhex('516b6fcd0f'), result=u"ABnLTmg"),
+    dict(data=bytes.fromhex('bf4f89001e670274dd'), result=u"3SEo3LWLoPntC"),
+    dict(data=bytes.fromhex('572e4794'), result=u"3EFU7m"),
+    dict(data=bytes.fromhex('ecac89cad93923c02321'), result=u"EJDM8drfXA6uyA"),
+    dict(data=bytes.fromhex('10c8511e'), result=u"Rt5zm"),
+    dict(data=bytes.fromhex('00000000000000000000'), result=u"1111111111"),
+    dict(data   = bytes.fromhex('73696d706c792061206c6f6e6720737472696e67'),
          result = u"2cFupjhnEsSn59qHXstmK2ffpLv2"),
-    dict(data   = '00eb15231dfceb60925886b67d065299925915aeb172c06647'.decode('hex'),
+    dict(data   = bytes.fromhex('00eb15231dfceb60925886b67d065299925915aeb172c06647'),
          result = u"1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L"),
 ]
 
-class TestCodecBase58(unittest2.TestCase):
+class TestCodecBase58(unittest.TestCase):
     "Test encoding and decoding of base58 values."
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
@@ -56,15 +56,15 @@ class TestCodecBase58(unittest2.TestCase):
 from bitcoin.errors import HashChecksumError
 
 HASH_CHECKED_DATA = [
-    dict(data     = b'\x00' + '1f8b1340c286881bcc449c37569ae320b013785d'.decode('hex'),
-         checksum = '48427760'.decode('hex'),
+    dict(data     = b'\x00' + bytes.fromhex('1f8b1340c286881bcc449c37569ae320b013785d'),
+         checksum = bytes.fromhex('48427760'),
          base58   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP"),
-    dict(data     = b'\x05' + '5ece0cadddc415b1980f001785947120acdb36fc'.decode('hex'),
-         checksum = 'b43c48af'.decode('hex'),
+    dict(data     = b'\x05' + bytes.fromhex('5ece0cadddc415b1980f001785947120acdb36fc'),
+         checksum = bytes.fromhex('b43c48af'),
          base58   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G"),
 ]
 
-class TestHashCheckedData(unittest2.TestCase):
+class TestHashCheckedData(unittest.TestCase):
     "Test checksummed base58 values"
     __metaclass__ = ScenarioMeta
     class test_init(ScenarioTest):
@@ -99,7 +99,7 @@ BAD_HASH_DATA = [
     dict(data=b'\x00'*4),
 ]
 
-class TestBadHashChecksum(unittest2.TestCase):
+class TestBadHashChecksum(unittest.TestCase):
     "Test bad checksums for HashCheckedData"
     __metaclass__ = ScenarioMeta
     class test_bad_checksum(ScenarioTest):
@@ -112,16 +112,16 @@ class TestBadHashChecksum(unittest2.TestCase):
 
 VERSIONED_PAYLOAD = [
     dict(version  = 0,
-         payload  = '1f8b1340c286881bcc449c37569ae320b013785d'.decode('hex'),
-         checksum = '48427760'.decode('hex'),
+         payload  = bytes.fromhex('1f8b1340c286881bcc449c37569ae320b013785d'),
+         checksum = bytes.fromhex('48427760'),
          base58   = u"13snZ4ZyCzaL7358SmgvHGC9AxskqumNxP"),
     dict(version  = 5,
-         payload  = '5ece0cadddc415b1980f001785947120acdb36fc'.decode('hex'),
-         checksum = 'b43c48af'.decode('hex'),
+         payload  = bytes.fromhex('5ece0cadddc415b1980f001785947120acdb36fc'),
+         checksum = bytes.fromhex('b43c48af'),
          base58   = u"3ALJH9Y951VCGcVZYAdpA3KchoP9McEj1G"),
 ]
 
-class TestVersionedPayload(unittest2.TestCase):
+class TestVersionedPayload(unittest.TestCase):
     "Test versioned base58 payloads"
     __metaclass__ = ScenarioMeta
     class test_init(ScenarioTest):
@@ -159,7 +159,7 @@ class TestVersionedPayload(unittest2.TestCase):
             self.assertEqual(checked.checksum, checksum)
             self.assertEqual(checked.encode('base58'), base58)
 
-class TestInvalidInit(unittest2.TestCase):
+class TestInvalidInit(unittest.TestCase):
     def test_invalid_init_with_version_only(self):
         with self.assertRaises(VersionedPayloadError):
             VersionedPayload(version=0)

@@ -9,16 +9,16 @@ import six
 import gmpy2
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
 
 from bitcoin.authtree import *
-from bitcoin.tools import Bits, StringIO, icmp
+from bitcoin.tools import Bits, BytesIO, icmp
 
 # ===----------------------------------------------------------------------===
 
-class TestAuthTreeLink(unittest2.TestCase):
+class TestAuthTreeLink(unittest.TestCase):
     def test_init(self):
         pn = MemoryPatriciaAuthTree()
         pl = pn.link_class(Bits(b'0b0'), pn)
@@ -200,7 +200,7 @@ SCENARIOS = [
 #         patricia   = 0x273448b6c7830e881a4c599ba9ede939bca7c613800a242b4986a9d6939bf3ec),
 ]
 
-class TestAuthTreeSerialization(unittest2.TestCase):
+class TestAuthTreeSerialization(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_serialize(ScenarioTest):
         scenarios = SCENARIOS
@@ -216,11 +216,11 @@ class TestAuthTreeSerialization(unittest2.TestCase):
     class test_deserialize(ScenarioTest):
         scenarios = SCENARIOS
         def __test__(self, value, children, str_, composable, patricia):
-            pn = MemoryComposableAuthTree.deserialize(StringIO(str_))
+            pn = MemoryComposableAuthTree.deserialize(BytesIO(str_))
             self.assertEqual(pn.value, value)
             self.assertEqual(list((child.prefix, child.node) for child in pn.children), children)
             self.assertEqual(pn.hash, composable)
-            pn2 = MemoryPatriciaAuthTree.deserialize(StringIO(str_))
+            pn2 = MemoryPatriciaAuthTree.deserialize(BytesIO(str_))
             self.assertEqual(pn2.value, value)
             self.assertEqual(list((child.prefix, child.node) for child in pn2.children), children)
             self.assertEqual(pn2.hash, patricia)
@@ -337,7 +337,7 @@ SCENARIOS = [
     },
 ]
 
-class TestPatriciaDictScenarios(unittest2.TestCase):
+class TestPatriciaDictScenarios(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_init_mapping(ScenarioTest):
         scenarios = SCENARIOS
@@ -371,66 +371,66 @@ class TestPatriciaDictScenarios(unittest2.TestCase):
 
 class TestPatriciaDictScenarios2(object):
     def test_lt(self):
-        for flags in xrange(16):
+        for flags in range(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
             pn = MemoryPatriciaAuthTree()
             pn.update(items)
-            for other in xrange(16):
+            for other in range(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
                 pn2 = MemoryPatriciaAuthTree()
                 pn2.update(items2)
                 self.assertEqual(pn < pn2, cmp(sorted(items), sorted(items2)) < 0)
 
     def test_le(self):
-        for flags in xrange(16):
+        for flags in range(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
             pn = MemoryPatriciaAuthTree()
             pn.update(items)
-            for other in xrange(16):
+            for other in range(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
                 pn2 = MemoryPatriciaAuthTree()
                 pn2.update(items2)
                 self.assertEqual(pn <= pn2, cmp(sorted(items), sorted(items2)) <= 0)
 
     def test_eq(self):
-        for flags in xrange(16):
+        for flags in range(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
             pn = MemoryPatriciaAuthTree()
             pn.update(items)
-            for other in xrange(16):
+            for other in range(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
                 pn2 = MemoryPatriciaAuthTree()
                 pn2.update(items2)
                 self.assertEqual(pn == pn2, cmp(sorted(items), sorted(items2)) == 0)
 
     def test_ne(self):
-        for flags in xrange(16):
+        for flags in range(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
             pn = MemoryPatriciaAuthTree()
             pn.update(items)
-            for other in xrange(16):
+            for other in range(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
                 pn2 = MemoryPatriciaAuthTree()
                 pn2.update(items2)
                 self.assertEqual(pn != pn2, cmp(sorted(items), sorted(items2)) != 0)
 
     def test_ge(self):
-        for flags in xrange(16):
+        for flags in range(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
             pn = MemoryPatriciaAuthTree()
             pn.update(items)
-            for other in xrange(16):
+            for other in range(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
                 pn2 = MemoryPatriciaAuthTree()
                 pn2.update(items2)
                 self.assertEqual(pn >= pn2, cmp(sorted(items), sorted(items2)) >= 0)
 
     def test_gt(self):
-        for flags in xrange(16):
+        for flags in range(16):
             items = [(k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_']
             pn = MemoryPatriciaAuthTree()
             pn.update(items)
-            for other in xrange(16):
+            for other in range(16):
                 items2 = [(k,v) for k,v in six.iteritems(SCENARIOS[other]) if k != 'hash_']
                 pn2 = MemoryPatriciaAuthTree()
                 pn2.update(items2)
@@ -576,7 +576,7 @@ class TestPatriciaDictScenarios3(object):
 
 class TestPatriciaDictScenarios4(object):
     def test_contains(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
@@ -586,7 +586,7 @@ class TestPatriciaDictScenarios4(object):
                     self.assertNotIn(key, pn)
 
     def test_has_key(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
@@ -619,7 +619,7 @@ class TestPatriciaDictScenarios5(object):
 
 class TestPatriciaDictScenarios6(object):
     def test_update(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for idx,scenario in enumerate(SCENARIOS):
@@ -655,7 +655,7 @@ class TestPatriciaDictScenarios6(object):
                 self.assertEqual(pn4.length, gmpy2.popcount(flags|idx))
 
     def test_setitem(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
@@ -672,7 +672,7 @@ class TestPatriciaDictScenarios6(object):
                     pn2[key] = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d
 
     def test_setdefault(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):
@@ -690,7 +690,7 @@ class TestPatriciaDictScenarios6(object):
                     self.assertEqual(pn2.hash, SCENARIOS[flags | ord(value)]['hash_'])
 
     def test_trim(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             pn2 = MemoryPatriciaAuthTree()
@@ -715,7 +715,7 @@ class TestPatriciaDictScenarios6(object):
             self.assertEqual(pn3.length, gmpy2.popcount(flags&3))
 
     def test_prune(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             old_items = set((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             pn.update(old_items)
@@ -756,7 +756,7 @@ class TestPatriciaDictScenarios6(object):
                             self.assertEqual(d[key], value)
 
     def test_delete(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for idx,scenario in enumerate(SCENARIOS):
@@ -788,7 +788,7 @@ class TestPatriciaDictScenarios6(object):
                 self.assertEqual(pn3.length, gmpy2.popcount(flags & ~idx))
 
     def test_delitem(self):
-        for flags in xrange(16):
+        for flags in range(16):
             pn = MemoryPatriciaAuthTree()
             pn.update((k,v) for k,v in six.iteritems(SCENARIOS[flags]) if k != 'hash_')
             for key,value in six.iteritems(ADDRESS_TO_VALUE):

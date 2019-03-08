@@ -4,6 +4,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 from bitcoin.core import *

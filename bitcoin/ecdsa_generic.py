@@ -10,7 +10,7 @@ from struct import unpack
 
 from .mixins import SerializableMixin
 from .serialize import BigInteger, BigNum
-from .tools import StringIO
+from .tools import BytesIO
 
 from .ecdsa__common import *
 
@@ -23,12 +23,12 @@ import ecdsa as pyecdsa
 try:
     SECP256k1 = pyecdsa.curves.find_curve((1, 3, 132, 0, 10))
 except pyecdsa.curves.UnknownCurveError:
-    _a  = 0x0000000000000000000000000000000000000000000000000000000000000000L
-    _b  = 0x0000000000000000000000000000000000000000000000000000000000000007L
-    _p  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2FL
-    _Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798L
-    _Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8L
-    _r  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141L
+    _a  = 0x0000000000000000000000000000000000000000000000000000000000000000
+    _b  = 0x0000000000000000000000000000000000000000000000000000000000000007
+    _p  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+    _Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+    _Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+    _r  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
     curve_secp256k1 = pyecdsa.ellipticcurve.CurveFp(_p, _a, _b)
     generator_secp256k1 = pyecdsa.ellipticcurve.Point(curve_secp256k1, _Gx, _Gy, _r)
     SECP256k1 = pyecdsa.curves.Curve('SECP256k1',
@@ -126,7 +126,7 @@ class Secret(VersionedPayload):
 
     # The exponent is stored as a 256-bit big endian integer, the first field
     # of the payload:
-    exponent = property(lambda self:BigInteger.deserialize(StringIO(self.payload[:32]), 32))
+    exponent = property(lambda self:BigInteger.deserialize(BytesIO(self.payload[:32]), 32))
     # A compressed key is requested by suffixing 0x01 to the payload field. Note
     # that the following comparison only returns true if payload is exactly 33
     # bytes in length and the final byte is '\x01'.
@@ -167,8 +167,8 @@ class Signature(SerializableMixin, BaseSignature):
         s_len, seq = unpack('>B', seq[:1])[0], seq[1:]
         s_str = seq[:s_len]
         assert 2+r_len+2+s_len == seq_len, (2+r_len+2+s_len, seq_len)
-        return cls(BigNum.deserialize(StringIO(r_str), len(r_str)),
-                   BigNum.deserialize(StringIO(s_str), len(s_str)))
+        return cls(BigNum.deserialize(BytesIO(r_str), len(r_str)),
+                   BigNum.deserialize(BytesIO(s_str), len(s_str)))
 
 class CompactSignature(Signature):
     def __init__(self, v, r, s, *args, **kwargs):
@@ -252,7 +252,7 @@ class VerifyingKey(object):
     @classmethod
     def deserialize(cls, file_):
         id_ = unpack('>B', file_.read(1))[0]
-        assert id_ in (0x02, 0x03, 0x04), id_
+        assert id_ in (0x02, 0x03, 0x04), "%s is not a recognized public key prefix" % hex(id_)
         x = pyecdsa.util.string_to_number(file_.read(SECP256k1.baselen))
         if id_ in (0x02, 0x03):
             compressed = True
@@ -274,3 +274,5 @@ class VerifyingKey(object):
 # ===----------------------------------------------------------------------===
 
 from .hash import hash256
+
+# End of File

@@ -7,12 +7,14 @@
 import six
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
 
 from bitcoin.hash import *
+
+from base64 import b64decode
 
 # ===----------------------------------------------------------------------===
 
@@ -21,12 +23,12 @@ HASH160 = [
          hash_ = 0xcb9f3b7c6fb1cf2c13a40637c189bdd066a272b4),
     dict(data  = b'abc',
          hash_ = 0x33dce478a942391c98a36aa5d74424148ce91bbb),
-    dict(data  = ('BGeK/bD+VUgnGWfxpnEwtxBc1qgo4DkJpnli4OofYd62Sfa8P0zvOMTzVQTlHsES3lw4Tfe6C41X'
-                  'ikxwK2vxHV8=').decode('base64'),
+    dict(data  = b64decode('BGeK/bD+VUgnGWfxpnEwtxBc1qgo4DkJpnli4OofYd62Sfa8P0zvOMTzVQTlHsES3lw4Tfe6C41X'
+                           'ikxwK2vxHV8='),
          hash_ = 0x188fb8eb50fbf0f6eb995342d527bf5cb107e962),
 ]
 
-class TestHash160(unittest2.TestCase):
+class TestHash160(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_hash160(ScenarioTest):
         scenarios = HASH160
@@ -40,12 +42,12 @@ HASH256 = [
          hash_ = 0x56944c5d3f98413ef45cf54545538103cc9f298e0575820ad3591376e2e0f65d),
     dict(data  = b'abc',
          hash_ = 0x58636c3ec08c12d55aedda056d602d5bcca72d8df6a69b519b72d32dc2428b4f),
-    dict(data  = ('AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO6Pt/Xp7ErJ6xyw+Z3aPYX/IG8OI'
-                  'ilEyOp+4qkseXkopq19J//8AHR2sK3w=').decode('base64'),
+    dict(data  = b64decode('AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO6Pt/Xp7ErJ6xyw+Z3aPYX/IG8OI'
+                           'ilEyOp+4qkseXkopq19J//8AHR2sK3w='),
          hash_ = 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f),
 ]
 
-class TestHash256(unittest2.TestCase):
+class TestHash256(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_hash256(ScenarioTest):
         scenarios = HASH256

@@ -17,7 +17,7 @@ except:
     except:
         import django.utils.simplejson as json
 
-from .tools import StringIO
+from .tools import BytesIO
 from .numeric import mpd
 from .serialize import LittleInteger
 
@@ -149,7 +149,7 @@ class Proxy(object):
             self.uri, self.service, self.username,
             LittleInteger(self._ctr).serialize(4), time.ctime(),
             LittleInteger(randrange(2**32)).serialize(4)])).digest()
-        id_ = LittleInteger.deserialize(StringIO(hash_[:4]), 4)
+        id_ = LittleInteger.deserialize(BytesIO(hash_[:4]), 4)
 
         # Execute the JSON-RPC call:
         payload = dumps(id_, self.service, kwargs or args)
@@ -178,3 +178,5 @@ class Proxy(object):
             return response['result']
         else:
             raise ResponseError(u"server reply must contain one of 'result' or 'error'")
+
+# End of File

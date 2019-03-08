@@ -17,3 +17,5 @@ def get_version():
             if VERSION[4] != 0:
                 version = '%s%s' % (version, VERSION[4])
     return version
+
+# End of File

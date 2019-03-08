@@ -6,13 +6,15 @@
 
 # ===----------------------------------------------------------------------===
 
-# Use the built-in, fast cStringIO module if it is available for this
-# platform, otherwise fallback on the interpreted Python standard library
-# implementation.
-try:
-    from cStringIO import StringIO
-except:
-    from StringIO import StringIO
+# This would be cStringIO onn Python 2.7, if we re-enable support for
+# python2.
+from io import BytesIO
+
+# ===----------------------------------------------------------------------===
+
+# Conditionally remove the following if we re-enable support for
+# python2.
+long = int
 
 # ===----------------------------------------------------------------------===
 
@@ -63,6 +65,7 @@ def decompress_amount(x):
         x = 1+10*(n - 1) + 9"""
     if not x: return 0;
     x = x - 1;
+
     # x = 10*(9*n + d - 1) + e
     x, e = divmod(x, 10);
     n = 0;
@@ -135,6 +138,10 @@ def target_from_compact(bits):
 
 # ===----------------------------------------------------------------------===
 
+def cmp(a, b):
+    "Returs -1 if a<b, 0 if a==b, and 1 if a>b.  Removed in python3."
+    return (a>b)-(a<b)
+
 def icmp(a, b):
     "Like cmp(), but for any iterator."
     for xa in a:
@@ -145,7 +152,7 @@ def icmp(a, b):
         except StopIteration:
             return 1
     try:
-        b.next()
+        next(b)
         return -1
     except StopIteration:
         return 0
@@ -194,3 +201,5 @@ def Constant(initial):
     def _func(height):
         return initial
     return _func
+
+# End of File

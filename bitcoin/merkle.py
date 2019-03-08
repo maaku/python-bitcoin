@@ -9,7 +9,6 @@ from .hash import hash256
 
 # ===----------------------------------------------------------------------===
 
-from itertools import izip
 from .tools import list
 
 def _merkle_hash256(*args):
@@ -72,7 +71,7 @@ def merkle(hashes, func=_merkle_hash256):
         # The last element is ignored if there is an odd number of elements
         # (meaning there was originally an even number, because of the append
         # operation above).
-        hashes = list(func(l,r) for l,r in izip(*(iter(hashes),)*2))
+        hashes = list(func(l,r) for l,r in zip(*(iter(hashes),)*2))
     # Return the root node of the Merkle tree to the caller.
     return hashes[0]
 
@@ -124,7 +123,8 @@ class MerkleNode(HashableMixin):
                 raise TypeError(u"single element node is only possible in a single element list")
             # If unspecified, we assume a size of 1, a single-element list, and
             # length is 1 for a list of size 1, 0 otherwise.
-            size = max((size, 1))
+            if size is None:
+                size = 1
             if length is None:
                 length = (size==1 and prune is None) and 1 or 0
             if not (0 <= length <= 1):
@@ -144,12 +144,12 @@ class MerkleNode(HashableMixin):
             #   hash, hash size=2 length=1 prune=RIGHT_NODE
             #   hash==hash size=1 length=1 prune=RIGHT_NODE
             if left_is_hash and right_is_hash:
-                if size > 2:
+                if size is not None and size > 2:
                     raise TypeError(u"impossible for a leaf node to contain more than two elements")
-                if size == 2 and length==1:
+                if size is not None and size == 2 and length is not None and length==1:
                     if prune not in (self.LEFT_NODE, self.RIGHT_NODE):
                         raise TypeError(u"must specify which branch is pruned")
-                if size == 1:
+                if size is not None and size == 1:
                     if prune not in (None, self.RIGHT_NODE):
                         raise TypeError(u"unrecognized pruning choice for single element leaf node")
                     prune = self.RIGHT_NODE
@@ -430,7 +430,7 @@ class MerkleList(SerializableMixin):
             self._root = MerkleNode(hashes[0])
         else:
             while len(hashes) > 1:
-                next_hashes = list(MerkleNode(l,r) for l,r in izip(*(iter(hashes),)*2))
+                next_hashes = list(MerkleNode(l,r) for l,r in zip(*(iter(hashes),)*2))
                 if len(hashes) & 1:
                     left  = hashes[-1]
                     right = getattr(left, 'hash', left)
@@ -449,3 +449,4 @@ class MerkleList(SerializableMixin):
     def deserialize(cls, file_):
         raise NotImplementedError()
 
+# End of File

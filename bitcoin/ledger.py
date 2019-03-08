@@ -84,7 +84,7 @@ class UnspentTransaction(SerializableMixin, sorteddict):
         follow.
       - unspentness bitvector: bits 1 (0x02) and 13 (0x2000) are set, so
         outputs[1+3] and outputs[13+3] are unspent
-      - outputs[4]: 86ef97d5790061b01caab50f1b8e9c50a5057eb43c2d9563a4ee
+z      - outputs[4]: 86ef97d5790061b01caab50f1b8e9c50a5057eb43c2d9563a4ee
                     * 86ef97d579: compact amount representation for 234925952 (2.35 BTC)
                     * 00: special txout type pay-to-pubkey-hash
                     * 61b01caab50f1b8e9c50a5057eb43c2d9563a4ee: address uint160
@@ -346,3 +346,5 @@ class BaseContractIndex(object):
 
 class MemoryContractIndex(BaseContractIndex, MemoryPatriciaAuthTree):
     pass
+
+# End of File

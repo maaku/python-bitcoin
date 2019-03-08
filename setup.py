@@ -10,9 +10,9 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.md')).read()
-requires = filter(lambda r:'libs/' not in r,
-    open(os.path.join(here, 'requirements.txt')).read().split())
-packages = filter(lambda p:not p.startswith('xunit'), find_packages())
+requires = [x for x in filter(lambda r:'libs/' not in r,
+    open(os.path.join(here, 'requirements.txt')).read().split())]
+packages = [x for x in filter(lambda p:not p.startswith('xunit'), find_packages())]
 
 from bitcoin import get_version
 version = get_version().replace(' ', '-')

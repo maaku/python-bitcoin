@@ -15,24 +15,24 @@ __all__ = [
 
 from .errors import InvalidBase58Error, HashChecksumError, VersionedPayloadError
 from .serialize import BigInteger
-from .tools import StringIO
+from .tools import BytesIO
 
 # ===----------------------------------------------------------------------===
 
-b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+b58digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
-def b58_encode(b, errors='strict'):
+def b58encode(b, errors='strict'):
     "Encode bytes to a base58-encoded string."
     len_ = len(b)
 
     # Convert big-endian bytes to integer
-    n = BigInteger.deserialize(StringIO(b), len_)
+    n = BigInteger.deserialize(BytesIO(b), len_)
 
     # Divide that integer into base58
     res = []
     while n > 0:
         n, r = divmod (n, 58)
-        res.append(b58_digits[r])
+        res.append(b58digits[r])
     res = ''.join(res[::-1])
 
     # Encode leading zeros as base58 zeros
@@ -40,9 +40,9 @@ def b58_encode(b, errors='strict'):
     for c in b:
         if c == six.int2byte(0): pad += 1
         else: break
-    return (b58_digits[0] * pad + res, len_)
+    return (b58digits[0] * pad + res, len_)
 
-def b58_decode(s, errors='strict'):
+def b58decode(s, errors='strict'):
     "Decode a base58-encoding string, returning bytes."
     if not s:
         return (b'', 0)
@@ -51,10 +51,10 @@ def b58_decode(s, errors='strict'):
     n = 0
     for c in s:
         n *= 58
-        if c not in b58_digits:
+        if c not in b58digits:
             raise InvalidBase58Error(u"character %r is not a valid base58 "
                 u"character" % c)
-        digit = b58_digits.index(c)
+        digit = b58digits.index(c)
         n += digit
 
     # Convert the integer to bytes
@@ -63,7 +63,7 @@ def b58_decode(s, errors='strict'):
     # Add padding back.
     pad = 0
     for c in s[:-1]:
-        if c == b58_digits[0]: pad += 1
+        if c == b58digits[0]: pad += 1
         else: break
     return (b'\x00' * pad + res, len(s))
 
@@ -73,7 +73,7 @@ try:
 except LookupError:
     def searcher(name):
         if name == 'base58':
-            return codecs.CodecInfo(b58_encode, b58_decode, name=name)
+            return codecs.CodecInfo(b58encode, b58decode, name=name)
         else:
             return None
     codecs.register(searcher)
@@ -157,3 +157,5 @@ class VersionedPayload(HashCheckedData):
 # dependency that would otherwise occur (the Secret class within the crypto
 # module derives from VersionedPayload).
 from .hash import hash256
+
+# End of File

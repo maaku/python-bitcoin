@@ -9,7 +9,7 @@ from struct import pack, unpack
 
 from .mixins import SerializableMixin
 from .serialize import LittleCompactSize, FlatData
-from .tools import StringIO
+from .tools import BytesIO
 
 # ===----------------------------------------------------------------------===
 
@@ -513,10 +513,10 @@ class ScriptOp(SerializableMixin, six.binary_type):
             return True
         if OP_1 <= self.opcode <= OP_16:
             return True
-        if self.opcode in xrange(1,OP_PUSHDATA4+1):
+        if self.opcode in range(1,OP_PUSHDATA4+1):
             return (
-                any(map(lambda c:c!='\x00', self.data[:-1])) or
-                self.data[-1] not in ('\x00', '\x80'))
+                any(map(lambda c:c!=b'\x00', self.data[:-1])) or
+                self.data[-1] not in (b'\x00', b'\x80'))
         else:
             raise ValueError(u"non-data script-op cannot be interpreted as truth value")
 
@@ -535,9 +535,9 @@ class ScriptOp(SerializableMixin, six.binary_type):
             return 0
         elif OP_1 <= self.opcode <= OP_16:
             return self.opcode - OP_1 + 1
-        elif self.opcode in xrange(1,OP_PUSHDATA4+1):
-            data = self.data[:-1] + chr(ord(self.data[-1])&0x7f)
-            return BigNum.deserialize(StringIO(data), len(data))
+        elif self.opcode in range(1,OP_PUSHDATA4+1):
+            data = self.data[:-1] + pack("<B", unpack("<B", self.data[-1]) & 0x7f)
+            return BigNum.deserialize(BytesIO(data), len(data))
         else:
             raise ValueError(u"non-data script-op cannot be interpreted as integer")
 
@@ -567,9 +567,9 @@ class ScriptOp(SerializableMixin, six.binary_type):
 
     def __repr__(self):
         data_str = ''.join([
-            '\'',
+            'bytes.fromhex(\'',
             (self.data or '').encode('hex'),
-            '\'.decode(\'hex\')'])
+            '\')'])
         if self.opcode>0 and self.opcode<=OP_PUSHDATA4:
             return data_str
         else:
@@ -588,7 +588,7 @@ class Script(SerializableMixin, six.binary_type):
     def __iter__(self):
         script_op_class = getattr(self, 'get_script_op_class', lambda:
                           getattr(self, 'script_op_class', ScriptOp))()
-        file_ = StringIO(self)
+        file_ = BytesIO(self)
         while True:
             yield script_op_class.deserialize(file_)
 
@@ -625,7 +625,7 @@ class ScriptPickler(object):
     that, scripts up to 16505 bytes require 2 bytes + script length."""
     def __init__(self, file=None, protocol=SER_DISK, version=CLIENT_VERSION,
                  *args, **kwargs):
-        if file is None: file = StringIO()
+        if file is None: file = BytesIO()
         super(ScriptPickler, self).__init__(*args, **kwargs)
         self._file = file
         self._protocol = protocol
@@ -664,7 +664,7 @@ class ScriptPickler(object):
                         0:  65,
                         1:  4,
                         66: OP_CHECKSIG})):
-            str_ = b''.join([six.int2byte(0x04 | ord(script[65:66])&0x01), script[2:34]])
+            str_ = b''.join([six.int2byte(0x04 | pack("<B", script[65:66]) & 0x01), script[2:34]])
         else:
             str_ = b''.join([LittleCompactSize(script_len + 0x06).serialize(), script])
         file_.write(str_)
@@ -697,7 +697,7 @@ class ScriptPickler(object):
                 six.int2byte(OP_CHECKSIG),
             ])
         elif size in (4, 5):
-            verifying_key = VerifyingKey.deserialize(StringIO(
+            verifying_key = VerifyingKey.deserialize(BytesIO(
                 b''.join([six.int2byte(size-2), file_.read(32)])))
             verifying_key.compressed = False
             return b''.join([
@@ -725,7 +725,7 @@ class ScriptPickler(object):
 
     def dumps(self, script):
         "Return a compressed representation of script as a binary string."
-        string = StringIO()
+        string = BytesIO()
         self._dump(script, string, self._protocol, self._version)
         return string.getvalue()
 
@@ -740,14 +740,14 @@ class ScriptPickler(object):
     def loads(self, string):
         "Decompress the passed-in compact script and return the result."
         script_class = self.get_script_class()
-        script = self._load(StringIO(string), self._protocol, self._version)
+        script = self._load(BytesIO(string), self._protocol, self._version)
         return script_class(script)
 
 ScriptUnpickler = ScriptPickler
 
 # ===----------------------------------------------------------------------===
 
-__all__ = OPCODE_NAMES.values() + [
+__all__ = [x for x in OPCODE_NAMES.values()] + [
     'OP_TRUE',
     'OP_FALSE',
     'OP_INVALIDOPCODE',
@@ -758,3 +758,5 @@ __all__ = OPCODE_NAMES.values() + [
 ]
 
 from .crypto import VerifyingKey
+
+# End of File

@@ -7,7 +7,7 @@
 import six
 
 # Python standard library, unit-testing
-import unittest2
+import unittest
 
 # Scenario unit-testing
 from scenariotest import ScenarioMeta, ScenarioTest
@@ -17,24 +17,24 @@ from bitcoin.serialize import BigInteger
 
 # ===----------------------------------------------------------------------===
 
-class TestSECP256k1(unittest2.TestCase):
+class TestSECP256k1(unittest.TestCase):
     def test_name(self):
         self.assertEqual(SECP256k1.name, 'SECP256k1')
     def test_order(self):
         self.assertEqual(SECP256k1.order,
-            0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141l)
+            0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141)
 
 # ===----------------------------------------------------------------------===
 
 SECRET = [
     dict(exponent=0x12b004fff7f4b69ef8650e767f18f11ede158148b425660723b9f9a66e61f747,
-         secret=('8012b004fff7f4b69ef8650e767f18f11ede158148b425660723b9f9a66e61f747'
-                 'ef4604d4').decode('hex'),
-         compressed_secret=('8012b004fff7f4b69ef8650e767f18f11ede158148b42566'
-                            '0723b9f9a66e61f747017555cd1c').decode('hex')),
+         secret=bytes.fromhex('8012b004fff7f4b69ef8650e767f18f11ede158148b425660723b9f9a66e61f747'
+                              'ef4604d4'),
+         compressed_secret=bytes.fromhex('8012b004fff7f4b69ef8650e767f18f11ede158148b42566'
+                                         '0723b9f9a66e61f747017555cd1c')),
 ]
 
-class TestSecret(unittest2.TestCase):
+class TestSecret(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_init_with_exponent(ScenarioTest):
         scenarios = SECRET
@@ -191,7 +191,7 @@ class TestSecret(unittest2.TestCase):
             self.assertEqual(obj.exponent, exponent)
             self.assertTrue(obj.compressed)
 
-class TestInvalidSecret(unittest2.TestCase):
+class TestInvalidSecret(unittest.TestCase):
     def test_zero_exponent(self):
         with self.assertRaises(InvalidSecretError):
             Secret(0)
@@ -201,67 +201,67 @@ class TestInvalidSecret(unittest2.TestCase):
 
 INVALID_SECRET = [
     # Too short:
-    dict(data='80c9403978'.decode('hex')),
-    dict(data='80aaa39001da'.decode('hex')),
-    dict(data='80aaaa4aed84b5'.decode('hex')),
-    dict(data='80aaaaaac05059f9'.decode('hex')),
-    dict(data='80aaaaaaaacefeae53'.decode('hex')),
-    dict(data='80aaaaaaaaaa8c320e33'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaa5a665f8'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaae3f86dfb'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaacb6cc949'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaa61692a74'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaa321fe192'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaa4fc531d'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaa16e56673'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaf27e7229'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaa4dd31ac3'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaae4d3898c'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7a093f27'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa70f0f079'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab0d03310'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4032bec4'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad1bdc2a6'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa08842663'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa13804d87'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2f309376'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6fcb36d9'.decode('hex')),
-    dict(data='80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa80cd17e3'.decode('hex')),
-    dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3837c3'
-               'ba').decode('hex')),
-    dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2afb'
-               '1017').decode('hex')),
-    dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa64'
-               'fe3d5f').decode('hex')),
-    dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               '1ff0722c').decode('hex')),
-    dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aa60be0015').decode('hex')),
-    dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aaaaff5ad9e4').decode('hex')),
+    dict(data=bytes.fromhex('80c9403978')),
+    dict(data=bytes.fromhex('80aaa39001da')),
+    dict(data=bytes.fromhex('80aaaa4aed84b5')),
+    dict(data=bytes.fromhex('80aaaaaac05059f9')),
+    dict(data=bytes.fromhex('80aaaaaaaacefeae53')),
+    dict(data=bytes.fromhex('80aaaaaaaaaa8c320e33')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaa5a665f8')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaae3f86dfb')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaacb6cc949')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaa61692a74')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaa321fe192')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaa4fc531d')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaa16e56673')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaf27e7229')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaa4dd31ac3')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaae4d3898c')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7a093f27')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa70f0f079')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab0d03310')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4032bec4')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad1bdc2a6')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa08842663')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa13804d87')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2f309376')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6fcb36d9')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa80cd17e3')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3837c3'
+               'ba')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2afb'
+               '1017')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa64'
+               'fe3d5f')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+               '1ff0722c')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+               'aa60be0015')),
+    dict(data=bytes.fromhex('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+               'aaaaff5ad9e4')),
     # Skipped from the sequence because they actually are valid encoded
     # secrets:
     #dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-    #           'aaaaaa29c70ff0').decode('hex')),
+    #           'aaaaaa29c70ff0')),
     #dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-    #           'aaaaaa010ad26876').decode('hex')),
+    #           'aaaaaa010ad26876')),
     # Too long (note that the compression flag is in the right place so we
     # really are just testing length restrictions):
     dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aaaaaa01aa17cbb871').decode('hex')),
+               'aaaaaa01aa17cbb871')),
     # Incorrect version:
     dict(data=('00aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aaaaaa5f664771').decode('hex')),
+               'aaaaaa5f664771')),
     dict(data=('81aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aaaaaa011209e510').decode('hex')),
+               'aaaaaa011209e510')),
     # Invalid compression flag
     dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aaaaaa004156aa8f').decode('hex')),
+               'aaaaaa004156aa8f')),
     dict(data=('80aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-               'aaaaaaffbd5d1019').decode('hex')),
+               'aaaaaaffbd5d1019')),
 ]
 
-class TestInvalidSecret(unittest2.TestCase):
+class TestInvalidSecret(unittest.TestCase):
     __metaclass__ = ScenarioMeta
     class test_invalid_init_with_exponent(ScenarioTest):
         scenarios = INVALID_SECRET
