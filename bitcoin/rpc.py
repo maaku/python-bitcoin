@@ -98,7 +98,7 @@ def dumps(id, method, params):
     else:
         jsonargs.update({'method': method})
         jsonargs.update({'params': params})
-    return json.dumps(jsonargs, ensure_ascii=False).encode('utf-8')
+    return json.dumps(jsonargs, ensure_ascii=False)
 
 #
 # loads(payload)
@@ -117,10 +117,6 @@ class Proxy(object):
                  timeout=15, *args, **kwargs):
         if username is None: username = 'rpcuser'
         if password is None: password = ''
-        if isinstance(uri, six.text_type): uri = uri.encode('utf-8')
-        if isinstance(password, six.text_type): password = password.encode('utf-8')
-        if isinstance(username, six.text_type): username = username.encode('utf-8')
-        if isinstance(service, six.text_type): service = service.encode('utf-8')
         super(Proxy, self).__init__(*args, **kwargs)
         self._ctr = 0
         self.uri = uri
@@ -146,8 +142,11 @@ class Proxy(object):
         # Generate a pseudo-random numeric identifier for this request:
         self._ctr = (self._ctr+1) & 0xffffffff
         hash_ = sha1(b''.join([
-            self.uri, self.service, self.username,
-            LittleInteger(self._ctr).serialize(4), time.ctime(),
+            self.uri.encode('utf-8'),
+            self.service.encode('utf-8'),
+            self.username.encode('utf-8'),
+            LittleInteger(self._ctr).serialize(4),
+            time.ctime().encode('utf-8'),
             LittleInteger(randrange(2**32)).serialize(4)])).digest()
         id_ = LittleInteger.deserialize(BytesIO(hash_[:4]), 4)
 
