@@ -108,7 +108,7 @@ maintainer-clean: distclean
 
 .PHONY: dist
 dist:
-	"${PYENV}"/bin/python setup.py sdist
+	"${PYENV}"/bin/python setup.py sdist bdist_wheel
 
 # ===--------------------------------------------------------------------===
 
