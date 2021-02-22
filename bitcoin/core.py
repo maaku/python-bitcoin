@@ -188,7 +188,7 @@ class Transaction(SerializableMixin, HashableMixin):
 
     @property
     def is_coinbase(self):
-        return 1==len(self.inputs) and not self.inputs[0].is_coinbase
+        return 1==len(self.inputs) and self.inputs[0].is_coinbase
 
     def __eq__(self, other):
         return all((self.version     == other.version,
