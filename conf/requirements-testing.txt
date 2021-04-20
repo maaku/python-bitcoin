@@ -3,7 +3,7 @@ attrs==19.1.0
 coverage==4.5.2
 more-itertools==6.0.0
 pluggy==0.9.0
-py==1.8.0
+py==1.10.0
 pytest==4.3.0
 scenariotest==1.0
 unittest-xml-reporting==2.2.1
